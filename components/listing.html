@@ -1,0 +1,18 @@
+{% block content %}
+<div class="listing">
+    {% if data %}
+    <div class="listing-headers">
+        {% for title in data.0.keys %}
+        <div>{{ title }}</div>
+        {% endfor %}
+    </div>
+    <div class="listing-rows">
+        {% for elmnt in data %}
+        <div class="listing-row">{{ elmnt["symbol"]}} {{ elmnt["amount"] }} {{ elmnt["yield_24"] }}</div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>Aucune donnée disponible</p>
+    {% endif %}
+</div>
+{% endblock %}
