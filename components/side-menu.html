@@ -1,9 +1,107 @@
-{% block content %}
-<div class="menu">
-    <ul>
-        <li><a href="">Accueil</a></li>
-        <li></li><a href="">Dashboard</a></li>
-        <li></li><a href="">Portefeuille</a></li>
+<!-- Menu Toggle Button (Mobile) -->
+<button class="menu-toggle" id="menuToggle" title="Toggle Menu">
+    <span class="material-icons">menu</span>
+</button>
+
+<!-- Side Menu -->
+<div class="side-menu" id="sideMenu">
+    <div class="menu-header">
+        <h2>Tradiaries</h2>
+    </div>
+    
+    <ul class="menu-list">
+        <!-- Dashboard -->
+        <li>
+            <a href="{% url 'dashboard:index' %}">📊 Dashboard</a>
+        </li>
+        
+        <!-- Investissements -->
+        <li>
+            <a href="/investments/">💰 Investissements</a>
+        </li>
+        
+        <!-- Trading Spot avec sous-menu -->
+        <li class="has-submenu">
+            <a href="/spot-trading/" class="submenu-trigger">
+                <span>🟢 Trading Spot</span>
+                <span class="submenu-toggle">›</span>
+            </a>
+            <ul class="submenu">
+                <li><a href="/spot-trading/positions/">📍 Positions</a></li>
+                <li><a href="/spot-trading/history/">📋 Historique</a></li>
+            </ul>
+        </li>
+        
+        <!-- Trading Futures avec sous-menu -->
+        <li class="has-submenu">
+            <a href="/futures-trading/" class="submenu-trigger">
+                <span>📈 Trading Futures</span>
+                <span class="submenu-toggle">›</span>
+            </a>
+            <ul class="submenu">
+                <li><a href="/futures-trading/open/">🔴 Positions ouvertes</a></li>
+                <li><a href="/futures-trading/journal/">📕 Journal fermé</a></li>
+                <li><a href="/futures-trading/stats/">📊 Statistiques</a></li>
+            </ul>
+        </li>
+        
+        <!-- DCA -->
+        <li>
+            <a href="/dca/">🔄 DCA</a>
+        </li>
+        
+        <!-- Analytics -->
+        <li>
+            <a href="/analytics/">📉 Analytics</a>
+        </li>
+        
+        <!-- Journal -->
+        <li>
+            <a href="/journal/">📝 Journal</a>
+        </li>
+        
+        <!-- Paramètres -->
+        <li>
+            <a href="/settings/">⚙️ Paramètres</a>
+        </li>
     </ul>
 </div>
-{% endblock %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const menuToggle = document.getElementById('menuToggle');
+    const sideMenu = document.getElementById('sideMenu');
+    const mainContent = document.querySelector('.main-content');
+    
+    // Toggle menu visibility
+    menuToggle.addEventListener('click', function() {
+        sideMenu.classList.toggle('hidden');
+        if (mainContent) {
+            mainContent.classList.toggle('expanded');
+        }
+    });
+    
+    // Handle submenu clicks
+    const submenuTriggers = document.querySelectorAll('.submenu-trigger');
+    submenuTriggers.forEach(trigger => {
+        trigger.addEventListener('click', function(e) {
+            e.preventDefault();
+            const parent = this.parentElement;
+            parent.classList.toggle('open');
+        });
+    });
+    
+    // Close menu on mobile when clicking a link
+    if (window.innerWidth <= 768) {
+        const links = sideMenu.querySelectorAll('a:not(.submenu-trigger)');
+        links.forEach(link => {
+            link.addEventListener('click', function() {
+                sideMenu.classList.add('hidden');
+                if (mainContent) {
+                    mainContent.classList.add('expanded');
+                }
+            });
+        });
+    }
+});
+</script>

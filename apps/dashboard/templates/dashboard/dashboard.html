@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tradiaries - Dashboard{% endblock %}</title>
+    
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- CSS global -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
+    {% block extra_css %}
+    {% endblock %}
+</head>
+<body>
+    {% include 'components/side-menu.html' %}
+
+    <div class="main-content">
+        {% block content %}
+        <div class="dashboard-container">
+            <h1>Bienvenue sur Tradiaries</h1>
+            <p>Plateforme de suivi d'investissements et de trading</p>
+            
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <h3>Portfolio Value</h3>
+                    <p class="kpi-value">-</p>
+                </div>
+                <div class="kpi-card">
+                    <h3>Total P&L</h3>
+                    <p class="kpi-value">-</p>
+                </div>
+                <div class="kpi-card">
+                    <h3>ROI</h3>
+                    <p class="kpi-value">-</p>
+                </div>
+            </div>
+
+            <div class="quick-access">
+                <a href="/investments/" class="btn btn-primary">Investissements</a>
+                <a href="/spot-trading/" class="btn btn-primary">Spot Trading</a>
+                <a href="/futures-trading/" class="btn btn-primary">Futures</a>
+                <a href="/dca/" class="btn btn-primary">DCA</a>
+            </div>
+        </div>
+        {% endblock %}
+    </div>
+</body>
+</html>
