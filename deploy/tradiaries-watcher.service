@@ -1,0 +1,26 @@
+[Unit]
+Description=Tradiaries TP/SL watcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tradiaries
+Group=tradiaries
+WorkingDirectory=/opt/tradiaries
+EnvironmentFile=/etc/tradiaries/tradiaries.env
+ExecStart=/opt/tradiaries/env/bin/python manage.py watch_tp_sl
+Restart=always
+RestartSec=10
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Le processus ne doit jamais recevoir les secrets dans les logs systemd.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/tradiaries/var
+
+[Install]
+WantedBy=multi-user.target

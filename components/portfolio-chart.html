@@ -1,4 +1,54 @@
+<div class="chart-controls">
+    <div class="chart-timeframe-buttons">
+        <button type="button" class="chart-timeframe-btn" data-range="1D">1D</button>
+        <button type="button" class="chart-timeframe-btn" data-range="1W">1W</button>
+        <button type="button" class="chart-timeframe-btn" data-range="1M">1M</button>
+        <button type="button" class="chart-timeframe-btn" data-range="1Y">1Y</button>
+        <button type="button" class="chart-timeframe-btn active" data-range="ALL">All</button>
+    </div>
+    <div class="chart-category-buttons">
+        <button type="button" class="chart-category-btn" data-category="investment">Investment</button>
+        <button type="button" class="chart-category-btn" data-category="spot">Spot</button>
+        <button type="button" class="chart-category-btn" data-category="futures">Futures</button>
+        <button type="button" class="chart-category-btn active" data-category="all">All</button>
+    </div>
+</div>
 <div id="portfolio-chart" style="width: 100%; height: 400px;"></div>
+
+<style>
+    .chart-controls {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .chart-timeframe-buttons,
+    .chart-category-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .chart-timeframe-btn,
+    .chart-category-btn {
+        padding: 0.25rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: #ffffff;
+        color: #1f2937;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+    .chart-timeframe-btn:hover,
+    .chart-category-btn:hover {
+        background: #f3f4f6;
+    }
+    .chart-timeframe-btn.active,
+    .chart-category-btn.active {
+        background: #2962FF;
+        border-color: #2962FF;
+        color: #ffffff;
+    }
+</style>
 
 <script src="https://unpkg.com/lightweight-charts@4/dist/lightweight-charts.standalone.production.js"></script>
 <script>
@@ -7,8 +57,13 @@
         width: container.clientWidth,
         height: container.clientHeight,
         layout: {
-            textColor: '#d1d5db',
-            background: { color: '#1f2937' },
+            textColor: '#1f2937',
+            background: { color: '#ffffff' },
+            attributionLogo: false,
+        },
+        grid: {
+            vertLines: { color: '#ffffff' },
+            horzLines: { color: '#ffffff' },
         },
         timeScale: {
             timeVisible: true,
@@ -21,13 +76,55 @@
         lineWidth: 2,
     });
 
-    // Format des données: [{ time: 'YYYY-MM-DD', value: number }, ...]
-    const chartData = {{ chart_data|default:"[]"|safe }};
-    if (chartData.length > 0) {
-        lineSeries.setData(chartData);
+    // Format des données: { investment: [{time, value}, ...], spot: [...], futures: [...], all: [...] }
+    const chartDataByCategory = {{ chart_data|default:"{}"|safe }};
+
+    let currentRange = 'ALL';
+    let currentCategory = 'all';
+
+    function filterDataByRange(data, range) {
+        if (range === 'ALL' || data.length === 0) {
+            return data;
+        }
+        const fromDate = new Date(data[data.length - 1].time);
+        switch (range) {
+            case '1D': fromDate.setDate(fromDate.getDate() - 1); break;
+            case '1W': fromDate.setDate(fromDate.getDate() - 7); break;
+            case '1M': fromDate.setMonth(fromDate.getMonth() - 1); break;
+            case '1Y': fromDate.setFullYear(fromDate.getFullYear() - 1); break;
+        }
+        return data.filter(d => new Date(d.time) >= fromDate);
     }
 
-    chart.timeScale().fitContent();
+    function render() {
+        const categoryData = chartDataByCategory[currentCategory] || [];
+        lineSeries.setData(filterDataByRange(categoryData, currentRange));
+        chart.timeScale().fitContent();
+    }
+
+    const timeframeButtons = document.querySelectorAll('.chart-timeframe-btn');
+    timeframeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            timeframeButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentRange = btn.dataset.range;
+            render();
+        });
+    });
+
+    const categoryButtons = document.querySelectorAll('.chart-category-btn');
+    categoryButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            categoryButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentCategory = btn.dataset.category;
+            render();
+        });
+    });
+
+    if ((chartDataByCategory[currentCategory] || []).length > 0) {
+        render();
+    }
 
     window.addEventListener('resize', () => {
         if (container.clientWidth > 0) {

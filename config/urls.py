@@ -19,9 +19,21 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from pathlib import Path
+from apps.investment.views import healthz
+from apps.investment.views import healthz, watcher_healthz
 
 urlpatterns = [
+    path('healthz/', healthz, name='healthz'),
+    path('healthz/watcher/', watcher_healthz, name='watcher_healthz'),
     path('', include("apps.dashboard.urls")),
+    path('investment/', include("apps.investment.urls")),
+    path('spot-trading/', include("apps.spot_trading.urls")),
+    path('futures-trading/', include("apps.futures_trading.urls")),
+    path('analytics/', include("apps.analytics.urls")),
+    path('journal/', include("apps.journal.urls")),
+    path('live/', include("apps.live_trading.urls")),
+    path('accounts/', include('django.contrib.auth.urls')),
+    path('settings/', include('apps.dashboard.settings_urls')),
     path('admin/', admin.site.urls),
 ]
 

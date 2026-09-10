@@ -1,12 +1,10 @@
-<!-- Menu Toggle Button (Mobile) -->
-<button class="menu-toggle" id="menuToggle" title="Toggle Menu">
-    <span class="material-icons">menu</span>
-</button>
+<!-- Menu Toggle Button (visible quand le menu est fermé) -->
+<button class="menu-toggle" id="menuToggle" title="Ouvrir le menu">&#9776;</button>
 
 <!-- Side Menu -->
 <div class="side-menu" id="sideMenu">
-    <div class="menu-header">
-        <h2>Tradiaries</h2>
+    <div class="menu-header" id="menuHeader" title="Fermer le menu">
+        <h2>Tradiaries <span class="collapse-arrow">&#8592;</span></h2>
     </div>
     
     <ul class="menu-list">
@@ -17,52 +15,37 @@
         
         <!-- Investissements -->
         <li>
-            <a href="/investments/">💰 Investissements</a>
+            <a href="{% url 'investment:index' %}">💰 Investissements</a>
         </li>
         
-        <!-- Trading Spot avec sous-menu -->
-        <li class="has-submenu">
-            <a href="/spot-trading/" class="submenu-trigger">
-                <span>🟢 Trading Spot</span>
-                <span class="submenu-toggle">›</span>
-            </a>
-            <ul class="submenu">
-                <li><a href="/spot-trading/positions/">📍 Positions</a></li>
-                <li><a href="/spot-trading/history/">📋 Historique</a></li>
-            </ul>
-        </li>
-        
-        <!-- Trading Futures avec sous-menu -->
-        <li class="has-submenu">
-            <a href="/futures-trading/" class="submenu-trigger">
-                <span>📈 Trading Futures</span>
-                <span class="submenu-toggle">›</span>
-            </a>
-            <ul class="submenu">
-                <li><a href="/futures-trading/open/">🔴 Positions ouvertes</a></li>
-                <li><a href="/futures-trading/journal/">📕 Journal fermé</a></li>
-                <li><a href="/futures-trading/stats/">📊 Statistiques</a></li>
-            </ul>
-        </li>
-        
-        <!-- DCA -->
+        <!-- Trading Spot -->
         <li>
-            <a href="/dca/">🔄 DCA</a>
+            <a href="{% url 'spot_trading:index' %}">🟢 Trading Spot</a>
+        </li>
+        
+        <!-- Trading Futures -->
+        <li>
+            <a href="{% url 'futures_trading:index' %}">📈 Trading Futures</a>
         </li>
         
         <!-- Analytics -->
         <li>
-            <a href="/analytics/">📉 Analytics</a>
+            <a href="{% url 'analytics:index' %}">📉 Analytics</a>
         </li>
         
         <!-- Journal -->
         <li>
-            <a href="/journal/">📝 Journal</a>
+            <a href="{% url 'journal:index' %}">📝 Journal</a>
+        </li>
+
+        <!-- Trading Live -->
+        <li>
+            <a href="{% url 'live_trading:index' %}">⚡ Trading Live</a>
         </li>
         
         <!-- Paramètres -->
         <li>
-            <a href="/settings/">⚙️ Paramètres</a>
+            <a href="{% url 'settings:index' %}">⚙️ Paramètres</a>
         </li>
     </ul>
 </div>
@@ -70,17 +53,29 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const menuToggle = document.getElementById('menuToggle');
+    const menuHeader = document.getElementById('menuHeader');
     const sideMenu = document.getElementById('sideMenu');
     const mainContent = document.querySelector('.main-content');
-    
-    // Toggle menu visibility
-    menuToggle.addEventListener('click', function() {
-        sideMenu.classList.toggle('hidden');
+
+    function closeMenu() {
+        sideMenu.classList.add('hidden');
+        menuToggle.classList.add('visible');
         if (mainContent) {
-            mainContent.classList.toggle('expanded');
+            mainContent.classList.add('expanded');
         }
-    });
-    
+    }
+
+    function openMenu() {
+        sideMenu.classList.remove('hidden');
+        menuToggle.classList.remove('visible');
+        if (mainContent) {
+            mainContent.classList.remove('expanded');
+        }
+    }
+
+    menuToggle.addEventListener('click', openMenu);
+    menuHeader.addEventListener('click', closeMenu);
+
     // Handle submenu clicks
     const submenuTriggers = document.querySelectorAll('.submenu-trigger');
     submenuTriggers.forEach(trigger => {
@@ -95,12 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.innerWidth <= 768) {
         const links = sideMenu.querySelectorAll('a:not(.submenu-trigger)');
         links.forEach(link => {
-            link.addEventListener('click', function() {
-                sideMenu.classList.add('hidden');
-                if (mainContent) {
-                    mainContent.classList.add('expanded');
-                }
-            });
+            link.addEventListener('click', closeMenu);
         });
     }
 });

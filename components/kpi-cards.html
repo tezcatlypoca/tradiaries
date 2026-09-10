@@ -1,0 +1,19 @@
+<div class="kpi-grid">
+    {% for card in kpi_cards %}
+    <div class="kpi-card">
+        <h3>{{ card.label }}</h3>
+        <p class="kpi-value{% if card.signed and card.value != None %} {% if card.value >= 0 %}kpi-positive{% else %}kpi-negative{% endif %}{% endif %}">
+            {% if card.value == None %}—
+            {% elif card.is_count %}{{ card.value }}
+            {% elif card.is_percent %}{{ card.value|floatformat:1 }} %
+            {% elif card.is_ratio %}{{ card.value|floatformat:2 }}
+            {% else %}{{ card.value|floatformat:2 }} $
+            {% endif %}
+        </p>
+    </div>
+    {% endfor %}
+</div>
+{% if unavailable_symbols %}
+<p class="kpi-warning">⚠️ Prix indisponible sur Kraken pour : {{ unavailable_symbols|join:", " }} (exclus des valorisations et PnL).</p>
+{% endif %}
+

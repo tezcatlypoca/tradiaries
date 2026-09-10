@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - Tradiaries</title>
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
+    <link rel="stylesheet" href="{% static 'css/investment.css' %}">
+</head>
+<body>
+    {% include 'components/side-menu.html' %}
+
+    <div class="main-content">
+        <div class="investments-container">
+            {% if messages %}
+            <ul class="django-messages">
+                {% for message in messages %}
+                <li class="django-message django-message-{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            <div class="investments-header">
+                <div>
+                    <h1>📉 Analytics</h1>
+                    <p style="color: #6b7280; margin: 0.5rem 0 0;">Performance de trading Futures — Live vs Paper</p>
+                </div>
+            </div>
+
+            <div class="analytics-tabs">
+                <a href="?mode=LIVE" class="analytics-tab{% if active_mode == 'LIVE' %} active{% endif %}">🔵 Live</a>
+                <a href="?mode=PAPER" class="analytics-tab{% if active_mode == 'PAPER' %} active{% endif %}">⚪ Paper</a>
+            </div>
+
+            {% include 'components/kpi-cards.html' %}
+
+            {% if stats.nb_closed == 0 %}
+            <div class="empty-state">
+                <p>📭 Aucune position clôturée en mode {{ active_mode|title }} pour le moment</p>
+            </div>
+            {% else %}
+
+            <div class="analytics-grid">
+                <div class="analytics-panel">
+                    <h2>Meilleur / pire trade</h2>
+                    <table class="investments-table">
+                        <tbody>
+                            <tr>
+                                <td>🏆 Meilleur trade</td>
+                                <td>{% if stats.best_trade %}{{ stats.best_trade.symbol }} ({{ stats.best_trade.get_direction_display }}){% else %}-{% endif %}</td>
+                                <td class="{% if stats.best_trade_pnl >= 0 %}kpi-positive{% else %}kpi-negative{% endif %}">
+                                    {% if stats.best_trade_pnl != None %}{{ stats.best_trade_pnl|floatformat:2 }} $ {% else %}-{% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>💀 Pire trade</td>
+                                <td>{% if stats.worst_trade %}{{ stats.worst_trade.symbol }} ({{ stats.worst_trade.get_direction_display }}){% else %}-{% endif %}</td>
+                                <td class="{% if stats.worst_trade_pnl >= 0 %}kpi-positive{% else %}kpi-negative{% endif %}">
+                                    {% if stats.worst_trade_pnl != None %}{{ stats.worst_trade_pnl|floatformat:2 }} $ {% else %}-{% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-panel">
+                    <h2>PnL par direction</h2>
+                    <table class="investments-table">
+                        <thead><tr><th>Direction</th><th>Trades</th><th>PnL</th></tr></thead>
+                        <tbody>
+                            {% for row in stats.by_direction %}
+                            <tr>
+                                <td>{{ row.label }}</td>
+                                <td>{{ row.count }}</td>
+                                <td class="{% if row.pnl >= 0 %}kpi-positive{% else %}kpi-negative{% endif %}">{{ row.pnl|floatformat:2 }} $ </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-panel">
+                    <h2>PnL par stratégie</h2>
+                    <table class="investments-table">
+                        <thead><tr><th>Stratégie</th><th>Trades</th><th>PnL</th></tr></thead>
+                        <tbody>
+                            {% for row in stats.by_strategy %}
+                            <tr>
+                                <td>{{ row.label }}</td>
+                                <td>{{ row.count }}</td>
+                                <td class="{% if row.pnl >= 0 %}kpi-positive{% else %}kpi-negative{% endif %}">{{ row.pnl|floatformat:2 }} $ </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-panel">
+                    <h2>PnL par symbole</h2>
+                    <table class="investments-table">
+                        <thead><tr><th>Symbole</th><th>Trades</th><th>PnL</th></tr></thead>
+                        <tbody>
+                            {% for row in stats.by_symbol %}
+                            <tr>
+                                <td>{{ row.label }}</td>
+                                <td>{{ row.count }}</td>
+                                <td class="{% if row.pnl >= 0 %}kpi-positive{% else %}kpi-negative{% endif %}">{{ row.pnl|floatformat:2 }} $ </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="analytics-panel">
+                    <h2>PnL par ressenti</h2>
+                    <table class="investments-table">
+                        <thead><tr><th>Ressenti</th><th>Trades</th><th>PnL</th></tr></thead>
+                        <tbody>
+                            {% for row in stats.by_feeling %}
+                            <tr>
+                                <td>{{ row.label }}</td>
+                                <td>{{ row.count }}</td>
+                                <td class="{% if row.pnl >= 0 %}kpi-positive{% else %}kpi-negative{% endif %}">{{ row.pnl|floatformat:2 }} $ </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Trading Live - Tradiaries{% endblock %}</title>
+
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- CSS global -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
+    <link rel="stylesheet" href="{% static 'css/investment.css' %}">
+</head>
+<body>
+    {% include 'components/side-menu.html' %}
+
+    <div class="main-content">
+        <div class="investments-container">
+            <div id="liveOrderError" class="django-message django-message-error" role="alert" hidden></div>
+            {% if messages %}
+            <ul class="django-messages">
+                {% for message in messages %}
+                <li class="django-message django-message-{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            <div class="investments-header">
+                <div>
+                    <h1>⚡ Trading Live</h1>
+                    <p style="color: #6b7280; margin: 0.5rem 0 0;">
+                        Ouverture de positions paper ou live (ordres réels Kraken) — TP/SL surveillés par l'app
+                    </p>
+                </div>
+                <button class="btn-add-investment" onclick="openPositionModal()">+ Ouvrir une position</button>
+            </div>
+
+            {% if unavailable_symbols %}
+            <div class="kpi-warning">
+                ⚠️ Prix indisponible sur Kraken pour : {{ unavailable_symbols|join:", " }}
+            </div>
+            {% endif %}
+
+            <div id="positionsWrapper" {% if not positions %}style="display:none"{% endif %}>
+                <table class="investments-table">
+                    <thead>
+                        <tr>
+                            <th>Symbole</th>
+                            <th>Type</th>
+                            <th>Mode</th>
+                            <th>Sens</th>
+                            <th>Quantité</th>
+                            <th>Entrée</th>
+                            <th>Prix actuel</th>
+                            <th>PnL latent</th>
+                            <th>TP</th>
+                            <th>SL</th>
+                            <th class="investments-table-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positionsBody">
+                        {% for p in positions %}
+                        <tr>
+                            <td><span class="investment-symbol">{{ p.symbol }}</span></td>
+                            <td><span class="investment-action investment-action-{{ p.kind }}">{{ p.kind|capfirst }}</span></td>
+                            <td><span class="investment-action investment-action-{{ p.trade_mode|lower }}">{{ p.trade_mode|capfirst }}</span></td>
+                            <td><span class="investment-action investment-action-{{ p.direction|lower }}">{{ p.direction|capfirst }}</span></td>
+                            <td>{{ p.amount }}</td>
+                            <td>${{ p.entry_price }}</td>
+                            <td>{% if p.current_price %}${{ p.current_price }}{% else %}-{% endif %}</td>
+                            <td>{% if p.pnl is not None %}<span class="{% if p.pnl >= 0 %}text-positive{% else %}text-negative{% endif %}">${{ p.pnl }}</span>{% else %}-{% endif %}</td>
+                            <td>
+                                {% if p.take_profit %}${{ p.take_profit }}
+                                    {% if p.tp_distance_pct is not None %}<span class="tpsl-distance">({{ p.tp_distance_pct|floatformat:2 }}%)</span>{% endif %}
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>
+                                {% if p.stop_loss %}${{ p.stop_loss }}
+                                    {% if p.sl_distance_pct is not None %}<span class="tpsl-distance">({{ p.sl_distance_pct|floatformat:2 }}%)</span>{% endif %}
+                                {% else %}-{% endif %}
+                            </td>
+                            <td class="investments-table-actions">
+                                <form method="POST" action="{% url 'live_trading:close' p.kind p.pk %}"
+                                    class="inline-delete-form"
+                                    onsubmit="return confirm('Clôturer la position {{ p.symbol }} ?{% if p.trade_mode == 'LIVE' %} Un ordre de vente réel sera envoyé à Kraken.{% endif %}');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="icon-btn icon-close" title="Clôturer">
+                                        <span class="material-icons">close</span>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p class="live-refresh-hint">
+                    🔄 Actualisation automatique toutes les 30s — TP/SL vérifiés toutes les
+                    {{ watcher_interval }}s par l'observateur (<code>python manage.py watch_tp_sl</code>).
+                </p>
+            </div>
+
+            <div class="empty-state" id="emptyState" {% if positions %}style="display:none"{% endif %}>
+                <p>📭 Aucune position ouverte</p>
+                <button class="btn-add-investment" onclick="openPositionModal()">+ Ouvrir une position</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal : nouvelle position -->
+    <div id="positionModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Ouvrir une position</h2>
+                <button class="modal-close" onclick="closePositionModal()">&times;</button>
+            </div>
+
+            <form id="positionForm" method="POST" action="{% url 'live_trading:open' %}">
+                {% csrf_token %}
+
+                <div class="form-section">
+                    <div class="form-section-title">Paramètres du trade</div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="category">Type *</label>
+                            <select id="category" name="category" required>
+                                <option value="SPOT">Spot</option>
+                                <option value="FUTURES">Futures</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="trade_mode">Mode *</label>
+                            <select id="trade_mode" name="trade_mode" required>
+                                <option value="PAPER">Paper (simulation)</option>
+                                <option value="LIVE">Live (ordre réel Kraken)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="symbol">Symbole *</label>
+                            <input type="text" id="symbol" name="symbol" placeholder="BTC, ETH..." required>
+                        </div>
+                        <div class="form-group" id="directionGroup" style="display:none">
+                            <label for="direction">Direction *</label>
+                            <select id="direction" name="direction">
+                                <option value="LONG">Long</option>
+                                <option value="SHORT">Short</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="amount">Quantité *</label>
+                            <input type="number" id="amount" name="amount" placeholder="0.00" step="0.00000001" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="entry_price">Prix d'entrée (vide = marché)</label>
+                            <input type="number" id="entry_price" name="entry_price" placeholder="Marché" step="0.00000001">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="take_profit">Take profit</label>
+                            <input type="number" id="take_profit" name="take_profit" placeholder="Optionnel" step="0.00000001">
+                        </div>
+                        <div class="form-group">
+                            <label for="stop_loss">Stop loss</label>
+                            <input type="number" id="stop_loss" name="stop_loss" placeholder="Optionnel" step="0.00000001">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section" id="strategySection" style="display:none">
+                    <div class="form-section-title">Stratégie</div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="strategy">Stratégie</label>
+                            <input type="text" id="strategy" name="strategy" maxlength="50" placeholder="IRC 4h, VP 15min...">
+                        </div>
+                        <div class="form-group">
+                            <label for="feeling">Ressenti</label>
+                            <select id="feeling" name="feeling">
+                                <option value="">-</option>
+                                <option value="VERY_BULLISH">Très haussier</option>
+                                <option value="BULLISH">Haussier</option>
+                                <option value="NEUTRAL">Neutre</option>
+                                <option value="BEARISH">Baissier</option>
+                                <option value="VERY_BEARISH">Très baissier</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="why">Raison de la prise de position</label>
+                        <textarea id="why" name="why" rows="2" placeholder="Pourquoi cette position..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="notes">Notes</label>
+                        <textarea id="notes" name="notes" rows="2" placeholder="Notes additionnelles..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">✓ Ouvrir la position</button>
+                    <button type="button" class="btn-cancel" onclick="closePositionModal()">✕ Annuler</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal : validation de la stratégie (ordres LIVE uniquement) -->
+    <div id="validationModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🛡️ Valider ma stratégie</h2>
+                <button class="modal-close" onclick="closeValidationModal()">&times;</button>
+            </div>
+
+            <div class="validation-warning">
+                ⚠️ Ordre <strong>LIVE</strong> : il sera réellement exécuté sur votre compte Kraken.
+            </div>
+
+            <dl class="validation-recap">
+                <div><dt>Type</dt><dd id="recapCategory">-</dd></div>
+                <div><dt>Symbole</dt><dd id="recapSymbol">-</dd></div>
+                <div><dt>Sens</dt><dd id="recapDirection">-</dd></div>
+                <div><dt>Quantité</dt><dd id="recapAmount">-</dd></div>
+                <div><dt>Prix d'entrée</dt><dd id="recapEntry">-</dd></div>
+                <div><dt>Take profit</dt><dd id="recapTp">-</dd></div>
+                <div><dt>Stop loss</dt><dd id="recapSl">-</dd></div>
+                <div><dt>Ratio risque/rendement</dt><dd id="recapRr">-</dd></div>
+                <div><dt>Risque estimé</dt><dd id="recapRisk">-</dd></div>
+                <div id="recapStrategyRow" style="display:none"><dt>Stratégie</dt><dd id="recapStrategy">-</dd></div>
+            </dl>
+
+            <div class="form-section">
+                <div class="form-section-title">Checklist IRC 4h</div>
+                <div class="form-group">
+                    <label><input type="checkbox" name="regime_confirmed" form="positionForm"> Régime: tendance confirmée</label>
+                    <label><input type="checkbox" name="sar_confirmed" form="positionForm"> SAR: entrée dans le sens du régime, stop au SAR</label>
+                    <label><input type="checkbox" name="volume_profile_confirmed" form="positionForm"> Volume Profile: volume de cassure supérieur à la moyenne 20</label>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-submit" onclick="confirmLiveOrder()">✓ Confirmer l'ordre LIVE</button>
+                <button type="button" class="btn-cancel" onclick="closeValidationModal()">✕ Revenir au formulaire</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const positionForm = document.getElementById('positionForm');
+    const positionsJsonUrl = "{% url 'live_trading:positions_json' %}";
+    const closeUrlTemplate = "{% url 'live_trading:close' 'spot' 0 %}";
+    const csrfToken = document.querySelector('#positionForm [name=csrfmiddlewaretoken]').value;
+
+    // ---------- Modal formulaire ----------
+
+    function openPositionModal() {
+        document.getElementById('positionModal').classList.add('active');
+    }
+
+    function closePositionModal() {
+        document.getElementById('positionModal').classList.remove('active');
+        positionForm.reset();
+        toggleCategoryFields();
+    }
+
+    function toggleCategoryFields() {
+        const isFutures = document.getElementById('category').value === 'FUTURES';
+        document.getElementById('directionGroup').style.display = isFutures ? '' : 'none';
+        document.getElementById('strategySection').style.display = isFutures ? '' : 'none';
+        // Futures LIVE non supporté (API Kraken Futures requise) : on force Paper
+        const modeSelect = document.getElementById('trade_mode');
+        modeSelect.querySelector('option[value=LIVE]').disabled = isFutures;
+        if (isFutures && modeSelect.value === 'LIVE') {
+            modeSelect.value = 'PAPER';
+        }
+    }
+
+    document.getElementById('category').addEventListener('change', toggleCategoryFields);
+
+    document.getElementById('positionModal').addEventListener('click', function(e) {
+        if (e.target === this) { closePositionModal(); }
+    });
+
+    // ---------- Modal validation LIVE ----------
+
+    function _field(id) { return document.getElementById(id).value.trim(); }
+
+    function _num(id) {
+        const v = parseFloat(_field(id));
+        return isNaN(v) ? null : v;
+    }
+
+    function openValidationModal() {
+        const isFutures = _field('category') === 'FUTURES';
+        const direction = isFutures ? _field('direction') : 'LONG';
+        const entry = _num('entry_price');
+        const tp = _num('take_profit');
+        const sl = _num('stop_loss');
+        const amount = _num('amount');
+
+        document.getElementById('recapCategory').textContent = isFutures ? 'Futures' : 'Spot';
+        document.getElementById('recapSymbol').textContent = _field('symbol').toUpperCase();
+        document.getElementById('recapDirection').textContent = direction === 'SHORT' ? 'Short' : 'Long';
+        document.getElementById('recapAmount').textContent = _field('amount');
+        document.getElementById('recapEntry').textContent = entry !== null ? '$' + entry : 'Au marché';
+        document.getElementById('recapTp').textContent = tp !== null ? '$' + tp : '-';
+        document.getElementById('recapSl').textContent = sl !== null ? '$' + sl : '-';
+
+        let rr = '-', risk = '-';
+        if (entry !== null && tp !== null && sl !== null && entry !== sl) {
+            rr = (Math.abs(tp - entry) / Math.abs(entry - sl)).toFixed(2) + ' R';
+        }
+        if (entry !== null && sl !== null && amount !== null) {
+            risk = '$' + (Math.abs(entry - sl) * amount).toFixed(2);
+        }
+        document.getElementById('recapRr').textContent = rr;
+        document.getElementById('recapRisk').textContent = risk;
+
+        const strategyRow = document.getElementById('recapStrategyRow');
+        if (isFutures && _field('strategy')) {
+            document.getElementById('recapStrategy').textContent = _field('strategy');
+            strategyRow.style.display = '';
+        } else {
+            strategyRow.style.display = 'none';
+        }
+
+        document.getElementById('validationModal').classList.add('active');
+    }
+
+    function closeValidationModal() {
+        document.getElementById('validationModal').classList.remove('active');
+    }
+
+    function showLiveOrderError(message) {
+        const error = document.getElementById('liveOrderError');
+        error.textContent = message;
+        error.hidden = false;
+        error.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }
+
+    function confirmLiveOrder() {
+        const confirmedCriteria = document.querySelectorAll(
+            '#validationModal input[type=checkbox]:checked'
+        ).length;
+        if (confirmedCriteria < 2) {
+            closeValidationModal();
+            closePositionModal();
+            showLiveOrderError(
+                'Ordre LIVE refusé : validez au moins 2 des 3 critères de la stratégie IRC.'
+            );
+            return;
+        }
+        positionForm.dataset.liveConfirmed = '1';
+        positionForm.submit();
+    }
+
+    positionForm.addEventListener('submit', function(e) {
+        if (_field('trade_mode') === 'LIVE' && positionForm.dataset.liveConfirmed !== '1') {
+            e.preventDefault();
+            openValidationModal();
+        }
+    });
+
+    // ---------- Suivi live (polling) ----------
+
+    function fmt(value) {
+        if (value === null || value === undefined) { return '-'; }
+        return Number(value).toLocaleString('fr-FR', {maximumFractionDigits: 8});
+    }
+
+    function fmtPrice(value) {
+        return value === null ? '-' : '$' + fmt(value);
+    }
+
+    function pnlCell(pnl) {
+        if (pnl === null) { return '-'; }
+        const cls = parseFloat(pnl) >= 0 ? 'text-positive' : 'text-negative';
+        return `<span class="${cls}">$${fmt(pnl)}</span>`;
+    }
+
+    function levelCell(level, distancePct) {
+        if (level === null) { return '-'; }
+        let html = fmtPrice(level);
+        if (distancePct !== null) {
+            html += ` <span class="tpsl-distance">(${Number(distancePct).toFixed(2)}%)</span>`;
+        }
+        return html;
+    }
+
+    function badge(cssClass, label) {
+        return `<span class="investment-action investment-action-${cssClass}">${label}</span>`;
+    }
+
+    function renderRow(p) {
+        const kindLabel = p.kind === 'futures' ? 'Futures' : 'Spot';
+        const closeUrl = closeUrlTemplate.replace('/spot/0/', `/${p.kind}/${p.pk}/`);
+        const liveWarning = p.trade_mode === 'LIVE' ? ' Un ordre de vente réel sera envoyé à Kraken.' : '';
+        return `<tr>
+            <td><span class="investment-symbol">${p.symbol}</span></td>
+            <td>${badge(p.kind, kindLabel)}</td>
+            <td>${badge(p.trade_mode.toLowerCase(), p.trade_mode === 'LIVE' ? 'Live' : 'Paper')}</td>
+            <td>${badge(p.direction.toLowerCase(), p.direction === 'SHORT' ? 'Short' : 'Long')}</td>
+            <td>${fmt(p.amount)}</td>
+            <td>${fmtPrice(p.entry_price)}</td>
+            <td>${fmtPrice(p.current_price)}</td>
+            <td>${pnlCell(p.pnl)}</td>
+            <td>${levelCell(p.take_profit, p.tp_distance_pct)}</td>
+            <td>${levelCell(p.stop_loss, p.sl_distance_pct)}</td>
+            <td class="investments-table-actions">
+                <form method="POST" action="${closeUrl}" class="inline-delete-form"
+                    onsubmit="return confirm('Clôturer la position ${p.symbol} ?${liveWarning}');">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                    <button type="submit" class="icon-btn icon-close" title="Clôturer">
+                        <span class="material-icons">close</span>
+                    </button>
+                </form>
+            </td>
+        </tr>`;
+    }
+
+    async function refreshPositions() {
+        try {
+            const response = await fetch(positionsJsonUrl);
+            if (!response.ok) { return; }
+            const data = await response.json();
+            const wrapper = document.getElementById('positionsWrapper');
+            const empty = document.getElementById('emptyState');
+            if (data.positions.length === 0) {
+                wrapper.style.display = 'none';
+                empty.style.display = '';
+            } else {
+                document.getElementById('positionsBody').innerHTML = data.positions.map(renderRow).join('');
+                wrapper.style.display = '';
+                empty.style.display = 'none';
+            }
+        } catch (err) {
+            // Erreur réseau transitoire : on réessaiera au prochain cycle
+        }
+    }
+
+    setInterval(refreshPositions, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+{% extends "dashboard/dashboard.html" %}
+{% load static %}
+
+{% block title %}Tradiaries - Paramètres{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/investment.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="investments-container">
+    <div class="investments-header">
+        <div>
+            <h1>⚙️ Paramètres</h1>
+            <p style="color: #6b7280; margin: 0.5rem 0 0;">Connecté en tant que {{ user.get_username }}</p>
+        </div>
+    </div>
+
+    <div class="settings-section">
+        <h2>Compte</h2>
+        <div class="settings-card" style="display: flex; align-items: center; gap: 1rem;">
+            <a href="{% url 'password_change' %}" class="btn-primary" style="text-decoration: none; display: inline-block;">Modifier le mot de passe</a>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn-danger">Se déconnecter</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="settings-section">
+        <h2>Clés API</h2>
+        <p>Clés utilisées pour récupérer vos données/exécuter des ordres sur les plateformes connectées. Les secrets sont chiffrés en base.</p>
+
+        <div class="settings-card">
+            {% if credentials %}
+            <ul class="credential-list">
+                {% for credential in credentials %}
+                <li class="credential-item">
+                    <div class="credential-info">
+                        <span class="credential-platform">{{ credential.get_platform_display }}</span>
+                        {% if credential.label %}<span class="credential-label">{{ credential.label }}</span>{% endif %}
+                        <span class="credential-key">{{ credential.masked_api_key }}</span>
+                    </div>
+                    <form method="POST" action="{% url 'settings:api_credential_delete' credential.pk %}"
+                        onsubmit="return confirm('Supprimer cette clé API {{ credential.get_platform_display }} ?');">
+                        {% csrf_token %}
+                        <button type="submit" class="icon-btn icon-delete" title="Supprimer">
+                            <span class="material-icons">delete</span>
+                        </button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="color: var(--text-secondary, #91a3ad); margin: 0 0 1.25rem;">Aucune clé API enregistrée pour le moment.</p>
+            {% endif %}
+
+            <form method="POST" action="{% url 'settings:api_credential_create' %}" id="credentialForm">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="platform">Plateforme *</label>
+                        <select id="platform" name="platform" required>
+                            <option value="KRAKEN">Kraken</option>
+                            <option value="BINANCE">Binance</option>
+                            <option value="BITGET">Bitget</option>
+                            <option value="COINMARKETCAP">CoinMarketCap</option>
+                            <option value="OTHER">Autre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="label">Nom (optionnel)</label>
+                        <input type="text" id="label" name="label" placeholder="ex: Compte principal">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="api_key">Clé API *</label>
+                        <input type="text" id="api_key" name="api_key" required autocomplete="off">
+                    </div>
+                    <div class="form-group" id="apiSecretGroup">
+                        <label for="api_secret">Clé secrète</label>
+                        <input type="password" id="api_secret" name="api_secret" autocomplete="off">
+                    </div>
+                </div>
+                <div class="form-group" id="passphraseGroup">
+                    <label for="passphrase">Passphrase</label>
+                    <input type="password" id="passphrase" name="passphrase" autocomplete="off">
+                </div>
+                <div class="form-actions" style="border-top: none; margin-top: 1rem; padding-top: 0;">
+                    <button type="submit" class="btn-primary">+ Ajouter la clé</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const platformRequirements = {{ platform_requirements_json|safe }};
+
+    function updateCredentialFormFields() {
+        const platform = document.getElementById('platform').value;
+        const requirements = platformRequirements[platform] || {};
+
+        const secretInput = document.getElementById('api_secret');
+        const secretGroup = document.getElementById('apiSecretGroup');
+        secretInput.required = !!requirements.secret;
+        secretGroup.querySelector('label').textContent = requirements.secret ? 'Clé secrète *' : 'Clé secrète';
+
+        const passphraseInput = document.getElementById('passphrase');
+        const passphraseGroup = document.getElementById('passphraseGroup');
+        passphraseGroup.style.display = requirements.passphrase || requirements.secret ? '' : 'none';
+        passphraseInput.required = !!requirements.passphrase;
+        passphraseGroup.querySelector('label').textContent = requirements.passphrase ? 'Passphrase *' : 'Passphrase';
+    }
+
+    document.getElementById('platform').addEventListener('change', updateCredentialFormFields);
+    document.addEventListener('DOMContentLoaded', updateCredentialFormFields);
+</script>
+{% endblock %}

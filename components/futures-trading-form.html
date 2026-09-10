@@ -1,0 +1,171 @@
+<!-- Futures Trading Form Modal Component -->
+<div id="tradeModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Ajouter une position</h2>
+            <button class="modal-close" onclick="closeTradeModal()">&times;</button>
+        </div>
+
+        <form id="tradeForm" method="POST" action="{% url 'futures_trading:create' %}">
+            {% csrf_token %}
+
+            <!-- Main Fields -->
+            <div class="form-section">
+                <div class="form-section-title">Informations générales</div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="symbol">Symbole *</label>
+                        <input type="text" id="symbol" name="symbol" placeholder="BTC, ETH, AAPL, etc." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Quantité *</label>
+                        <input type="number" id="amount" name="amount" placeholder="0.00" step="0.00000001" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="entry_price">Prix d'entrée *</label>
+                        <input type="number" id="entry_price" name="entry_price" placeholder="0.00" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="exit_price">Prix de sortie</label>
+                        <input type="number" id="exit_price" name="exit_price" placeholder="0.00" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="exit_price_2">2e prix de sortie</label>
+                        <input type="number" id="exit_price_2" name="exit_price_2" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="direction">Direction *</label>
+                        <select id="direction" name="direction" required>
+                            <option value="LONG">Long</option>
+                            <option value="SHORT">Short</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="trade_mode">Mode *</label>
+                        <select id="trade_mode" name="trade_mode" required>
+                            <option value="PAPER">Paper</option>
+                            <option value="LIVE">Live</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="risk_reward_ratio">Ratio risque/rendement</label>
+                        <input type="number" id="risk_reward_ratio" name="risk_reward_ratio" placeholder="0.00" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="take_profit">Take profit</label>
+                        <input type="number" id="take_profit" name="take_profit" placeholder="0.00" step="0.00000001">
+                    </div>
+                    <div class="form-group">
+                        <label for="stop_loss">Stop loss</label>
+                        <input type="number" id="stop_loss" name="stop_loss" placeholder="0.00" step="0.00000001">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="feeling">Ressenti</label>
+                        <select id="feeling" name="feeling">
+                            <option value="">-</option>
+                            <option value="VERY_BULLISH">Très haussier</option>
+                            <option value="BULLISH">Haussier</option>
+                            <option value="NEUTRAL">Neutre</option>
+                            <option value="BEARISH">Baissier</option>
+                            <option value="VERY_BEARISH">Très baissier</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="strategy">Stratégie</label>
+                        <input type="text" id="strategy" name="strategy" maxlength="50" placeholder="IRC 4h, VP 15min...">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="why">Raison de la prise de position</label>
+                    <textarea id="why" name="why" rows="2" placeholder="Pourquoi cette position..."></textarea>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3" placeholder="Notes additionnelles..."></textarea>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="submit" id="submitBtn" class="btn-submit">✓ Créer la position</button>
+                <button type="button" class="btn-cancel" onclick="closeTradeModal()">✕ Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const tradeForm = document.getElementById('tradeForm');
+    const tradeCreateUrl = "{% url 'futures_trading:create' %}";
+    const tradeUpdateUrlTemplate = "{% url 'futures_trading:update' 0 %}";
+
+    function openTradeModal() {
+        document.getElementById('modalTitle').textContent = 'Ajouter une position';
+        document.getElementById('submitBtn').textContent = '✓ Créer la position';
+        tradeForm.action = tradeCreateUrl;
+        document.getElementById('tradeModal').classList.add('active');
+    }
+
+    function openEditTradeModal(data) {
+        document.getElementById('modalTitle').textContent = 'Modifier une position';
+        document.getElementById('submitBtn').textContent = '✓ Enregistrer les modifications';
+        document.getElementById('symbol').value = data.symbol || '';
+        document.getElementById('amount').value = data.amount || '';
+        document.getElementById('entry_price').value = data.entryPrice || '';
+        document.getElementById('exit_price').value = data.exitPrice || '';
+        document.getElementById('exit_price_2').value = data.exitPrice2 || '';
+        document.getElementById('direction').value = data.direction || 'LONG';
+        document.getElementById('trade_mode').value = data.tradeMode || 'PAPER';
+        document.getElementById('risk_reward_ratio').value = data.riskRewardRatio || '';
+        document.getElementById('take_profit').value = data.takeProfit || '';
+        document.getElementById('stop_loss').value = data.stopLoss || '';
+        document.getElementById('feeling').value = data.feeling || '';
+        document.getElementById('strategy').value = data.strategy || '';
+        document.getElementById('why').value = data.why || '';
+        document.getElementById('notes').value = data.notes || '';
+        tradeForm.action = tradeUpdateUrlTemplate.replace('/0/', `/${data.id}/`);
+        document.getElementById('tradeModal').classList.add('active');
+    }
+
+    function closeTradeModal() {
+        document.getElementById('tradeModal').classList.remove('active');
+        tradeForm.reset();
+    }
+
+    // Fermer le modal si on clique en dehors
+    document.getElementById('tradeModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeTradeModal();
+        }
+    });
+
+    // Ouvrir le modal en mode édition depuis les icônes de la liste
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.icon-edit[data-id]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openEditTradeModal(this.dataset);
+            });
+        });
+    });
+</script>

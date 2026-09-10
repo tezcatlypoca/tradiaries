@@ -2,10 +2,16 @@
 __pycache__/
 build/
 dist/
+.vscode/
+.github/
+
+docs/
 
 # Environnement virtuel
 env/
 .env
+env.txt
+.env.backup
 
 # Django
 *.log

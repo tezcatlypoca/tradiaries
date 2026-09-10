@@ -1,4 +1,6 @@
-django
-djangorestframework
-pillow   
-python-decouple
+Django==5.2.17
+gunicorn==23.0.0
+psycopg[binary]==3.2.3
+python-decouple==3.8
+requests==2.32.3
+cryptography==50.0.1

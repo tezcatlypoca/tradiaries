@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Trading Futures - Tradiaries{% endblock %}</title>
+
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- CSS global -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
+    <link rel="stylesheet" href="{% static 'css/investment.css' %}">
+</head>
+<body>
+    {% include 'components/side-menu.html' %}
+
+    <div class="main-content">
+        <div class="investments-container">
+            {% if messages %}
+            <ul class="django-messages">
+                {% for message in messages %}
+                <li class="django-message django-message-{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            {% include 'components/kpi-cards.html' %}
+            <div class="investments-header">
+                <div>
+                    <h1>📈 Futures trading</h1>
+                    <p style="color: #6b7280; margin: 0.5rem 0 0;">Suivi de vos positions de trading futures</p>
+                </div>
+                <button class="btn-add-investment" onclick="openTradeModal()">+ Ajouter</button>
+            </div>
+
+            <div class="analytics-tabs">
+                <a href="?mode=ALL" class="analytics-tab{% if active_mode == 'ALL' %} active{% endif %}">🔎 Tous</a>
+                <a href="?mode=LIVE" class="analytics-tab{% if active_mode == 'LIVE' %} active{% endif %}">🔵 Live</a>
+                <a href="?mode=PAPER" class="analytics-tab{% if active_mode == 'PAPER' %} active{% endif %}">⚪ Paper</a>
+            </div>
+
+            {% if trades %}
+            <table class="investments-table">
+                <thead>
+                    <tr>
+                        <th>Symbole</th>
+                        <th>Date</th>
+                        <th>Quantité</th>
+                        <th>Prix d'entrée</th>
+                        <th>Prix de sortie</th>
+                        <th>Direction</th>
+                        <th>Mode</th>
+                        <th class="investments-table-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trade in trades %}
+                    <tr>
+                        <td>
+                            <span class="investment-symbol">{{ trade.symbol }}</span>
+                        </td>
+                        <td>{{ trade.entry_date|date:"d/m/Y" }}</td>
+                        <td>{{ trade.amount }}</td>
+                        <td>${{ trade.entry_price }}</td>
+                        <td>{% if trade.exit_price %}${{ trade.exit_price }}{% else %}-{% endif %}</td>
+                        <td>
+                            <span class="investment-action investment-action-{{ trade.direction|lower }}">{{ trade.get_direction_display }}</span>
+                        </td>
+                        <td>
+                            <span class="investment-action investment-action-{{ trade.trade_mode|lower }}">{{ trade.get_trade_mode_display }}</span>
+                        </td>
+                        <td class="investments-table-actions">
+                            <button type="button" class="icon-btn icon-edit" title="Modifier"
+                                data-id="{{ trade.pk }}"
+                                data-symbol="{{ trade.symbol }}"
+                                data-amount="{{ trade.amount }}"
+                                data-entry-price="{{ trade.entry_price }}"
+                                data-exit-price="{{ trade.exit_price|default_if_none:'' }}"
+                                data-exit-price-2="{{ trade.exit_price_2|default_if_none:'' }}"
+                                data-direction="{{ trade.direction }}"
+                                data-trade-mode="{{ trade.trade_mode }}"
+                                data-risk-reward-ratio="{{ trade.risk_reward_ratio|default_if_none:'' }}"
+                                data-take-profit="{{ trade.take_profit|default_if_none:'' }}"
+                                data-stop-loss="{{ trade.stop_loss|default_if_none:'' }}"
+                                data-feeling="{{ trade.feeling }}"
+                                data-strategy="{{ trade.strategy }}"
+                                data-why="{{ trade.why }}"
+                                data-notes="{{ trade.notes }}">
+                                <span class="material-icons">edit</span>
+                            </button>
+                            <form method="POST" action="{% url 'futures_trading:delete' trade.pk %}"
+                                class="inline-delete-form"
+                                onsubmit="return confirm('Supprimer la position {{ trade.symbol }} ?');">
+                                {% csrf_token %}
+                                <button type="submit" class="icon-btn icon-delete" title="Supprimer">
+                                    <span class="material-icons">delete</span>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <p>📭 Aucune position enregistrée</p>
+                <button class="btn-add-investment" onclick="openTradeModal()">+ Créer une position</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Futures Trading Form Modal -->
+    {% include 'components/futures-trading-form.html' %}
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journal - Tradiaries</title>
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
+    <link rel="stylesheet" href="{% static 'css/investment.css' %}">
+</head>
+<body>
+    {% include 'components/side-menu.html' %}
+
+    <div class="main-content">
+        <div class="investments-container">
+            {% if messages %}
+            <ul class="django-messages">
+                {% for message in messages %}
+                <li class="django-message django-message-{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            <div class="investments-header">
+                <div>
+                    <h1>📝 Journal</h1>
+                    <p style="color: #6b7280; margin: 0.5rem 0 0;">Relecture narrative de vos positions futures (why / ressenti / notes)</p>
+                </div>
+            </div>
+
+            <form method="GET" class="journal-filters">
+                <select name="mode" onchange="this.form.submit()">
+                    <option value="" {% if not active_mode %}selected{% endif %}>Tous les modes</option>
+                    <option value="LIVE" {% if active_mode == 'LIVE' %}selected{% endif %}>Live</option>
+                    <option value="PAPER" {% if active_mode == 'PAPER' %}selected{% endif %}>Paper</option>
+                </select>
+                <select name="strategy" onchange="this.form.submit()">
+                    <option value="">Toutes les stratégies</option>
+                    {% for s in strategies %}
+                    <option value="{{ s }}" {% if active_strategy == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+                <select name="symbol" onchange="this.form.submit()">
+                    <option value="">Tous les symboles</option>
+                    {% for sym in symbols %}
+                    <option value="{{ sym }}" {% if active_symbol == sym %}selected{% endif %}>{{ sym }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+
+            {% if trades %}
+            <div class="journal-list">
+                {% for trade in trades %}
+                <div class="journal-entry">
+                    <div class="journal-entry-header">
+                        <span class="investment-symbol">{{ trade.symbol }}</span>
+                        <span class="investment-action investment-action-{{ trade.direction|lower }}">{{ trade.get_direction_display }}</span>
+                        <span class="investment-action investment-action-{{ trade.trade_mode|lower }}">{{ trade.get_trade_mode_display }}</span>
+                        {% if trade.strategy %}<span class="journal-strategy-tag">{{ trade.strategy }}</span>{% endif %}
+                        <span class="journal-entry-date">{{ trade.entry_date|date:"d/m/Y" }}</span>
+                        {% if trade.pnl != None %}
+                        <span class="journal-entry-pnl {% if trade.pnl >= 0 %}kpi-positive{% else %}kpi-negative{% endif %}">{{ trade.pnl|floatformat:2 }} $ </span>
+                        {% else %}
+                        <span class="journal-entry-pnl">Position ouverte</span>
+                        {% endif %}
+                    </div>
+                    {% if trade.feeling %}<p class="journal-entry-feeling">Ressenti : {{ trade.get_feeling_display }}</p>{% endif %}
+                    {% if trade.why %}<p class="journal-entry-why">💭 {{ trade.why }}</p>{% endif %}
+                    {% if trade.notes %}<p class="journal-entry-notes">📝 {{ trade.notes }}</p>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>📭 Aucune position ne correspond à ces filtres</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Investissements - Tradiaries{% endblock %}</title>
+    
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- CSS global -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
+    <link rel="stylesheet" href="{% static 'css/investment.css' %}">
+</head>
+<body>
+    {% include 'components/side-menu.html' %}
+
+    <div class="main-content">
+        <div class="investments-container">
+            {% if messages %}
+            <ul class="django-messages">
+                {% for message in messages %}
+                <li class="django-message django-message-{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            {% include 'components/kpi-cards.html' %}
+            <div class="investments-header">
+                <div>
+                    <h1>💰 Investissements</h1>
+                    <p style="color: #6b7280; margin: 0.5rem 0 0;">Suivi de vos positions d'investissement</p>
+                </div>
+                <button class="btn-add-investment" onclick="openInvestmentModal()">+ Ajouter</button>
+            </div>
+
+            {% if investments %}
+            <table class="investments-table">
+                <thead>
+                    <tr>
+                        <th>Symbole</th>
+                        <th>Date</th>
+                        <th>Quantité</th>
+                        <th>Prix</th>
+                        <th>Type</th>
+                        <th class="investments-table-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for investment in investments %}
+                    <tr>
+                        <td>
+                            <span class="investment-symbol">{{ investment.symbol }}</span>
+                        </td>
+                        <td>{{ investment.entry_date|date:"d/m/Y" }}</td>
+                        <td>{{ investment.amount }}</td>
+                        <td>${{ investment.price }}</td>
+                        <td>
+                            <span class="investment-action investment-action-{{ investment.action|lower }}">{{ investment.get_action_display }}</span>
+                        </td>
+                        <td class="investments-table-actions">
+                            <button type="button" class="icon-btn icon-edit" title="Modifier"
+                                data-id="{{ investment.pk }}"
+                                data-symbol="{{ investment.symbol }}"
+                                data-amount="{{ investment.amount }}"
+                                data-price="{{ investment.price }}"
+                                data-action="{{ investment.action }}"
+                                data-notes="{{ investment.notes }}">
+                                <span class="material-icons">edit</span>
+                            </button>
+                            <form method="POST" action="{% url 'investment:delete' investment.pk %}"
+                                class="inline-delete-form"
+                                onsubmit="return confirm('Supprimer l\'investissement {{ investment.symbol }} ?');">
+                                {% csrf_token %}
+                                <button type="submit" class="icon-btn icon-delete" title="Supprimer">
+                                    <span class="material-icons">delete</span>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <p>📭 Aucun investissement enregistré</p>
+                <button class="btn-add-investment" onclick="openInvestmentModal()">+ Créer un investissement</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Investment Form Modal -->
+    {% include 'components/investment-form.html' %}
+</body>
+</html>

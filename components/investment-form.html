@@ -1,0 +1,103 @@
+<!-- Investment Form Modal Component -->
+<div id="investmentModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Ajouter un investissement</h2>
+            <button class="modal-close" onclick="closeInvestmentModal()">&times;</button>
+        </div>
+
+        <form id="investmentForm" method="POST" action="{% url 'investment:create' %}">
+            {% csrf_token %}
+
+            <!-- Main Fields -->
+            <div class="form-section">
+                <div class="form-section-title">Informations générales</div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="symbol">Symbole *</label>
+                        <input type="text" id="symbol" name="symbol" placeholder="BTC, ETH, AAPL, etc." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Quantité *</label>
+                        <input type="number" id="amount" name="amount" placeholder="0.00" step="0.00000001" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="price">Prix *</label>
+                        <input type="number" id="price" name="price" placeholder="0.00" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="action">Type *</label>
+                        <select id="action" name="action" required>
+                            <option value="ACHAT">Achat</option>
+                            <option value="VENTE">Vente</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="form-section">
+                <div class="form-group">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes" rows="3" placeholder="Notes additionnelles..."></textarea>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="submit" id="submitBtn" class="btn-submit">✓ Créer l'investissement</button>
+                <button type="button" class="btn-cancel" onclick="closeInvestmentModal()">✕ Annuler</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const investmentForm = document.getElementById('investmentForm');
+    const investmentCreateUrl = "{% url 'investment:create' %}";
+    const investmentUpdateUrlTemplate = "{% url 'investment:update' 0 %}";
+
+    function openInvestmentModal() {
+        document.getElementById('modalTitle').textContent = 'Ajouter un investissement';
+        document.getElementById('submitBtn').textContent = "✓ Créer l'investissement";
+        investmentForm.action = investmentCreateUrl;
+        document.getElementById('investmentModal').classList.add('active');
+    }
+
+    function openEditInvestmentModal(data) {
+        document.getElementById('modalTitle').textContent = 'Modifier un investissement';
+        document.getElementById('submitBtn').textContent = '✓ Enregistrer les modifications';
+        document.getElementById('symbol').value = data.symbol || '';
+        document.getElementById('amount').value = data.amount || '';
+        document.getElementById('price').value = data.price || '';
+        document.getElementById('action').value = data.action || 'ACHAT';
+        document.getElementById('notes').value = data.notes || '';
+        investmentForm.action = investmentUpdateUrlTemplate.replace('/0/', `/${data.id}/`);
+        document.getElementById('investmentModal').classList.add('active');
+    }
+
+    function closeInvestmentModal() {
+        document.getElementById('investmentModal').classList.remove('active');
+        investmentForm.reset();
+    }
+
+    // Fermer le modal si on clique en dehors
+    document.getElementById('investmentModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeInvestmentModal();
+        }
+    });
+
+    // Ouvrir le modal en mode édition depuis les icônes de la liste
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.icon-edit[data-id]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                openEditInvestmentModal(this.dataset);
+            });
+        });
+    });
+</script>

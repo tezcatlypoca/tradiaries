@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlparse
+from decouple import config
+from cryptography.fernet import Fernet
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +23,69 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-w7pjm@17m22^9b#8%n@cb_^bl#pplrq$%mohoon(bd9+2dn6(u'
+DEBUG = config('DEBUG', default=True, cast=bool)
+SECRET_KEY = config(
+    'SECRET_KEY',
+    default='django-insecure-development-only-change-me',
+)
+if not DEBUG and (
+    SECRET_KEY == 'django-insecure-development-only-change-me'
+    or SECRET_KEY == 'change-me'
+    or len(SECRET_KEY) < 50
+):
+    raise RuntimeError('A long, random SECRET_KEY is required when DEBUG=False')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+API_CREDENTIAL_ENCRYPTION_KEY = config('API_CREDENTIAL_ENCRYPTION_KEY', default='')
+if not DEBUG and not API_CREDENTIAL_ENCRYPTION_KEY:
+    raise RuntimeError(
+        'API_CREDENTIAL_ENCRYPTION_KEY must be configured when DEBUG=False'
+    )
+if API_CREDENTIAL_ENCRYPTION_KEY:
+    try:
+        Fernet(API_CREDENTIAL_ENCRYPTION_KEY.encode())
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError('API_CREDENTIAL_ENCRYPTION_KEY must be a valid Fernet key') from exc
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS if host.strip()]
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in config('CSRF_TRUSTED_ORIGINS', default='').split(',')
+    if origin.strip()
+]
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
+SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config(
+    'SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False, cast=bool
+)
+SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=False, cast=bool)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if config(
+    'SECURE_PROXY_SSL_HEADER_ENABLED', default=False, cast=bool
+) else None
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard:index'
+LOGOUT_REDIRECT_URL = 'login'
+
+# Clés API Kraken (voir .env.example) — jamais commitées, lues depuis .env
+KRAKEN_API_KEY = config('KRAKEN_API_KEY', default='')
+KRAKEN_API_PRIVATE = config('KRAKEN_API_PRIVATE', default='')
+KRAKEN_TIMEOUT_SECONDS = config('KRAKEN_TIMEOUT_SECONDS', default=10, cast=int)
+KRAKEN_MAX_RETRIES = config('KRAKEN_MAX_RETRIES', default=2, cast=int)
+
+# Observateur TP/SL (commande watch_tp_sl) : intervalle entre deux vérifications
+TRADING_WATCHER_INTERVAL_SECONDS = config('TRADING_WATCHER_INTERVAL_SECONDS', default=60, cast=int)
+TRADING_WATCHER_HEARTBEAT_FILE = config(
+    'TRADING_WATCHER_HEARTBEAT_FILE',
+    default=str(BASE_DIR / 'var' / 'watcher-heartbeat'),
+)
+TRADING_WATCHER_HEARTBEAT_TIMEOUT_SECONDS = config(
+    'TRADING_WATCHER_HEARTBEAT_TIMEOUT_SECONDS',
+    default=180,
+    cast=int,
+)
 
 
 # Application definition
@@ -37,7 +97,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'apps.dashboard'
+    'apps.core',
+    'apps.dashboard',
+    'apps.investment',
+    'apps.spot_trading',
+    'apps.futures_trading',
+    'apps.analytics',
+    'apps.journal',
+    'apps.live_trading',
 ]
 
 MIDDLEWARE = [
@@ -73,12 +140,33 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+DATABASE_URL = config('DATABASE_URL', default='')
+if DATABASE_URL:
+    database_url = urlparse(DATABASE_URL)
+    if database_url.scheme not in ('postgres', 'postgresql'):
+        raise RuntimeError('DATABASE_URL must use the postgres:// or postgresql:// scheme')
+    database_options = parse_qs(database_url.query)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': unquote(database_url.path.lstrip('/')),
+            'USER': unquote(database_url.username or ''),
+            'PASSWORD': unquote(database_url.password or ''),
+            'HOST': database_url.hostname or '',
+            'PORT': str(database_url.port or ''),
+            'OPTIONS': {
+                key: values[-1]
+                for key, values in database_options.items()
+            },
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -117,9 +205,30 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATIC_FILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} {levelname} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'apps': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'django.request': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+    },
+}

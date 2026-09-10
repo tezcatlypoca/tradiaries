@@ -1,0 +1,229 @@
+from decimal import Decimal
+from pathlib import Path
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase, override_settings
+from django.test import TestCase, override_settings
+from django.urls import reverse
+
+from .forms import FuturesTradingForm, SimpleInvestmentForm, SpotTradingForm
+from .models import FuturesTrading, SimpleInvestment, SpotTrading
+from .portfolio_service import futures_trade_pnl
+from .trading_service import TradingError, check_tp_sl, open_position
+from .watcher_health import touch_watcher_heartbeat
+from apps.live_trading.forms import OpenPositionForm
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'])
+class DomainValidationTests(TestCase):
+    def test_positive_values_and_symbol_normalization(self):
+        form = SimpleInvestmentForm(
+            data={'symbol': ' btc ', 'amount': '1.5', 'price': '100', 'action': 'ACHAT'}
+        )
+
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data['symbol'], 'BTC')
+
+    def test_non_positive_amount_is_rejected(self):
+        form = SpotTradingForm(
+            data={'symbol': 'BTC', 'amount': '0', 'entry_price': '100', 'exchange': 'BINANCE'}
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('amount', form.errors)
+
+    def test_second_exit_requires_first_exit(self):
+        form = FuturesTradingForm(
+            data={
+                'symbol': 'BTC',
+                'amount': '1',
+                'entry_price': '100',
+                'exit_price_2': '120',
+                'direction': 'LONG',
+                'trade_mode': 'PAPER',
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('exit_price', form.errors)
+
+    def test_two_equal_exits_use_average_price_for_pnl(self):
+        trade = FuturesTrading(
+            symbol='BTC',
+            amount=Decimal('2'),
+            entry_price=Decimal('100'),
+            exit_price=Decimal('120'),
+            exit_price_2=Decimal('140'),
+            direction='LONG',
+        )
+
+        self.assertEqual(trade.effective_exit_price(), Decimal('130'))
+        self.assertEqual(futures_trade_pnl(trade), Decimal('60'))
+
+
+class OpenPositionFormTests(TestCase):
+    def test_live_position_requires_two_validated_irc_criteria(self):
+        form = OpenPositionForm(
+            data={
+                'category': 'SPOT',
+                'trade_mode': 'LIVE',
+                'symbol': 'BTC',
+                'amount': '1',
+                'entry_price': '100',
+                'regime_confirmed': 'on',
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('Ordre LIVE refusé', form.non_field_errors()[0])
+
+    def test_live_position_accepts_two_validated_irc_criteria(self):
+        form = OpenPositionForm(
+            data={
+                'category': 'SPOT',
+                'trade_mode': 'LIVE',
+                'symbol': 'BTC',
+                'amount': '1',
+                'entry_price': '100',
+                'regime_confirmed': 'on',
+                'sar_confirmed': 'on',
+            }
+        )
+
+        self.assertTrue(form.is_valid())
+
+    def test_short_position_rejects_inverted_take_profit(self):
+        form = OpenPositionForm(
+            data={
+                'category': 'FUTURES',
+                'trade_mode': 'PAPER',
+                'symbol': 'BTC',
+                'amount': '1',
+                'entry_price': '100',
+                'direction': 'SHORT',
+                'take_profit': '110',
+                'stop_loss': '120',
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('take_profit', form.errors)
+
+
+class TradingServiceTests(TestCase):
+    @patch('apps.core.trading_service.fetch_current_price', return_value=Decimal('100'))
+    def test_open_paper_spot_at_market_creates_local_position(self, mocked_current_price):
+        trade = open_position(
+            category='SPOT',
+            trade_mode='PAPER',
+            symbol=' btc ',
+            amount=Decimal('0.5'),
+            entry_price=None,
+        )
+
+        self.assertEqual(trade.symbol, 'BTC')
+        self.assertEqual(trade.entry_price, Decimal('100'))
+        self.assertEqual(trade.trade_mode, 'PAPER')
+        self.assertIsNone(trade.external_ref)
+        mocked_current_price.assert_called_once_with('BTC')
+
+    @patch('apps.core.trading_service.fetch_current_price', return_value=Decimal('120'))
+    @patch('apps.core.trading_service.fetch_current_prices', return_value=({'BTC': Decimal('120')}, set()))
+    def test_check_tp_sl_closes_long_position_at_take_profit(self, mocked_prices, mocked_current_price):
+        trade = SpotTrading.objects.create(
+            symbol='BTC',
+            amount=Decimal('1'),
+            entry_price=Decimal('100'),
+            take_profit=Decimal('110'),
+            trade_mode='PAPER',
+        )
+
+        closed = check_tp_sl()
+
+        trade.refresh_from_db()
+        self.assertEqual(len(closed), 1)
+        self.assertEqual(closed[0]['reason'], 'TP')
+        self.assertEqual(trade.exit_price, Decimal('120'))
+        mocked_prices.assert_called_once_with({'BTC'})
+        mocked_current_price.assert_called_once_with('BTC')
+
+    def test_open_live_futures_is_rejected(self):
+        with self.assertRaises(TradingError):
+            open_position(
+                category='FUTURES',
+                trade_mode='LIVE',
+                symbol='BTC',
+                amount=Decimal('1'),
+                entry_price=Decimal('100'),
+            )
+
+
+@override_settings(ALLOWED_HOSTS=['testserver'])
+class TradingViewTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='trader', password='strong-test-password'
+        )
+        self.client.force_login(self.user)
+
+    def test_invalid_spot_post_does_not_create_trade(self):
+        response = self.client.post(
+            reverse('spot_trading:create'),
+            {'symbol': 'BTC', 'amount': 'not-a-number', 'entry_price': '100', 'exchange': 'BINANCE'},
+        )
+
+        self.assertRedirects(response, reverse('spot_trading:index'))
+        self.assertFalse(SpotTrading.objects.exists())
+
+    def test_valid_futures_post_persists_strategy_and_mode(self):
+        response = self.client.post(
+            reverse('futures_trading:create'),
+            {
+                'symbol': ' btc ',
+                'amount': '1',
+                'entry_price': '100',
+                'direction': 'SHORT',
+                'trade_mode': 'LIVE',
+                'strategy': 'IRC 4h',
+            },
+        )
+
+        self.assertRedirects(response, reverse('futures_trading:index'))
+        trade = FuturesTrading.objects.get()
+        self.assertEqual(trade.symbol, 'BTC')
+        self.assertEqual(trade.strategy, 'IRC 4h')
+        self.assertEqual(trade.trade_mode, 'LIVE')
+
+    def test_invalid_simple_investment_post_does_not_create_investment(self):
+        response = self.client.post(
+            reverse('investment:create'),
+            {'symbol': 'BTC', 'amount': '-1', 'price': '100', 'action': 'ACHAT'},
+        )
+
+        self.assertRedirects(response, reverse('investment:index'))
+        self.assertFalse(SimpleInvestment.objects.exists())
+
+    def test_health_endpoint_checks_database_without_login(self):
+        self.client.logout()
+
+        response = self.client.get(reverse('healthz'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok'})
+
+    @override_settings(TRADING_WATCHER_HEARTBEAT_FILE='test-watcher-heartbeat')
+    def test_watcher_health_endpoint_requires_recent_heartbeat(self):
+        self.client.logout()
+        heartbeat_path = Path('test-watcher-heartbeat')
+        heartbeat_path.unlink(missing_ok=True)
+
+        response = self.client.get(reverse('watcher_healthz'))
+        self.assertEqual(response.status_code, 503)
+
+        touch_watcher_heartbeat()
+        response = self.client.get(reverse('watcher_healthz'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'status': 'ok', 'watcher': 'running'})
+        heartbeat_path.unlink(missing_ok=True)
