@@ -197,8 +197,11 @@ def check_tp_sl() -> list[dict]:
         if trigger is None:
             continue
         fallback = trade.take_profit if trigger == 'TP' else trade.stop_loss
-        if close_position(trade, reason=trigger, fallback_price=fallback):
-            closed.append({'trade': trade, 'reason': trigger, 'price': trade.exit_price})
+        try:
+            if close_position(trade, reason=trigger, fallback_price=fallback):
+                closed.append({'trade': trade, 'reason': trigger, 'price': trade.exit_price})
+        except Exception:
+            logger.exception('TP/SL clôture échouée pour la position %s', trade.pk)
     return closed
 
 

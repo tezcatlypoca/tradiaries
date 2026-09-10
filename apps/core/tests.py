@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
+from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -157,6 +158,19 @@ class TradingServiceTests(TestCase):
                 amount=Decimal('1'),
                 entry_price=Decimal('100'),
             )
+
+
+class WatcherCommandTests(TestCase):
+    @patch(
+        'apps.core.management.commands.watch_tp_sl.check_tp_sl',
+        side_effect=RuntimeError('temporary Kraken failure'),
+    )
+    @patch('apps.core.management.commands.watch_tp_sl.touch_watcher_heartbeat')
+    def test_transient_cycle_error_does_not_escape_once_mode(self, mocked_heartbeat, mocked_check):
+        call_command('watch_tp_sl', '--once')
+
+        mocked_check.assert_called_once_with()
+        self.assertEqual(mocked_heartbeat.call_count, 1)
 
 
 @override_settings(ALLOWED_HOSTS=['testserver'])
