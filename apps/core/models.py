@@ -24,6 +24,9 @@ class Investment(models.Model):
     external_ref = models.CharField(max_length=64, unique=True, null=True, blank=True)
     entry_date = models.DateTimeField(default=timezone.now)
     notes = models.TextField(blank=True)
+    # Verrou anti double-clôture (watcher + clic manuel concurrents) : revendiqué
+    # atomiquement par trading_service.close_position() avant tout appel Kraken.
+    is_closing = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -124,6 +127,65 @@ class FuturesTrading(Investment):
         return f"{self.symbol} {self.direction} ({date_str})"
 
 
+class KrakenOrderAttempt(models.Model):
+    """Trace persistée de chaque tentative d'ordre Kraken LIVE, créée AVANT l'appel réseau.
+
+    Garantit qu'un identifiant client et un état survivent même si le processus
+    plante entre l'acceptation de l'ordre par Kraken et l'écriture locale de la
+    position (SpotTrading) : la ligne reste consultable (admin) pour réconciliation
+    manuelle au lieu de disparaître silencieusement.
+    """
+    OPERATIONS = [
+        ('OPEN', 'Ouverture'),
+        ('CLOSE', 'Clôture'),
+    ]
+    STATUSES = [
+        ('PENDING', "En attente d'envoi"),
+        ('SUBMITTED', 'Soumis à Kraken'),
+        ('CONFIRMED', 'Confirmé (position à jour)'),
+        ('FAILED', 'Échec avant confirmation Kraken'),
+        ('RECONCILE_REQUIRED', 'Réconciliation manuelle requise'),
+    ]
+
+    client_order_id = models.CharField(max_length=32, unique=True)
+    kraken_userref = models.BigIntegerField(null=True, blank=True)
+    operation = models.CharField(max_length=5, choices=OPERATIONS)
+    symbol = models.CharField(max_length=20)
+    side = models.CharField(max_length=4)
+    volume = models.DecimalField(max_digits=15, decimal_places=8)
+    status = models.CharField(max_length=20, choices=STATUSES, default='PENDING')
+    external_ref = models.CharField(max_length=64, blank=True)
+    error_message = models.TextField(blank=True)
+    spot_trade = models.ForeignKey(
+        SpotTrading, null=True, blank=True, on_delete=models.SET_NULL, related_name='kraken_attempts',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'core_kraken_order_attempt'
+        verbose_name = 'Tentative ordre Kraken'
+        verbose_name_plural = 'Tentatives ordres Kraken'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.operation} {self.symbol} [{self.status}]"
+
+
+class KrakenNonceCounter(models.Model):
+    """Singleton (pk=1) : compteur monotone partagé entre process/threads pour le nonce Kraken.
+
+    Un nonce basé uniquement sur l'horloge peut entrer en collision ou régresser
+    entre deux workers Gunicorn/le watcher exécutés en parallèle. Ce compteur,
+    incrémenté sous verrou DB (select_for_update), garantit un nonce strictement
+    croissant quel que soit le nombre de processus.
+    """
+    value = models.BigIntegerField(default=0)
+
+    class Meta:
+        db_table = 'core_kraken_nonce_counter'
+
+
 class ApiCredential(models.Model):
     """Clé API d'une plateforme externe (échange ou fournisseur de données), stockée chiffrée."""
     PLATFORMS = [
@@ -180,3 +242,16 @@ class ApiCredential(models.Model):
         if len(plain) <= 4:
             return '••••'
         return f"{'•' * (len(plain) - 4)}{plain[-4:]}"
+
+
+class WatcherHeartbeat(models.Model):
+    """Ligne unique (pk=1) : instant du dernier cycle réussi du watcher TP/SL.
+
+    Stocké en BDD plutôt que sur disque local : le watcher (ex. worker Railway)
+    et le serveur web qui expose /healthz/watcher/ (ex. Render) n'ont pas
+    forcément de système de fichiers commun, mais partagent toujours la même BDD.
+    """
+    last_heartbeat = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'core_watcher_heartbeat'

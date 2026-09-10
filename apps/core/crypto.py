@@ -1,9 +1,12 @@
 """Chiffrement symétrique pour les secrets stockés en BDD (clés API des plateformes)."""
 import base64
 import hashlib
+import logging
 
 from cryptography.fernet import Fernet, InvalidToken
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 def _fernet() -> Fernet:
@@ -30,4 +33,6 @@ def decrypt(value: str) -> str:
     try:
         return _fernet().decrypt(value.encode()).decode()
     except InvalidToken:
+        # Une clé/passphrase illisible ressemble sinon à une valeur absente : on le rend visible.
+        logger.warning('Failed to decrypt a stored secret (InvalidToken) — key rotated/corrupted?')
         return ''

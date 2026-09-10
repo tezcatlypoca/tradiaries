@@ -7,6 +7,7 @@ Usage :
 
 Pour les positions LIVE spot Kraken, la clôture envoie un ordre de vente réel au marché.
 """
+import logging
 import time
 import logging
 
@@ -38,8 +39,14 @@ class Command(BaseCommand):
             f"Observateur TP/SL démarré (intervalle : {interval}s). Ctrl+C pour arrêter."
         )
         while True:
+<<<<<<< HEAD
             try:
                 touch_watcher_heartbeat()
+=======
+            # Le heartbeat n'est écrit qu'APRÈS un cycle réussi : un cycle qui plante
+            # doit laisser le heartbeat se périmer (signal de fraîcheur fiable pour l'alerte).
+            try:
+>>>>>>> dev
                 for event in check_tp_sl():
                     trade = event['trade']
                     self.stdout.write(self.style.SUCCESS(
@@ -48,8 +55,13 @@ class Command(BaseCommand):
                     ))
                 touch_watcher_heartbeat()
             except Exception:
+<<<<<<< HEAD
                 # Une panne réseau ou BDD transitoire ne doit pas tuer le worker.
                 logger.exception('Erreur pendant un cycle de surveillance TP/SL')
+=======
+                logger.exception('Watcher cycle failed unexpectedly.')
+                self.stderr.write(self.style.ERROR('✗ Cycle en échec, voir logs — heartbeat non mis à jour.'))
+>>>>>>> dev
             if options['once']:
                 return
             time.sleep(interval)

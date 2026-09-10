@@ -128,4 +128,11 @@ class ApiCredentialForm(forms.Form):
             self.add_error('api_secret', 'La clé secrète est requise pour cette plateforme.')
         if requirements.get('passphrase') and not cleaned_data.get('passphrase'):
             self.add_error('passphrase', 'La passphrase est requise pour cette plateforme.')
+        # Une seule clé active par plateforme : Kraken (et les autres) ne choisissent
+        # jamais silencieusement "la première" en cas de doublon.
+        if platform and ApiCredential.objects.filter(platform=platform).exists():
+            self.add_error(
+                'platform',
+                'Une clé existe déjà pour cette plateforme. Supprimez-la avant d\'en ajouter une nouvelle.',
+            )
         return cleaned_data

@@ -7,10 +7,15 @@ Règles :
 - TP/SL : surveillés par l'app (commande `watch_tp_sl`), qui envoie l'ordre de
   clôture quand le niveau est atteint. Kraken classic ne gère pas ça nativement
   pour deux triggers simultanés, d'où l'observateur interne.
+- Ordre LIVE : un `KrakenOrderAttempt` est persisté AVANT tout appel réseau, avec
+  un identifiant client unique. Si le processus plante entre l'acceptation Kraken
+  et l'écriture de la position locale, cette trace survit pour réconciliation
+  manuelle (admin) au lieu de laisser un ordre réel sans contrepartie en BDD.
 """
 from decimal import Decimal
 import logging
 import time
+import uuid
 
 from .kraken_client import (
     KrakenAPIError,
@@ -19,7 +24,7 @@ from .kraken_client import (
     fetch_current_prices,
     fetch_order_fill_price,
 )
-from .models import FuturesTrading, SpotTrading
+from .models import FuturesTrading, KrakenOrderAttempt, SpotTrading
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +39,11 @@ def _entry_market_price(symbol: str) -> Decimal:
     if price is None:
         raise TradingError(f"Prix courant indisponible pour {symbol} : impossible d'ouvrir au marché.")
     return price
+
+
+def _userref_from_client_order_id(client_order_id: str) -> int:
+    """Dérive un userref Kraken (entier 32 bits) déterministe depuis un client_order_id."""
+    return int(client_order_id[:8], 16) % 2_147_483_647
 
 
 def open_position(
@@ -58,6 +68,7 @@ def open_position(
     """
     symbol = symbol.strip().upper()
     external_ref = None
+    attempt = None
 
     if trade_mode == 'LIVE':
         if category == 'FUTURES':
@@ -66,19 +77,49 @@ def open_position(
                 "(clés séparées de Kraken classic) — non implémenté. Utilisez le mode Paper."
             )
         side = 'buy'  # spot = toujours un achat à l'ouverture
+        # Persisté AVANT l'appel Kraken : trace de réconciliation en cas de plantage.
+        attempt = KrakenOrderAttempt.objects.create(
+            client_order_id=uuid.uuid4().hex,
+            operation='OPEN',
+            symbol=symbol,
+            side=side,
+            volume=amount,
+            status='PENDING',
+        )
+        userref = _userref_from_client_order_id(attempt.client_order_id)
+        attempt.kraken_userref = userref
         try:
             order = add_spot_order(
                 symbol, side, amount,
                 ordertype='market' if entry_price is None else 'limit',
                 price=entry_price,
+                userref=userref,
             )
         except KrakenAPIError as exc:
+            attempt.status = 'FAILED'
+            attempt.error_message = str(exc)
+            attempt.save(update_fields=['kraken_userref', 'status', 'error_message', 'updated_at'])
             raise TradingError(f"Échec de l'ordre Kraken : {exc}") from exc
+
         external_ref = order['txid']
+        attempt.status = 'SUBMITTED'
+        attempt.external_ref = external_ref
+        attempt.save(update_fields=['kraken_userref', 'status', 'external_ref', 'updated_at'])
+
         # Prix d'exécution réel : QueryOrders juste après (market => fill quasi immédiat).
         if entry_price is None:
             time.sleep(1)
-            entry_price = fetch_order_fill_price(external_ref) or _entry_market_price(symbol)
+            try:
+                entry_price = fetch_order_fill_price(external_ref) or _entry_market_price(symbol)
+            except (KrakenAPIError, TradingError) as exc:
+                # L'ordre est bien parti sur Kraken : ne PAS le faire disparaître, marquer à réconcilier.
+                attempt.status = 'RECONCILE_REQUIRED'
+                attempt.error_message = f"Ordre soumis (txid={external_ref}) mais fill introuvable : {exc}"
+                attempt.save(update_fields=['status', 'error_message', 'updated_at'])
+                raise TradingError(
+                    f"Ordre envoyé à Kraken (txid {external_ref}) mais confirmation impossible : "
+                    "vérifiez manuellement sur Kraken puis réconciliez (voir admin > Tentatives ordres Kraken)."
+                ) from exc
         notes = f"{notes}\n[Kraken ordre {external_ref}]".strip()
     elif entry_price is None:
         entry_price = _entry_market_price(symbol)
@@ -93,11 +134,30 @@ def open_position(
         'trade_mode': trade_mode,
         'notes': notes,
     }
-    if category == 'SPOT':
-        return SpotTrading.objects.create(exchange='KRAKEN', **common)
-    return FuturesTrading.objects.create(
-        direction=direction, strategy=strategy, feeling=feeling, why=why, **common
-    )
+    try:
+        if category == 'SPOT':
+            trade = SpotTrading.objects.create(exchange='KRAKEN', **common)
+        else:
+            trade = FuturesTrading.objects.create(
+                direction=direction, strategy=strategy, feeling=feeling, why=why, **common
+            )
+    except Exception:
+        if attempt is not None:
+            # Ordre confirmé côté Kraken mais échec de la persistance locale : ne pas masquer l'incident.
+            attempt.status = 'RECONCILE_REQUIRED'
+            attempt.error_message = f"Ordre confirmé (txid={external_ref}) mais échec de création de la position locale."
+            attempt.save(update_fields=['status', 'error_message', 'updated_at'])
+            logger.critical(
+                'Kraken order %s confirmed but local trade creation failed — manual reconciliation required.',
+                external_ref,
+            )
+        raise
+
+    if attempt is not None:
+        attempt.status = 'CONFIRMED'
+        attempt.spot_trade = trade
+        attempt.save(update_fields=['status', 'spot_trade', 'updated_at'])
+    return trade
 
 
 def _close_via_kraken(trade) -> Decimal | None:
@@ -120,35 +180,51 @@ def close_position(trade, reason: str = 'manuelle', fallback_price: Decimal | No
     - LIVE spot Kraken : ordre de vente réel au marché.
     - Sinon (paper, spot hors Kraken) : clôture locale au prix courant.
     - LIVE futures : non supporté, la position reste ouverte (False).
+
+    La position est revendiquée atomiquement (`is_closing`) avant tout appel Kraken :
+    si deux appels concurrents (watcher + clic manuel, ou deux watchers) visent la
+    même position, un seul obtient la revendication et envoie l'ordre de vente.
     """
     if trade.exit_price is not None:
         return False
 
-    is_futures = isinstance(trade, FuturesTrading)
-    if trade.trade_mode == 'LIVE':
-        if is_futures:
-            logger.warning('Clôture LIVE futures non supportée (position %s) — API Kraken Futures requise.', trade.pk)
-            return False
-        if trade.exchange == 'KRAKEN':
-            exit_price = _close_via_kraken(trade)
-            if exit_price is None:
-                return False
-        else:
-            exit_price = fetch_current_price(trade.symbol)
-    else:
-        exit_price = fetch_current_price(trade.symbol)
-
-    if exit_price is None:
-        exit_price = fallback_price
-    if exit_price is None:
-        logger.warning('Clôture impossible pour %s : aucun prix disponible.', trade)
+    model = type(trade)
+    claimed = model.objects.filter(pk=trade.pk, exit_price__isnull=True, is_closing=False).update(is_closing=True)
+    if not claimed:
+        logger.info('Close skipped for %s: already closing or closed by another process.', trade.pk)
         return False
 
-    trade.exit_price = exit_price
-    trade.notes = f"{trade.notes}\n[Clôture {reason} à {exit_price}]".strip()
-    trade.save()
-    logger.info('Position closed: %s reason=%s exit=%s', trade, reason, exit_price)
-    return True
+    try:
+        is_futures = isinstance(trade, FuturesTrading)
+        if trade.trade_mode == 'LIVE':
+            if is_futures:
+                logger.warning('Clôture LIVE futures non supportée (position %s) — API Kraken Futures requise.', trade.pk)
+                return False
+            if trade.exchange == 'KRAKEN':
+                exit_price = _close_via_kraken(trade)
+                if exit_price is None:
+                    return False
+            else:
+                exit_price = fetch_current_price(trade.symbol)
+        else:
+            exit_price = fetch_current_price(trade.symbol)
+
+        if exit_price is None:
+            exit_price = fallback_price
+        if exit_price is None:
+            logger.warning('Clôture impossible pour %s : aucun prix disponible.', trade)
+            return False
+
+        trade.exit_price = exit_price
+        trade.is_closing = False
+        trade.notes = f"{trade.notes}\n[Clôture {reason} à {exit_price}]".strip()
+        trade.save()
+        logger.info('Position closed: %s reason=%s exit=%s', trade, reason, exit_price)
+        return True
+    finally:
+        # Clôture non aboutie (Kraken KO, prix indisponible...) : on relâche le verrou pour un prochain essai.
+        if trade.exit_price is None:
+            model.objects.filter(pk=trade.pk).update(is_closing=False)
 
 
 def _tp_sl_triggered(trade, price: Decimal) -> str | None:
@@ -201,7 +277,12 @@ def check_tp_sl() -> list[dict]:
             if close_position(trade, reason=trigger, fallback_price=fallback):
                 closed.append({'trade': trade, 'reason': trigger, 'price': trade.exit_price})
         except Exception:
+<<<<<<< HEAD
             logger.exception('TP/SL clôture échouée pour la position %s', trade.pk)
+=======
+            # Isole les positions : une erreur inattendue sur l'une ne doit pas arrêter le cycle entier.
+            logger.exception('Unexpected error while closing position %s (trigger=%s)', trade.pk, trigger)
+>>>>>>> dev
     return closed
 
 
