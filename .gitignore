@@ -5,7 +5,9 @@ dist/
 .vscode/
 .github/
 
-docs/
+docs/futures_trades
+crypto.csv
+spot_trading.csv
 
 # Environnement virtuel
 env/
@@ -22,6 +24,10 @@ db.sqlite3-journal
 staticfiles/
 .env.local
 .env.*.local
+
+# Export de données (migration SQLite -> Postgres) : ne jamais commiter l'historique de trades
+*_export.json
+reset_sequences.sql
 
 # Fichiers temporaires
 *.tmp

@@ -20,7 +20,6 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
-ReadWritePaths=/opt/tradiaries/var
 
 [Install]
 WantedBy=multi-user.target

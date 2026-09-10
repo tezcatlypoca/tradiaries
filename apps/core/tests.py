@@ -1,5 +1,4 @@
 from decimal import Decimal
-from pathlib import Path
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -8,9 +7,10 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .forms import FuturesTradingForm, SimpleInvestmentForm, SpotTradingForm
-from .models import FuturesTrading, SimpleInvestment, SpotTrading
+from .kraken_client import KrakenAPIError
+from .models import FuturesTrading, KrakenOrderAttempt, SimpleInvestment, SpotTrading, WatcherHeartbeat
 from .portfolio_service import futures_trade_pnl
-from .trading_service import TradingError, check_tp_sl, open_position
+from .trading_service import TradingError, check_tp_sl, close_position, open_position
 from .watcher_health import touch_watcher_heartbeat
 from apps.live_trading.forms import OpenPositionForm
 
@@ -159,6 +159,62 @@ class TradingServiceTests(TestCase):
             )
 
 
+class LiveOrderReconciliationTests(TestCase):
+    """Vérifie que chaque tentative d'ordre LIVE laisse une trace exploitable (P0-1)."""
+
+    @patch('apps.core.trading_service.add_spot_order', side_effect=KrakenAPIError('boom'))
+    def test_kraken_failure_before_submission_is_recorded_as_failed(self, mocked_add_order):
+        with self.assertRaises(TradingError):
+            open_position(
+                category='SPOT', trade_mode='LIVE', symbol='BTC',
+                amount=Decimal('1'), entry_price=Decimal('100'),
+            )
+
+        attempt = KrakenOrderAttempt.objects.get()
+        self.assertEqual(attempt.status, 'FAILED')
+        self.assertEqual(attempt.operation, 'OPEN')
+        self.assertIsNone(attempt.spot_trade)
+        self.assertFalse(SpotTrading.objects.exists())
+
+    @patch('apps.core.trading_service.time.sleep', return_value=None)
+    @patch('apps.core.trading_service.fetch_order_fill_price', return_value=Decimal('101'))
+    @patch(
+        'apps.core.trading_service.add_spot_order',
+        return_value={'txid': 'TX123', 'descr': '', 'pair': 'XBTUSD'},
+    )
+    def test_successful_order_confirms_attempt_and_links_trade(self, mocked_add_order, mocked_fill, mocked_sleep):
+        trade = open_position(
+            category='SPOT', trade_mode='LIVE', symbol='BTC',
+            amount=Decimal('1'), entry_price=None,
+        )
+
+        attempt = KrakenOrderAttempt.objects.get()
+        self.assertEqual(attempt.status, 'CONFIRMED')
+        self.assertEqual(attempt.external_ref, 'TX123')
+        self.assertEqual(attempt.spot_trade_id, trade.pk)
+        mocked_add_order.assert_called_once()
+        self.assertEqual(mocked_add_order.call_args.kwargs['userref'], attempt.kraken_userref)
+
+
+class ClosePositionConcurrencyTests(TestCase):
+    """Vérifie la revendication atomique anti double-clôture (P0-3)."""
+
+    @patch('apps.core.trading_service.fetch_current_price', return_value=Decimal('150'))
+    def test_close_is_skipped_if_already_claimed(self, mocked_price):
+        trade = SpotTrading.objects.create(
+            symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'), trade_mode='PAPER',
+        )
+        # Simule une clôture déjà en cours (autre process/watcher).
+        SpotTrading.objects.filter(pk=trade.pk).update(is_closing=True)
+
+        result = close_position(trade)
+
+        self.assertFalse(result)
+        trade.refresh_from_db()
+        self.assertIsNone(trade.exit_price)
+        mocked_price.assert_not_called()
+
+
 @override_settings(ALLOWED_HOSTS=['testserver'])
 class TradingViewTests(TestCase):
     def setUp(self):
@@ -212,11 +268,9 @@ class TradingViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'status': 'ok'})
 
-    @override_settings(TRADING_WATCHER_HEARTBEAT_FILE='test-watcher-heartbeat')
     def test_watcher_health_endpoint_requires_recent_heartbeat(self):
         self.client.logout()
-        heartbeat_path = Path('test-watcher-heartbeat')
-        heartbeat_path.unlink(missing_ok=True)
+        WatcherHeartbeat.objects.all().delete()
 
         response = self.client.get(reverse('watcher_healthz'))
         self.assertEqual(response.status_code, 503)
@@ -226,4 +280,3 @@ class TradingViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'status': 'ok', 'watcher': 'running'})
-        heartbeat_path.unlink(missing_ok=True)

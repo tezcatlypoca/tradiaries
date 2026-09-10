@@ -7,6 +7,7 @@ Usage :
 
 Pour les positions LIVE spot Kraken, la clôture envoie un ordre de vente réel au marché.
 """
+import logging
 import time
 
 from django.conf import settings
@@ -14,6 +15,8 @@ from django.core.management.base import BaseCommand
 
 from apps.core.trading_service import check_tp_sl
 from apps.core.watcher_health import touch_watcher_heartbeat
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -35,14 +38,19 @@ class Command(BaseCommand):
             f"Observateur TP/SL démarré (intervalle : {interval}s). Ctrl+C pour arrêter."
         )
         while True:
-            touch_watcher_heartbeat()
-            for event in check_tp_sl():
-                trade = event['trade']
-                self.stdout.write(self.style.SUCCESS(
-                    f"✓ {trade.symbol} clôturé ({event['reason']}) à {event['price']} "
-                    f"[{trade.trade_mode}]"
-                ))
-            touch_watcher_heartbeat()
+            # Le heartbeat n'est écrit qu'APRÈS un cycle réussi : un cycle qui plante
+            # doit laisser le heartbeat se périmer (signal de fraîcheur fiable pour l'alerte).
+            try:
+                for event in check_tp_sl():
+                    trade = event['trade']
+                    self.stdout.write(self.style.SUCCESS(
+                        f"✓ {trade.symbol} clôturé ({event['reason']}) à {event['price']} "
+                        f"[{trade.trade_mode}]"
+                    ))
+                touch_watcher_heartbeat()
+            except Exception:
+                logger.exception('Watcher cycle failed unexpectedly.')
+                self.stderr.write(self.style.ERROR('✗ Cycle en échec, voir logs — heartbeat non mis à jour.'))
             if options['once']:
                 return
             time.sleep(interval)

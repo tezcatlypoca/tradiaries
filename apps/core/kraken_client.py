@@ -21,7 +21,15 @@ API_URL = "https://api.kraken.com"
 logger = logging.getLogger(__name__)
 
 
-def _http_session() -> requests.Session:
+def _http_session(retry_post: bool = True) -> requests.Session:
+    """Session HTTP avec retry automatique.
+
+    `retry_post=False` désactive le rejeu des requêtes POST : à utiliser pour tout
+    ordre non idempotent (AddOrder, CancelOrder), car après un timeout/5xx on ne
+    sait jamais si Kraken a réellement traité la première tentative — la rejouer
+    aveuglément peut soumettre l'ordre deux fois.
+    """
+    methods = {'GET', 'POST'} if retry_post else {'GET'}
     retry = Retry(
         total=settings.KRAKEN_MAX_RETRIES,
         connect=settings.KRAKEN_MAX_RETRIES,
@@ -29,7 +37,7 @@ def _http_session() -> requests.Session:
         status=settings.KRAKEN_MAX_RETRIES,
         backoff_factor=0.5,
         status_forcelist=(429, 500, 502, 503, 504),
-        allowed_methods=frozenset({'GET', 'POST'}),
+        allowed_methods=frozenset(methods),
         raise_on_status=False,
     )
     session = requests.Session()
@@ -57,6 +65,25 @@ def _sign(path: str, payload: dict, secret: str) -> str:
     return base64.b64encode(signature.digest()).decode()
 
 
+def _next_nonce() -> int:
+    """Nonce Kraken strictement croissant, y compris entre process/threads concurrents.
+
+    Un nonce dérivé uniquement de l'horloge peut coïncider ou régresser entre deux
+    workers Gunicorn ou le watcher exécutés en parallèle. Le compteur est incrémenté
+    sous verrou DB (select_for_update), ce qui le sérialise même sur SQLite.
+    """
+    from django.db import transaction
+
+    from .models import KrakenNonceCounter
+
+    with transaction.atomic():
+        counter, _ = KrakenNonceCounter.objects.select_for_update().get_or_create(pk=1)
+        now_micros = time.time_ns() // 1000
+        counter.value = max(counter.value + 1, now_micros)
+        counter.save(update_fields=['value'])
+        return counter.value
+
+
 def _get_kraken_credentials() -> tuple[str, str]:
     """Récupère la clé/secret Kraken depuis la BDD (ApiCredential), seule source désormais (plus de fallback .env)."""
     from .models import ApiCredential  # import différé pour éviter tout risque de cycle au chargement des apps
@@ -67,7 +94,12 @@ def _get_kraken_credentials() -> tuple[str, str]:
     return credential.get_api_key(), credential.get_api_secret()
 
 
-def _private_request(endpoint: str, data: dict | None = None) -> dict:
+def _private_request(endpoint: str, data: dict | None = None, *, retryable: bool = True) -> dict:
+    """Appelle un endpoint privé Kraken.
+
+    `retryable=False` doit être utilisé pour tout ordre non idempotent (AddOrder,
+    CancelOrder) : voir `_http_session`.
+    """
     api_key, api_secret = _get_kraken_credentials()
     if not api_key or not api_secret:
         raise KrakenAPIError(
@@ -75,7 +107,7 @@ def _private_request(endpoint: str, data: dict | None = None) -> dict:
         )
 
     path = f"/0/private/{endpoint}"
-    payload = {'nonce': str(int(time.time() * 1000))}
+    payload = {'nonce': str(_next_nonce())}
     if data:
         payload.update(data)
 
@@ -85,7 +117,7 @@ def _private_request(endpoint: str, data: dict | None = None) -> dict:
     }
 
     try:
-        response = _http_session().post(
+        response = _http_session(retry_post=retryable).post(
             API_URL + path,
             headers=headers,
             data=payload,
@@ -231,6 +263,7 @@ def add_spot_order(
     ordertype: str = 'market',
     price: Decimal | None = None,
     validate: bool = False,
+    userref: int | None = None,
 ) -> dict:
     """Passe un ordre spot sur Kraken (endpoint privé AddOrder).
 
@@ -241,6 +274,10 @@ def add_spot_order(
         ordertype: 'market' ou 'limit'.
         price: requis pour un ordre 'limit'.
         validate: si True, Kraken valide l'ordre sans l'exécuter.
+        userref: identifiant client (entier 32 bits) permettant de retrouver cet
+            ordre côté Kraken lors d'une réconciliation manuelle, indépendamment
+            du txid. Ne déclenche aucun rejeu automatique : cet appel n'est
+            jamais retenté par la couche HTTP (voir `_private_request`).
 
     Returns:
         {'txid': str, 'descr': str, 'pair': str}
@@ -261,13 +298,17 @@ def add_spot_order(
         payload['price'] = format(price.normalize(), 'f')
     if validate:
         payload['validate'] = 'true'
+    if userref is not None:
+        payload['userref'] = str(userref)
 
-    result = _private_request('AddOrder', payload)
+    # retryable=False : un AddOrder ne doit jamais être rejoué automatiquement,
+    # l'issue d'un timeout/5xx est ambiguë (l'ordre a pu partir malgré tout).
+    result = _private_request('AddOrder', payload, retryable=False)
     txids = result.get('txid') or []
     descr = result.get('descr', {}).get('order', '')
     if not txids and not validate:
         raise KrakenAPIError("Kraken n'a retourné aucun txid pour l'ordre.")
-    logger.info('Kraken order placed: pair=%s side=%s volume=%s txid=%s', pair, side, volume, txids)
+    logger.info('Kraken order placed: pair=%s side=%s volume=%s txid=%s userref=%s', pair, side, volume, txids, userref)
     return {'txid': txids[0] if txids else '', 'descr': descr, 'pair': pair}
 
 
@@ -292,5 +333,5 @@ def fetch_order_fill_price(txid: str) -> Decimal | None:
 
 def cancel_order(txid: str) -> None:
     """Annule un ordre ouvert (endpoint privé CancelOrder)."""
-    _private_request('CancelOrder', {'txid': txid})
+    _private_request('CancelOrder', {'txid': txid}, retryable=False)
     logger.info('Kraken order cancelled: txid=%s', txid)

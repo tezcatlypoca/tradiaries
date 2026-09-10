@@ -54,6 +54,17 @@ CSRF_TRUSTED_ORIGINS = [
     for origin in config('CSRF_TRUSTED_ORIGINS', default='').split(',')
     if origin.strip()
 ]
+
+# Render fournit automatiquement le nom d'hôte externe du service : on l'ajoute
+# nous-même pour éviter un oubli de configuration qui bloquerait tout le site.
+_render_hostname = config('RENDER_EXTERNAL_HOSTNAME', default='')
+if _render_hostname:
+    if _render_hostname not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_render_hostname)
+    _render_origin = f"https://{_render_hostname}"
+    if _render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_render_origin)
+
 SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
 SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
 CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
@@ -65,6 +76,18 @@ SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=False, cast=bool)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https') if config(
     'SECURE_PROXY_SSL_HEADER_ENABLED', default=False, cast=bool
 ) else None
+
+# En production, le HTTPS doit être explicitement configuré — pas de valeur par
+# défaut silencieuse qui laisserait démarrer une instance sans cookies sécurisés
+# ni redirection TLS suite à une variable d'environnement oubliée.
+if not DEBUG and not (SECURE_SSL_REDIRECT and SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE):
+    if not config('ALLOW_INSECURE_TRANSPORT', default=False, cast=bool):
+        raise RuntimeError(
+            'En production (DEBUG=False), configurez SECURE_SSL_REDIRECT=True, '
+            'SESSION_COOKIE_SECURE=True et CSRF_COOKIE_SECURE=True, ou définissez '
+            'ALLOW_INSECURE_TRANSPORT=True pour désactiver explicitement ce contrôle.'
+        )
+
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard:index'
 LOGOUT_REDIRECT_URL = 'login'
@@ -77,10 +100,8 @@ KRAKEN_MAX_RETRIES = config('KRAKEN_MAX_RETRIES', default=2, cast=int)
 
 # Observateur TP/SL (commande watch_tp_sl) : intervalle entre deux vérifications
 TRADING_WATCHER_INTERVAL_SECONDS = config('TRADING_WATCHER_INTERVAL_SECONDS', default=60, cast=int)
-TRADING_WATCHER_HEARTBEAT_FILE = config(
-    'TRADING_WATCHER_HEARTBEAT_FILE',
-    default=str(BASE_DIR / 'var' / 'watcher-heartbeat'),
-)
+# Heartbeat stocké en BDD (voir apps/core/watcher_health.py) : le watcher et le
+# serveur web peuvent tourner sur des machines séparées sans disque commun.
 TRADING_WATCHER_HEARTBEAT_TIMEOUT_SECONDS = config(
     'TRADING_WATCHER_HEARTBEAT_TIMEOUT_SECONDS',
     default=180,
@@ -109,6 +130,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -146,6 +168,11 @@ if DATABASE_URL:
     if database_url.scheme not in ('postgres', 'postgresql'):
         raise RuntimeError('DATABASE_URL must use the postgres:// or postgresql:// scheme')
     database_options = parse_qs(database_url.query)
+    database_options = {key: values[-1] for key, values in database_options.items()}
+    # Neon (et les Postgres serverless en général) exigent TLS et peuvent suspendre
+    # leur compute après inactivité : sslmode explicite + pas de connexion persistante
+    # par défaut, pour éviter d'utiliser une connexion devenue invalide après une reprise.
+    database_options.setdefault('sslmode', 'require')
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -154,10 +181,8 @@ if DATABASE_URL:
             'PASSWORD': unquote(database_url.password or ''),
             'HOST': database_url.hostname or '',
             'PORT': str(database_url.port or ''),
-            'OPTIONS': {
-                key: values[-1]
-                for key, values in database_options.items()
-            },
+            'OPTIONS': database_options,
+            'CONN_MAX_AGE': config('DB_CONN_MAX_AGE', default=0, cast=int),
         }
     }
 else:
@@ -206,6 +231,19 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': (
+            'whitenoise.storage.CompressedManifestStaticFilesStorage'
+            if not DEBUG else
+            'django.contrib.staticfiles.storage.StaticFilesStorage'
+        ),
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
