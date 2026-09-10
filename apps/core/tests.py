@@ -2,7 +2,6 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -160,7 +159,6 @@ class TradingServiceTests(TestCase):
             )
 
 
-<<<<<<< HEAD
 class WatcherCommandTests(TestCase):
     @patch(
         'apps.core.management.commands.watch_tp_sl.check_tp_sl',
@@ -171,8 +169,10 @@ class WatcherCommandTests(TestCase):
         call_command('watch_tp_sl', '--once')
 
         mocked_check.assert_called_once_with()
-        self.assertEqual(mocked_heartbeat.call_count, 1)
-=======
+        # Le heartbeat n'est écrit qu'après un cycle réussi : un cycle en échec doit le laisser se périmer.
+        self.assertEqual(mocked_heartbeat.call_count, 0)
+
+
 class LiveOrderReconciliationTests(TestCase):
     """Vérifie que chaque tentative d'ordre LIVE laisse une trace exploitable (P0-1)."""
 
@@ -227,7 +227,6 @@ class ClosePositionConcurrencyTests(TestCase):
         trade.refresh_from_db()
         self.assertIsNone(trade.exit_price)
         mocked_price.assert_not_called()
->>>>>>> dev
 
 
 @override_settings(ALLOWED_HOSTS=['testserver'])

@@ -277,12 +277,8 @@ def check_tp_sl() -> list[dict]:
             if close_position(trade, reason=trigger, fallback_price=fallback):
                 closed.append({'trade': trade, 'reason': trigger, 'price': trade.exit_price})
         except Exception:
-<<<<<<< HEAD
-            logger.exception('TP/SL clôture échouée pour la position %s', trade.pk)
-=======
             # Isole les positions : une erreur inattendue sur l'une ne doit pas arrêter le cycle entier.
             logger.exception('Unexpected error while closing position %s (trigger=%s)', trade.pk, trigger)
->>>>>>> dev
     return closed
 
 
