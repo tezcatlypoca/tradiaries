@@ -1,12 +1,25 @@
 from django.shortcuts import render, redirect, get_object_or_404
 import json
+from pathlib import Path
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.views.decorators.http import require_http_methods
 
 from apps.core.forms import ApiCredentialForm, add_form_errors_to_messages
 from apps.core.models import ApiCredential
 from apps.core.portfolio_service import build_chart_series, compute_global_stats
+
+
+def service_worker(request):
+    """Sert le service worker à la racine (scope "/") — nécessaire pour une PWA installable."""
+    sw_path = Path(settings.BASE_DIR) / 'static' / 'js' / 'service-worker.js'
+    return HttpResponse(sw_path.read_text(encoding='utf-8'), content_type='application/javascript')
+
+
+def manifest(request):
+    return render(request, 'pwa/manifest.webmanifest', content_type='application/manifest+json')
 
 
 # Create your views here.

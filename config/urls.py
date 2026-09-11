@@ -21,10 +21,13 @@ from django.conf.urls.static import static
 from pathlib import Path
 from apps.investment.views import healthz
 from apps.investment.views import healthz, watcher_healthz
+from apps.dashboard.views import service_worker, manifest
 
 urlpatterns = [
     path('healthz/', healthz, name='healthz'),
     path('healthz/watcher/', watcher_healthz, name='watcher_healthz'),
+    path('service-worker.js', service_worker, name='service_worker'),
+    path('manifest.webmanifest', manifest, name='manifest'),
     path('', include("apps.dashboard.urls")),
     path('investment/', include("apps.investment.urls")),
     path('spot-trading/', include("apps.spot_trading.urls")),

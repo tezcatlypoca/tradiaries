@@ -176,12 +176,12 @@ body {
 .menu-list > li > a {
     display: flex;
     align-items: center;
-    padding: 11px 12px;
+    padding: 12px 12px;
     color: var(--sidebar-text);
     text-decoration: none;
     transition: all 0.3s ease;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     border: 1px solid transparent;
     border-radius: 5px;
 }
@@ -304,6 +304,40 @@ body {
 }
 
 /* KPI Grid */
+.kpi-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
+.kpi-visibility-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.kpi-visibility-toggle:hover {
+    background: var(--surface-3);
+    color: var(--primary-color);
+}
+
+.kpi-visibility-toggle .material-icons {
+    font-size: 20px;
+}
+
+.kpi-grid.kpi-hidden .kpi-value {
+    filter: blur(7px);
+    user-select: none;
+}
+
 .kpi-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));

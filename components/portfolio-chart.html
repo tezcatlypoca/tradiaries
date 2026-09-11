@@ -21,32 +21,45 @@
         justify-content: space-between;
         flex-wrap: wrap;
         gap: 0.5rem;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.75rem;
     }
     .chart-timeframe-buttons,
     .chart-category-buttons {
         display: flex;
-        gap: 0.5rem;
+        gap: 6px;
+        padding: 4px;
+        background: var(--surface-1, #0e141b);
+        border: 1px solid var(--border, #273542);
+        border-radius: 6px;
+        width: fit-content;
     }
     .chart-timeframe-btn,
     .chart-category-btn {
-        padding: 0.25rem 0.75rem;
-        border: 1px solid #d1d5db;
+        padding: 6px 12px;
+        border: 1px solid transparent;
         border-radius: 4px;
-        background: #ffffff;
-        color: #1f2937;
+        background: transparent;
+        color: var(--text-secondary, #91a3ad);
         cursor: pointer;
-        font-size: 0.875rem;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        transition: background 0.2s ease, color 0.2s ease;
     }
     .chart-timeframe-btn:hover,
     .chart-category-btn:hover {
-        background: #f3f4f6;
+        color: var(--text-primary, #f1f7f5);
     }
     .chart-timeframe-btn.active,
     .chart-category-btn.active {
-        background: #2962FF;
-        border-color: #2962FF;
-        color: #ffffff;
+        background: var(--primary-color, #67e8c1);
+        border-color: var(--primary-color, #67e8c1);
+        color: #07100e;
+    }
+    #portfolio-chart {
+        background: var(--surface-1, #0e141b);
+        border: 1px solid var(--border, #273542);
+        border-radius: 6px;
     }
 </style>
 
@@ -57,22 +70,30 @@
         width: container.clientWidth,
         height: container.clientHeight,
         layout: {
-            textColor: '#1f2937',
-            background: { color: '#ffffff' },
+            textColor: '#91a3ad',
+            background: { color: 'transparent' },
             attributionLogo: false,
         },
         grid: {
-            vertLines: { color: '#ffffff' },
-            horzLines: { color: '#ffffff' },
+            vertLines: { visible: false },
+            horzLines: { visible: false },
+        },
+        rightPriceScale: {
+            borderVisible: false,
         },
         timeScale: {
+            borderVisible: false,
             timeVisible: true,
             secondsVisible: false,
+        },
+        crosshair: {
+            vertLine: { color: '#273542', labelBackgroundColor: '#192430' },
+            horzLine: { color: '#273542', labelBackgroundColor: '#192430' },
         },
     });
 
     const lineSeries = chart.addLineSeries({
-        color: '#2962FF',
+        color: '#67e8c1',
         lineWidth: 2,
     });
 

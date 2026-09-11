@@ -100,6 +100,39 @@ body {
     box-shadow: 0 0 0 3px rgba(103, 232, 193, 0.12);
 }
 
+.password-field {
+    position: relative;
+}
+
+.password-field input {
+    padding-right: 2.5rem;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.password-toggle .material-icons {
+    font-size: 20px;
+}
+
+.password-toggle:hover {
+    color: var(--primary-color);
+}
+
 .auth-submit {
     width: 100%;
     margin-top: 0.5rem;

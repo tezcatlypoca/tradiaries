@@ -12,6 +12,11 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
     <link rel="stylesheet" href="{% static 'css/investment.css' %}">
+
+    <!-- PWA -->
+    <link rel="manifest" href="{% url 'manifest' %}">
+    <meta name="theme-color" content="#080c10">
+    <link rel="apple-touch-icon" href="{% static 'icons/icon.svg' %}">
 </head>
 <body>
     {% include 'components/side-menu.html' %}
@@ -113,5 +118,6 @@
 
     <!-- Futures Trading Form Modal -->
     {% include 'components/futures-trading-form.html' %}
+    <script src="{% static 'js/pwa-register.js' %}"></script>
 </body>
 </html>
