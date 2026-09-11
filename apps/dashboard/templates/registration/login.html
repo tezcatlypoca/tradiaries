@@ -4,8 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion - Tradiaries</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+
+    <!-- PWA -->
+    <link rel="manifest" href="{% url 'manifest' %}">
+    <meta name="theme-color" content="#080c10">
+    <link rel="apple-touch-icon" href="{% static 'icons/icon.svg' %}">
 </head>
 <body>
     <main class="auth-container">
@@ -18,7 +24,16 @@
                 {% for field in form %}
                 <div class="form-group">
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {% if field.field.widget.input_type == 'password' %}
+                    <div class="password-field">
+                        {{ field }}
+                        <button type="button" class="password-toggle" data-target="{{ field.id_for_label }}" aria-label="Afficher le mot de passe" title="Afficher le mot de passe">
+                            <span class="material-icons">visibility</span>
+                        </button>
+                    </div>
+                    {% else %}
                     {{ field }}
+                    {% endif %}
                 </div>
                 {% endfor %}
                 <input type="hidden" name="next" value="{{ next }}">
@@ -26,5 +41,20 @@
             </form>
         </div>
     </main>
+    <script>
+        document.querySelectorAll('.password-toggle').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const input = document.getElementById(btn.dataset.target);
+                const icon = btn.querySelector('.material-icons');
+                const isHidden = input.type === 'password';
+                input.type = isHidden ? 'text' : 'password';
+                icon.textContent = isHidden ? 'visibility_off' : 'visibility';
+                const label = isHidden ? 'Cacher le mot de passe' : 'Afficher le mot de passe';
+                btn.setAttribute('aria-label', label);
+                btn.setAttribute('title', label);
+            });
+        });
+    </script>
+    <script src="{% static 'js/pwa-register.js' %}"></script>
 </body>
 </html>

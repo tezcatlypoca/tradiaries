@@ -1,0 +1,19 @@
+{% load static %}{
+    "name": "Tradiaries",
+    "short_name": "Tradiaries",
+    "description": "Suivi d'investissements et de trading (spot, futures, analytics, journal).",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#080c10",
+    "theme_color": "#080c10",
+    "lang": "fr",
+    "icons": [
+        {
+            "src": "{% static 'icons/icon.svg' %}",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
+}

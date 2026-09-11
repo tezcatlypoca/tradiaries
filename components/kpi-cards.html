@@ -1,4 +1,9 @@
-<div class="kpi-grid">
+<div class="kpi-toolbar">
+    <button type="button" class="kpi-visibility-toggle" data-kpi-toggle title="Masquer les soldes" aria-label="Masquer les soldes">
+        <span class="material-icons">visibility</span>
+    </button>
+</div>
+<div class="kpi-grid" data-kpi-grid>
     {% for card in kpi_cards %}
     <div class="kpi-card">
         <h3>{{ card.label }}</h3>
@@ -16,4 +21,30 @@
 {% if unavailable_symbols %}
 <p class="kpi-warning">⚠️ Prix indisponible sur Kraken pour : {{ unavailable_symbols|join:", " }} (exclus des valorisations et PnL).</p>
 {% endif %}
+
+<script>
+(function () {
+    const grid = document.querySelector('[data-kpi-grid]');
+    const toggle = document.querySelector('[data-kpi-toggle]');
+    if (!grid || !toggle) return;
+    const storageKey = 'kpiHidden:' + window.location.pathname;
+    const icon = toggle.querySelector('.material-icons');
+
+    function applyState(hidden) {
+        grid.classList.toggle('kpi-hidden', hidden);
+        icon.textContent = hidden ? 'visibility_off' : 'visibility';
+        const label = hidden ? 'Afficher les soldes' : 'Masquer les soldes';
+        toggle.setAttribute('title', label);
+        toggle.setAttribute('aria-label', label);
+    }
+
+    applyState(localStorage.getItem(storageKey) === '1');
+
+    toggle.addEventListener('click', function () {
+        const hidden = !grid.classList.contains('kpi-hidden');
+        localStorage.setItem(storageKey, hidden ? '1' : '0');
+        applyState(hidden);
+    });
+})();
+</script>
 
