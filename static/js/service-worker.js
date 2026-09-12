@@ -34,7 +34,9 @@ self.addEventListener('fetch', (event) => {
             caches.match(request).then((cached) => {
                 const network = fetch(request).then((response) => {
                     if (response.ok) {
-                        caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+                        // Cloner avant d'utiliser la réponse (ne peut être clonée qu'une fois)
+                        const clone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
                     }
                     return response;
                 }).catch(() => cached);
