@@ -4,5 +4,5 @@ from . import views
 app_name = 'dashboard'
 
 urlpatterns = [
-    path('', views.dashboard, name='index'),
+    path('', views.index, name='index'),  # Landing (public) ou dashboard (authentifié)
 ]

@@ -1,12 +1,14 @@
 {% load static %}{
-    "name": "Tradiaries",
+    "name": "Tradiaries - Suivi Trading & Investissements",
     "short_name": "Tradiaries",
-    "description": "Suivi d'investissements et de trading (spot, futures, analytics, journal).",
+    "description": "Suivi complet de vos investissements et trading en cryptomonnaies. Dashboard, Analytics, Journal de trading. Modes LIVE et PAPER.",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
+    "orientation": "portrait-primary",
     "background_color": "#080c10",
     "theme_color": "#10b981",
+    "categories": ["productivity", "finance"],
     "lang": "fr",
     "icons": [
         {
@@ -26,6 +28,14 @@
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "{% static 'icons/candlestick-icon-512.png' %}",
+            "sizes": "512x512",
+            "type": "image/png",
+            "form_factor": "wide"
         }
     ]
 }

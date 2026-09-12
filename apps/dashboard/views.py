@@ -22,6 +22,16 @@ def manifest(request):
     return render(request, 'pwa/manifest.webmanifest', content_type='application/manifest+json')
 
 
+def index(request):
+    """
+    Page d'accueil : landing publique si non-loggé, dashboard si loggé.
+    Permet à la PWA de s'installer correctement (start_url "/" doit être accessible sans auth).
+    """
+    if request.user.is_authenticated:
+        return dashboard(request)
+    return render(request, 'dashboard/landing.html')
+
+
 # Create your views here.
 @login_required
 def dashboard(request):
