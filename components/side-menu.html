@@ -51,11 +51,49 @@
 </div>
 
 <script>
+// Appliquer l'état initial du menu SANS animation pour éviter le flicker
+(function() {
+    const MENU_STATE_KEY = 'tradiaries-menu-state';
+    const sideMenu = document.getElementById('sideMenu');
+    const menuToggle = document.getElementById('menuToggle');
+    const isMobile = window.innerWidth <= 768;
+    
+    // Lire l'état sauvegardé
+    const savedState = localStorage.getItem(MENU_STATE_KEY);
+    
+    // Déterminer si le menu doit être fermé
+    // Logique : en mobile, fermé par défaut; en desktop, ouvert par défaut
+    // Mais RESPECTER le localStorage s'il existe
+    let shouldBeClosed;
+    if (savedState !== null) {
+        // On a un état sauvegardé, l'utiliser
+        shouldBeClosed = savedState === 'closed';
+    } else {
+        // Pas d'état sauvegardé, utiliser la logique par défaut
+        shouldBeClosed = isMobile;
+    }
+    
+    // Appliquer l'état SANS animation (ajouter classe temporaire)
+    if (sideMenu) {
+        sideMenu.classList.add('initializing');
+        if (shouldBeClosed) {
+            sideMenu.classList.add('hidden');
+            if (menuToggle) menuToggle.classList.add('visible');
+        }
+        // Retirer la classe pour réactiver les animations
+        requestAnimationFrame(() => {
+            sideMenu.classList.remove('initializing');
+        });
+    }
+})();
+
+// Logique des événements
 document.addEventListener('DOMContentLoaded', function() {
     const menuToggle = document.getElementById('menuToggle');
     const menuHeader = document.getElementById('menuHeader');
     const sideMenu = document.getElementById('sideMenu');
     const mainContent = document.querySelector('.main-content');
+    const MENU_STATE_KEY = 'tradiaries-menu-state';
 
     function closeMenu() {
         sideMenu.classList.add('hidden');
@@ -63,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (mainContent) {
             mainContent.classList.add('expanded');
         }
+        localStorage.setItem(MENU_STATE_KEY, 'closed');
     }
 
     function openMenu() {
@@ -71,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (mainContent) {
             mainContent.classList.remove('expanded');
         }
+        localStorage.setItem(MENU_STATE_KEY, 'open');
     }
 
     menuToggle.addEventListener('click', openMenu);
@@ -86,11 +126,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Close menu on mobile when clicking a link
+    // Fermer menu en mobile uniquement quand cliquant sur un lien du SIDEBAR (pas les tabs)
+    // Les tabs sont dans .main-content, pas dans .side-menu
     if (window.innerWidth <= 768) {
-        const links = sideMenu.querySelectorAll('a:not(.submenu-trigger)');
-        links.forEach(link => {
-            link.addEventListener('click', closeMenu);
+        const sidebarLinks = sideMenu.querySelectorAll('a:not(.submenu-trigger)');
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                closeMenu();
+            });
         });
     }
 });

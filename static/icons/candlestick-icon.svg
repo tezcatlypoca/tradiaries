@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+    <!-- Dark background with rounded corners -->
+    <rect width="512" height="512" rx="96" fill="#080c10"/>
+    
+    <!-- Candlestick pattern - stylized trading icon -->
+    <!-- Left candlestick (down) -->
+    <rect x="80" y="280" width="40" height="100" fill="#ef4444" rx="8"/>
+    <line x1="100" y1="80" x2="100" y2="280" stroke="#ef4444" stroke-width="12" stroke-linecap="round"/>
+    <line x1="100" y1="380" x2="100" y2="420" stroke="#ef4444" stroke-width="12" stroke-linecap="round"/>
+    
+    <!-- Center-left candlestick (up) -->
+    <rect x="170" y="200" width="40" height="180" fill="#10b981" rx="8"/>
+    <line x1="190" y1="120" x2="190" y2="200" stroke="#10b981" stroke-width="12" stroke-linecap="round"/>
+    <line x1="190" y1="380" x2="190" y2="440" stroke="#10b981" stroke-width="12" stroke-linecap="round"/>
+    
+    <!-- Center candlestick (up - biggest) -->
+    <rect x="260" y="140" width="40" height="240" fill="#10b981" rx="8"/>
+    <line x1="280" y1="60" x2="280" y2="140" stroke="#10b981" stroke-width="12" stroke-linecap="round"/>
+    <line x1="280" y1="380" x2="280" y2="440" stroke="#10b981" stroke-width="12" stroke-linecap="round"/>
+    
+    <!-- Center-right candlestick (up) -->
+    <rect x="350" y="220" width="40" height="160" fill="#10b981" rx="8"/>
+    <line x1="370" y1="140" x2="370" y2="220" stroke="#10b981" stroke-width="12" stroke-linecap="round"/>
+    <line x1="370" y1="380" x2="370" y2="430" stroke="#10b981" stroke-width="12" stroke-linecap="round"/>
+    
+    <!-- Right candlestick (up) -->
+    <rect x="420" y="260" width="40" height="120" fill="#10b981" rx="8"/>
+    <line x1="440" y1="180" x2="440" y2="260" stroke="#10b981" stroke-width="12" stroke-linecap="round"/>
+    <line x1="440" y1="380" x2="440" y2="420" stroke="#10b981" stroke-width="12" stroke-linecap="round"/>
+    
+    <!-- Uptrend arrow indicator -->
+    <g opacity="0.7">
+        <path d="M 120 380 Q 280 320 440 260" fill="none" stroke="#67e8c1" stroke-width="8" stroke-linecap="round"/>
+        <polygon points="440,260 420,290 450,310" fill="#67e8c1"/>
+    </g>
+</svg>
