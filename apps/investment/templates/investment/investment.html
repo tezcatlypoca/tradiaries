@@ -10,13 +10,14 @@
     
     <!-- CSS global -->
     {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
     <link rel="stylesheet" href="{% static 'css/investment.css' %}">
 
     <!-- PWA -->
     <link rel="manifest" href="{% url 'manifest' %}">
     <meta name="theme-color" content="#080c10">
-    <link rel="apple-touch-icon" href="{% static 'icons/icon.svg' %}">
+    <link rel="apple-touch-icon" href="{% static 'icons/candlestick-icon.svg' %}">
 </head>
 <body>
     {% include 'components/side-menu.html' %}

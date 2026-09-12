@@ -1,0 +1,348 @@
+/* ============ GLOBAL LAYOUT & THEME ============ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --sidebar-width: 264px;
+    --sidebar-collapsed-width: 64px;
+    --page-bg: #080c10;
+    --surface-1: #0e141b;
+    --surface-2: #131b24;
+    --surface-3: #192430;
+    --border: #273542;
+    --border-subtle: #1b2731;
+    --text-primary: #f1f7f5;
+    --text-secondary: #91a3ad;
+    --sidebar-bg: #0a0f14;
+    --sidebar-text: #b4c3c9;
+    --sidebar-hover: #16252b;
+    --submenu-bg: #101a21;
+    --primary-color: #67e8c1;
+    --primary-strong: #25bb92;
+    --positive: #62e6ad;
+    --negative: #ff8091;
+    --warning: #ffcf70;
+}
+
+* { box-sizing: border-box; }
+
+html, body { width: 100%; height: 100%; }
+
+body {
+    margin: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr;
+    grid-template-rows: 1fr;
+    background: var(--page-bg);
+    color: var(--text-primary);
+    font-family: 'Manrope', sans-serif;
+    font-size: 14px;
+}
+
+/* ============ MAIN CONTENT ============ */
+.main-content {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 32px;
+    background: radial-gradient(circle at 90% -10%, rgba(38, 113, 102, 0.12), transparent 30%), var(--page-bg);
+    transition: margin-left 0.3s ease;
+}
+
+/* EN DESKTOP : Quand le menu est replié, décaler le contenu avec un margin-left négatif */
+.side-menu.hidden ~ .main-content {
+    margin-left: calc(var(--sidebar-collapsed-width) - var(--sidebar-width));
+}
+
+.main-content.expanded {
+    grid-column: 1 / -1;
+    margin-left: 0;
+}
+
+/* ============ DASHBOARD CONTAINER ============ */
+.dashboard-container {
+    max-width: 1360px;
+    margin: 0 auto;
+}
+
+.dashboard-container h1 {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-size: 28px;
+    letter-spacing: 0;
+}
+
+.dashboard-container > p {
+    color: var(--text-secondary);
+    margin-bottom: 28px;
+    font-size: 14px;
+}
+
+/* ============ KPI CARDS ============ */
+.kpi-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
+.kpi-visibility-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.kpi-visibility-toggle:hover {
+    background: var(--surface-3);
+    color: var(--primary-color);
+}
+
+.kpi-visibility-toggle .material-icons {
+    font-size: 20px;
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.kpi-grid.kpi-hidden .kpi-value {
+    filter: blur(7px);
+    user-select: none;
+}
+
+.kpi-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 18px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.kpi-card:hover {
+    background: var(--surface-2);
+    border-color: #3a5560;
+}
+
+.kpi-card h3 {
+    font-size: 10px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.kpi-card .kpi-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.kpi-card .kpi-value.kpi-positive {
+    color: var(--positive);
+}
+
+.kpi-card .kpi-value.kpi-negative {
+    color: var(--negative);
+}
+
+.kpi-warning {
+    color: var(--warning);
+    background: rgba(255, 207, 112, 0.08);
+    border: 1px solid rgba(255, 207, 112, 0.22);
+    border-radius: 5px;
+    padding: 11px 14px;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.portfolio-chart-card .chart-note {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+/* ============ BUTTONS ============ */
+.quick-access {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 30px;
+}
+
+.btn {
+    padding: 10px 16px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: #07100e;
+}
+
+.btn-primary:hover {
+    background-color: #9af4d7;
+}
+
+/* ============ MATERIAL ICONS ============ */
+.material-icons {
+    font-family: 'Material Icons';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px;
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+}
+
+/* ============ TABLET RESPONSIVE (769px - 1024px) ============ */
+@media (min-width: 769px) and (max-width: 1024px) {
+    :root {
+        --sidebar-width: 240px;
+    }
+    
+    .main-content {
+        padding: 24px;
+    }
+    
+    .dashboard-container h1 {
+        font-size: 24px;
+    }
+    
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    
+    .portfolio-chart-card {
+        grid-column: 1 / -1;
+    }
+}
+
+/* ============ MOBILE RESPONSIVE (max-width: 768px) ============ */
+@media (max-width: 768px) {
+    body {
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr;
+    }
+    
+    .main-content {
+        grid-column: 1;
+        grid-row: 1;
+        width: 100%;
+        height: 100vh;
+        padding-top: 56px;
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-bottom: 24px;
+        overflow-y: auto;
+        transform: translateX(0);
+        /* Toujours repousser le contenu quand le menu est visible */
+        margin-left: var(--sidebar-width);
+        transition: margin-left 0.3s ease;
+    }
+    
+    /* Réduire la marge quand le menu est replié */
+    .side-menu.hidden ~ .main-content {
+        margin-left: var(--sidebar-collapsed-width);
+        transform: translateX(0);
+    }
+    
+    .main-content.expanded {
+        grid-column: 1;
+        margin-left: 0;
+        transform: translateX(0);
+    }
+    
+    /* Overlay semi-transparent when menu is visible on mobile */
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 998;
+        transition: opacity 0.3s ease;
+    }
+    
+    /* Show overlay when menu is open */
+    .side-menu:not(.hidden) ~ .main-content::before {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    
+    /* KPI Grid: single column on mobile */
+    .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .kpi-card {
+        padding: 12px;
+    }
+    
+    .kpi-card h3 {
+        font-size: 12px;
+    }
+    
+    .kpi-card .kpi-value {
+        font-size: 18px;
+    }
+    
+    /* Main content adjustments */
+    .dashboard-container {
+        max-width: 100%;
+    }
+    
+    .dashboard-container h1 {
+        font-size: 20px;
+    }
+    
+    .dashboard-container > p {
+        font-size: 12px;
+    }
+    
+    /* Quick access buttons */
+    .quick-access {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .btn {
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    /* Portfolio chart adjustments */
+    .portfolio-chart-card {
+        grid-column: 1 / -1;
+    }
+}

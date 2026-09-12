@@ -876,11 +876,252 @@
     font-size: 12px;
 }
 
-@media (max-width: 768px) {
-    .investments-header { align-items: flex-start; gap: 16px; flex-direction: column; }
-    .investments-header h1 { font-size: 24px; }
-    .investments-table { display: block; overflow-x: auto; white-space: nowrap; }
+/* ============ TABLET (768px - 1024px) ============ */
+@media (min-width: 600px) and (max-width: 1024px) {
+    .investments-container { padding: 16px; }
+    .investments-header { flex-direction: column; gap: 12px; }
+    .investments-header h1 { font-size: 26px; }
+    .btn-add-investment { width: 100%; }
+    .analytics-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .analytics-panel { padding: 16px; }
+    .investments-table { font-size: 13px; }
+    .investments-table th,
+    .investments-table td { padding: 0.6rem 0.8rem; }
+    .form-row { grid-template-columns: 1fr 1fr; }
+    .modal-content { width: calc(100% - 32px); max-height: 85vh; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+
+/* ============ MOBILE (< 600px) ============ */
+@media (max-width: 599px) {
+    .investments-container { 
+        padding: 8px;
+        max-width: 100%;
+    }
+    
+    .investments-container h1 { 
+        font-size: 20px;
+        margin-bottom: 12px;
+    }
+    
+    .investments-header { 
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        border-bottom: 1px solid var(--border, #e5e7eb);
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .investments-header h1 { 
+        font-size: 22px;
+        margin: 0;
+    }
+    
+    .btn-add-investment {
+        width: 100%;
+        padding: 0.625rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Tables: convert to card layout */
+    .investments-table {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        border: none;
+        background: transparent;
+    }
+    
+    .investments-table thead {
+        display: none;
+    }
+    
+    .investments-table tbody tr {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background: var(--surface-2, white);
+        border: 1px solid var(--border, #e5e7eb);
+        border-radius: 6px;
+        padding: 12px;
+        border-bottom: none;
+    }
+    
+    .investments-table tbody tr:hover {
+        background: var(--surface-2, white);
+    }
+    
+    .investments-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0;
+        border: none;
+    }
+    
+    .investments-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-secondary, #6b7280);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        margin-right: auto;
+    }
+    
+    .investments-table-actions {
+        width: 100%;
+        gap: 8px;
+    }
+    
+    /* Tabs responsive */
+    .analytics-tabs {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 12px;
+    }
+    
+    .analytics-tab {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    
+    /* Grid layouts */
+    .analytics-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .analytics-panel {
+        padding: 12px;
+        border-radius: 6px;
+    }
+    
+    .analytics-panel h2 {
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    
+    .journal-filters {
+        flex-direction: column;
+    }
+    
+    .journal-filters select,
+    .journal-filters input {
+        width: 100%;
+    }
+    
+    .journal-entry {
+        padding: 12px;
+        border-radius: 6px;
+    }
+    
+    .journal-entry-header {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .journal-entry-pnl {
+        margin-left: auto;
+        font-size: 0.9rem;
+    }
+    
+    /* Forms */
     .form-row,
-    .validation-recap { grid-template-columns: 1fr; }
-    .modal-content { width: calc(100% - 24px); padding: 20px; }
+    .validation-recap {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        padding: 0.625rem;
+        font-size: 16px; /* Prevent zoom on iOS */
+    }
+    
+    .toggle-buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .toggle-btn {
+        padding: 0.625rem;
+        font-size: 0.8rem;
+    }
+    
+    /* Modal */
+    .modal-overlay {
+        align-items: flex-end;
+    }
+    
+    .modal-content {
+        width: 100%;
+        max-width: 100%;
+        max-height: 95vh;
+        border-radius: 16px 16px 0 0;
+        padding: 16px;
+    }
+    
+    .modal-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.25rem;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+        gap: 8px;
+        margin-top: 1rem;
+        padding-top: 0.75rem;
+    }
+    
+    .btn-submit,
+    .btn-cancel {
+        padding: 0.625rem;
+        font-size: 0.875rem;
+    }
+    
+    /* KPI Cards */
+    .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .kpi-card {
+        padding: 12px;
+    }
+    
+    .kpi-label {
+        font-size: 0.75rem;
+    }
+    
+    .kpi-value {
+        font-size: 1.25rem;
+    }
+    
+    .kpi-toolbar {
+        padding: 8px 0;
+    }
+    
+    /* Icon buttons: more touch-friendly */
+    .icon-btn {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+    
+    .empty-state {
+        padding: 2rem 1rem;
+    }
+    
+    .empty-state p {
+        font-size: 1rem;
+    }
 }
