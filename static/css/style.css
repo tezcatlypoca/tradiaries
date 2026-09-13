@@ -52,14 +52,11 @@ body {
     transition: margin-left 0.3s ease;
 }
 
-/* EN DESKTOP : Quand le menu est replié, décaler le contenu avec un margin-left négatif */
-.side-menu.hidden ~ .main-content {
-    margin-left: calc(var(--sidebar-collapsed-width) - var(--sidebar-width));
-}
-
+.side-menu.hidden ~ .main-content,
 .main-content.expanded {
     grid-column: 1 / -1;
-    margin-left: 0;
+    width: calc(100% - var(--sidebar-collapsed-width));
+    margin-left: var(--sidebar-collapsed-width);
 }
 
 /* ============ DASHBOARD CONTAINER ============ */
@@ -265,15 +262,11 @@ body {
         transition: margin-left 0.3s ease;
     }
     
-    /* Réduire la marge quand le menu est replié */
-    .side-menu.hidden ~ .main-content {
-        margin-left: var(--sidebar-collapsed-width);
-        transform: translateX(0);
-    }
-    
+    .side-menu.hidden ~ .main-content,
     .main-content.expanded {
         grid-column: 1;
-        margin-left: 0;
+        width: calc(100% - var(--sidebar-collapsed-width));
+        margin-left: var(--sidebar-collapsed-width);
         transform: translateX(0);
     }
     
