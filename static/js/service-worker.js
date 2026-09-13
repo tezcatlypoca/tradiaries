@@ -1,4 +1,4 @@
-// Service worker Tradiaries — mise en cache runtime minimale (base pour PWA).
+// Service worker Tradiaries — cache runtime des assets statiques uniquement.
 const CACHE_NAME = 'tradiaries-cache-v1';
 
 self.addEventListener('install', (event) => {
@@ -20,11 +20,8 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Pages : réseau d'abord (données live), cache en secours si hors-ligne.
+    // Les pages authentifiées contiennent des données financières : toujours utiliser le réseau.
     if (request.mode === 'navigate') {
-        event.respondWith(
-            fetch(request).catch(() => caches.match(request))
-        );
         return;
     }
 
