@@ -20,8 +20,20 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Les pages authentifiées contiennent des données financières : toujours utiliser le réseau.
+    // Pages HTML : network-first. Toujours chercher la version fraîche du serveur, 
+    // mais mettre en cache pour offline. Les données financières restent à jour tant 
+    // que le réseau fonctionne, et l'app reste accessible hors ligne.
     if (request.mode === 'navigate') {
+        event.respondWith(
+            fetch(request).then((response) => {
+                // Cache la réponse réussie pour offline
+                if (response.ok) {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+                }
+                return response;
+            }).catch(() => caches.match(request))
+        );
         return;
     }
 
