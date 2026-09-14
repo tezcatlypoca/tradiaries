@@ -1,6 +1,6 @@
 # Tradiaries — Décisions
 
-**Dernière mise à jour** : 2026-09-12
+**Dernière mise à jour** : 2026-09-13
 
 ## Décisions retenues ✅
 
@@ -60,11 +60,43 @@
 - **Impact** : Généré via cairosvg, manifest updated (theme_color #10b981), tous templates updated
 - **Génération** : Script `utils/generate_pwa_icons.py` pour future régénération
 
+### Service Worker Navigation Handling (2026-09-13)
+- **Décidé** : Network-first strategy pour les navigations HTML (fetch server → cache on success → fallback offline)
+- **Raison** : Chrome PWA installability requirement (SW doit gérer ≥1 navigation)
+- **Impact** : Pages HTML jamais servies depuis cache en online, toujours vérifier le serveur en premier
+- **Alternative rejetée** : Cache-first (aurait servi du cached obsolète en online)
+
+### PWA Root Scope Serving (2026-09-13)
+- **Décidé** : Service worker deployed at `/service-worker.js` (Django view, not static file)
+- **Raison** : Doit être à la racine pour que le scope couvre toute l'app
+- **Impact** : Header `Service-Worker-Allowed: /` mandatory, endpoint decorated `@never_cache`
+- **Static files hashing** : Whitenoise hash-rewrites autres assets, mais pas le SW (Django gère)
+
+### PWA Update Checking (2026-09-13)
+- **Décidé** : PWA registration uses `updateViaCache: 'none'` + forced `.registration.update()` call
+- **Raison** : Ensures SW always fetched fresh from server (no browser cache), immediate update checking on load
+- **Alternative** : `updateViaCache: 'default'` (browser cache-first, slower updates)
+- **Impact** : Users always get latest SW version after page reload
+
 ---
 
 ## Décisions en suspens ⏳
-- **Question** : Afficher `strategy` dans la table futures_trading.html ?
-- **Current** : Champ exists en DB, importé de Notion, affiché en journal/analytics
+
+### PWA Installation en Production
+- **Question** : Pourquoi l'install prompt n'apparaît pas en production ?
+- **Current** : Manifest locally valid, PNG icons should be collected by Render buildpack
+- **Investigation** : Created `diagnose_pwa_prod.py` to check icon URLs (timed out due to Render/CDN)
+- **Next step** : After Render deployment, verify PNG icons return 200 status; if 404 → run `python manage.py collectstatic` on dyno
+- **Checklist** :
+  - [ ] Push code changes to Render
+  - [ ] Check `/manifest.webmanifest` returns 200 + correct JSON
+  - [ ] Check `/static/icons/candlestick-icon-192.png` returns 200
+  - [ ] Check `/static/icons/candlestick-icon-512.png` returns 200
+  - [ ] Visit https://tradiaries.onrender.com in Chrome/Brave → install prompt should appear
+
+### Afficher `strategy` dans la table futures_trading.html
+- **Question** : Afficher le champ `strategy` dans la table ?
+- **Current** : Champ exists en DB, importé de Notion, affiché en journal/analytics, hidden en futures table
 - **Options** :
   - A) Ajouter colonne dans table futures (encombre l'affichage)
   - B) Garder en détail modal seulement (vue dégradée)
@@ -79,18 +111,20 @@
   - B) Garder seulement investment (messages peu pertinents ailleurs)
 - **Décision** : À valider
 
-### Déploiement production
-- **Question** : Quand basculer en production ?
+### Déploiement production LIVE trading
+- **Question** : Quand basculer en production LIVE ?
 - **Blocages** :
-  - Logo/icônes généré
-  - PWA tested iOS/Android
+  - Logo/icônes généré ✅ (candlestick)
+  - PWA tested iOS/Android (pending post-deploy verification)
+  - Service worker Chrome installability ✅ (fixed this session)
   - Kraken LIVE avec ordre réel (test)
-  - Watcher heartbeat validé
+  - Watcher heartbeat validé ✅ (2026-09-10)
 - **Risques** :
   - LIVE trading = argent réel
-  - Nonce counter DB critique
-  - Railway worker availability
-- **Décision** : Après test complet PWA + Kraken LIVE limité
+  - Nonce counter DB critique ✅ (implemented 2026-09-10)
+  - Railway worker availability ✅ (heartbeat in DB)
+- **Blockers levés** : CSS geometry + SW navigation handling (session 2026-09-13)
+- **Décision** : Après test complet PWA en prod + validation icons + test Kraken LIVE limité
 
 ---
 

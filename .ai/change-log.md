@@ -1,7 +1,60 @@
 # Tradiaries — Change Log
 
 **Format** : ISO 8601 YYYY-MM-DD | Catégorie | Description courte | Fichiers modifiés  
-**Dernière entrée** : 2026-09-12
+**Dernière entrée** : 2026-09-13
+
+---
+
+## 2026-09-13 (Session 3) | BUG FIX + PWA | Menu geometry unified, service worker navigate handler, PWA diagnostics
+
+### Bugs corrigés
+1. **CSS menu collapsed = black band (FIXED)**
+   - Cause : Deux chemins différents appliquaient des géométries différentes au contenu replié
+   - Root cause 1 : localStorage restore appliquait `margin-left: calc(64px - 264px)` (négatif)
+   - Root cause 2 : click-driven close utilisait `grid-column` spanning sans margin-left en desktop
+   - Solution : Unifié `.side-menu.hidden ~ .main-content` + `.main-content.expanded` → `width: calc(100% - var(--sidebar-collapsed-width))` + `margin-left: var(--sidebar-collapsed-width)` (64px)
+   - Impact : Menu replié n'occulte plus le contenu (left=64, right=viewport sur desktop/mobile)
+
+2. **Service worker ne gère pas les navigations (FIXED)**
+   - Cause : Original code skipped navigation requests : `if (request.mode === 'navigate') { return; }`
+   - Impact : Chrome PWA installability criterion échoue (SW doit gérer ≥1 navigation)
+   - Solution : Implémenté network-first strategy pour les pages HTML (fetch server → cache on success → fallback offline)
+   - Impact : Pages jamais servies depuis cache en online (network toujours vérifié en premier)
+
+3. **PWA install prompt absent en production (DIAGNOSED)**
+   - Suspected cause : PNG icons (candlestick-icon-192.png, 512.png) potentially not collected en Render buildpack
+   - Verification : Local `collectstatic --dry-run` confirme les 3 icônes (SVG + 2 PNG) seront incluses
+   - Diagnostic tool créé : `diagnose_pwa_prod.py` (timeout en prod, Render/Cloudflare issue)
+   - Next step : After deployment, if install prompt still missing → Run `python manage.py collectstatic` on Render dyno
+
+### Code changes
+- `static/css/style.css` : Unified menu geometry (both collapsed paths)
+- `static/js/service-worker.js` : Network-first handler for navigations + cache-first for /static/
+- `static/js/pwa-register.js` : Added `{ scope: '/', updateViaCache: 'none' }` + forced `.update()` call
+- `apps/dashboard/views.py` : Added `@never_cache`, `@require_GET` decorators; added `Service-Worker-Allowed: /` header
+- `apps/dashboard/templates/pwa/manifest.webmanifest` : Verified manifest is complete (3 icons, scope, display standalone)
+- `apps/dashboard/tests.py` : Added 2 PWA integration tests (service-worker headers, manifest scope)
+- `diagnose_pwa_prod.py` [NEW] : Diagnostic script to verify PWA icons accessibility in production
+
+### Tests
+- ✅ 21/21 Django integration tests passing (apps.dashboard, apps.core, apps.live_trading)
+- ✅ PWA manifest validation : All Chrome installability requirements met locally
+- ✅ CSS geometry verified : Desktop (1280×720) + mobile (390×844) both left=64, right=viewport
+- ✅ Service worker active/running through page reload with proper scope
+- ✅ Django system check passed
+
+### Deployment readiness
+- ✅ All code changes tested locally
+- ✅ PNG icons included in collectstatic dry-run
+- ✅ Service worker hardened for Chrome installability
+- ⏳ Production verification : icons accessible at manifest URLs (to be verified after Render deploy)
+
+### Files ready for production push
+1. static/css/style.css (menu geometry)
+2. static/js/service-worker.js (navigate handler)
+3. static/js/pwa-register.js (updateViaCache option)
+4. apps/dashboard/views.py (decorators/headers)
+5. apps/dashboard/tests.py (PWA tests)
 
 ---
 

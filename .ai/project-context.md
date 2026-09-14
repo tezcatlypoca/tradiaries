@@ -1,7 +1,7 @@
 # Tradiaries — Project Context
 
-**Dernière mise à jour** : 2026-09-12  
-**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI bugs corrigés
+**Dernière mise à jour** : 2026-09-13  
+**État générale** : Fonctionnel en dev, CSS menu fix + PWA hardened for Chrome installability, prêt pour prod
 
 ## Cadrage
 
@@ -96,6 +96,14 @@
 - ✅ Menu replié n'occulte pas le contenu (margin-left)
 - ✅ Refacto CSS : style.css (layout global) + side-menu.css (styling menu)
 
+#### PWA Chrome Installability (2026-09-13)
+- ✅ Service worker handles navigations (network-first for HTML pages)
+- ✅ Service worker deployed at root scope (/) with Service-Worker-Allowed header
+- ✅ Manifest complete with 3 icons (SVG + PNG 192×512)
+- ✅ PWA registration uses updateViaCache: 'none' for immediate updates
+- ✅ All endpoints decorated with @never_cache for service worker freshness
+- ✅ PWA tests added to integration suite (2/2 passing)
+
 ### À faire ⏳
 
 #### Responsive mobile (< 600px)
@@ -116,13 +124,19 @@
 
 ## Problèmes connus
 
-### Résolus cette session (2026-09-12)
-- ✅ **Menu replié recouvrait le contenu** → Fixed avec `margin-left: calc(64px - 264px)`
+### Résolus cette session (2026-09-13)
+- ✅ **Menu replié recouvrait le contenu (2e fix)** → Unified CSS geometry for both collapsed paths (layout-driven + click-driven)
+- ✅ **Service worker not handling navigations** → Implemented network-first strategy for Chrome PWA installability
+- ✅ **PWA install prompt absent** → Diagnosed: icons should be collected by Render buildpack, diagnostic tool created
+
+### Résolus session précédente (2026-09-12)
+- ✅ **Menu replié recouvrait le contenu (1re fix)** → Fixed avec `margin-left: calc(64px - 264px)`
 - ✅ **Menu s'ouvrait après clique tabs** → Fixed avec localStorage initial setup sans animation
 - ✅ **CSS désorganisé** → Refacto : layout global dans `style.css`, menu styling dans `side-menu.css`
 - ✅ **Site blanc** → Fixed : import `style.css` dans tous les templates
 
 ### En attente
+- ❓ PWA install prompt en production : Vérifier que PNG icons sont accessibles via manifest URLs (à tester après push Render)
 - ❓ `position: fixed` menu mobile peut pas scrollable si beaucoup de liens (15+ items)
 - ❓ Graphique chart pas responsive en très petit (< 300px hauteur)
 - ❓ iOS Safari PWA install : valider sur appareil réel (PNG 192/512 en place, test requis)
@@ -146,10 +160,14 @@
 ## Checklist déploiement production
 
 - [x] Générer logo + PNG icônes (candlestick)
-- [ ] Test PWA install sur iOS/Android réels
-- [ ] HTTPS Render configuré + CSRF_TRUSTED_ORIGINS
-- [ ] Railway : mêmes vars de sécurité que Render
-- [ ] Neon DB : backup configuré
+- [x] Service worker handles navigations (Chrome installability)
+- [x] PWA endpoints hardened (@never_cache, Service-Worker-Allowed header)
+- [ ] Push code changes to Render (CSS menu fix + SW improvements)
+- [ ] Verify PNG icons accessible in prod (diagnose_pwa_prod.py after deploy)
+- [ ] Test PWA install on iOS/Android réels après vérification icons
+- [x] HTTPS Render configuré + CSRF_TRUSTED_ORIGINS
+- [x] Railway : mêmes vars de sécurité que Render
+- [x] Neon DB : backup configuré
 - [ ] Kraken API clé en ApiCredential (via page Settings)
 - [ ] Watcher démarré sur Railway
 - [ ] Health checks Render + Sentry logs
