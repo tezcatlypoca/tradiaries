@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 from pathlib import Path
 from apps.investment.views import healthz
 from apps.investment.views import healthz, watcher_healthz
-from apps.dashboard.views import service_worker, manifest
+from apps.dashboard.views import service_worker, manifest, signup
 
 urlpatterns = [
     path('healthz/', healthz, name='healthz'),
@@ -35,6 +35,7 @@ urlpatterns = [
     path('analytics/', include("apps.analytics.urls")),
     path('journal/', include("apps.journal.urls")),
     path('live/', include("apps.live_trading.urls")),
+    path('accounts/signup/', signup, name='signup'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('settings/', include('apps.dashboard.settings_urls')),
     path('admin/', admin.site.urls),

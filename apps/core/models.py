@@ -1,4 +1,5 @@
 """Modèles Django pour persistance en BDD"""
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -12,6 +13,8 @@ class Investment(models.Model):
         ('LIVE', 'Live'),
     ]
 
+    # Propriétaire de la position : chaque utilisateur ne voit/gère que ses propres données.
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='%(class)s_set')
     symbol = models.CharField(max_length=20)
     amount = models.DecimalField(max_digits=15, decimal_places=8)
     entry_price = models.DecimalField(max_digits=15, decimal_places=8)
@@ -23,6 +26,8 @@ class Investment(models.Model):
     # txid de l'ordre Kraken d'ouverture (positions ouvertes depuis la page Trading Live)
     external_ref = models.CharField(max_length=64, unique=True, null=True, blank=True)
     entry_date = models.DateTimeField(default=timezone.now)
+    # Unité de temps du graphique utilisée pour la décision de trade (texte libre, ex: "15min", "4h", "1D")
+    timeframe = models.CharField(max_length=20, blank=True, help_text="Time frame utilisé (ex: 15min, 1h, 4h, 1D)")
     notes = models.TextField(blank=True)
     # Verrou anti double-clôture (watcher + clic manuel concurrents) : revendiqué
     # atomiquement par trading_service.close_position() avant tout appel Kraken.
@@ -48,6 +53,7 @@ class SimpleInvestment(models.Model):
         ('ACHAT', 'Achat'),
         ('VENTE', 'Vente'),
     ]
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='simple_investments')
     symbol = models.CharField(max_length=20)
     amount = models.DecimalField(max_digits=15, decimal_places=8)
     price = models.DecimalField(max_digits=15, decimal_places=8)
@@ -147,6 +153,7 @@ class KrakenOrderAttempt(models.Model):
         ('RECONCILE_REQUIRED', 'Réconciliation manuelle requise'),
     ]
 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='kraken_order_attempts')
     client_order_id = models.CharField(max_length=32, unique=True)
     kraken_userref = models.BigIntegerField(null=True, blank=True)
     operation = models.CharField(max_length=5, choices=OPERATIONS)
@@ -179,7 +186,11 @@ class KrakenNonceCounter(models.Model):
     entre deux workers Gunicorn/le watcher exécutés en parallèle. Ce compteur,
     incrémenté sous verrou DB (select_for_update), garantit un nonce strictement
     croissant quel que soit le nombre de processus.
+
+    Un compteur par utilisateur : chaque compte utilise ses propres clés Kraken,
+    donc son propre espace de nonce (un nonce est spécifique à une paire clé/secret).
     """
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='kraken_nonce_counter')
     value = models.BigIntegerField(default=0)
 
     class Meta:
@@ -204,6 +215,7 @@ class ApiCredential(models.Model):
         'OTHER': {'secret': False, 'passphrase': False},
     }
 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='api_credentials')
     platform = models.CharField(max_length=20, choices=PLATFORMS)
     label = models.CharField(max_length=50, blank=True, help_text="Nom libre pour distinguer plusieurs clés d'une même plateforme")
     api_key = models.TextField(help_text="Chiffré en BDD")

@@ -13,10 +13,10 @@ def futures_trading(request):
     if trade_mode not in ('LIVE', 'PAPER'):
         trade_mode = None
 
-    trades = FuturesTrading.objects.all().order_by('-entry_date')
+    trades = FuturesTrading.objects.filter(user=request.user).order_by('-entry_date')
     if trade_mode:
         trades = trades.filter(trade_mode=trade_mode)
-    stats = compute_futures_stats(trade_mode=trade_mode)
+    stats = compute_futures_stats(request.user, trade_mode=trade_mode)
     kpi_cards = [
         {'label': 'Marge engagée (positions ouvertes)', 'value': stats['capital_investi']},
         {'label': 'Valeur actuelle (positions ouvertes)', 'value': stats['valeur_actuelle']},
@@ -41,7 +41,9 @@ def futures_trading(request):
 def create_trade(request):
     form = FuturesTradingForm(request.POST)
     if form.is_valid():
-        trade = form.save()
+        trade = form.save(commit=False)
+        trade.user = request.user
+        trade.save()
         messages.success(request, f'✓ Position {trade.symbol} créée avec succès !')
     else:
         add_form_errors_to_messages(request, form)
@@ -52,7 +54,7 @@ def create_trade(request):
 @require_http_methods(["POST"])
 @login_required
 def update_trade(request, pk):
-    trade = get_object_or_404(FuturesTrading, pk=pk)
+    trade = get_object_or_404(FuturesTrading, pk=pk, user=request.user)
     form = FuturesTradingForm(request.POST, instance=trade)
     if form.is_valid():
         trade = form.save()
@@ -66,7 +68,7 @@ def update_trade(request, pk):
 @require_http_methods(["POST"])
 @login_required
 def delete_trade(request, pk):
-    trade = get_object_or_404(FuturesTrading, pk=pk)
+    trade = get_object_or_404(FuturesTrading, pk=pk, user=request.user)
     symbol = trade.symbol
     trade.delete()
     messages.success(request, f'✓ Position {symbol} supprimée avec succès !')

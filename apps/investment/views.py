@@ -26,8 +26,8 @@ def watcher_healthz(request):
 
 @login_required
 def investment(request):
-    investments = SimpleInvestment.objects.all().order_by('-entry_date')
-    stats = compute_investment_stats()
+    investments = SimpleInvestment.objects.filter(user=request.user).order_by('-entry_date')
+    stats = compute_investment_stats(request.user)
     kpi_cards = [
         {'label': 'Capital investi', 'value': stats['capital_investi']},
         {'label': 'Valeur actuelle', 'value': stats['valeur_actuelle']},
@@ -49,7 +49,9 @@ def investment(request):
 def create_investment(request):
     form = SimpleInvestmentForm(request.POST)
     if form.is_valid():
-        investment = form.save()
+        investment = form.save(commit=False)
+        investment.user = request.user
+        investment.save()
         messages.success(request, f'✓ Investissement {investment.symbol} créé avec succès !')
     else:
         add_form_errors_to_messages(request, form)
@@ -60,7 +62,7 @@ def create_investment(request):
 @require_http_methods(["POST"])
 @login_required
 def update_investment(request, pk):
-    investment = get_object_or_404(SimpleInvestment, pk=pk)
+    investment = get_object_or_404(SimpleInvestment, pk=pk, user=request.user)
     form = SimpleInvestmentForm(request.POST, instance=investment)
     if form.is_valid():
         investment = form.save()
@@ -74,7 +76,7 @@ def update_investment(request, pk):
 @require_http_methods(["POST"])
 @login_required
 def delete_investment(request, pk):
-    investment = get_object_or_404(SimpleInvestment, pk=pk)
+    investment = get_object_or_404(SimpleInvestment, pk=pk, user=request.user)
     symbol = investment.symbol
     investment.delete()
     messages.success(request, f'✓ Investissement {symbol} supprimé avec succès !')

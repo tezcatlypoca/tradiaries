@@ -1,7 +1,7 @@
 # Tradiaries — Project Context
 
-**Dernière mise à jour** : 2026-09-12  
-**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI bugs corrigés
+**Dernière mise à jour** : 2026-09-14  
+**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI bugs corrigés, multi-utilisateur opérationnel
 
 ## Cadrage
 
@@ -13,7 +13,7 @@
 - Watcher TP/SL pour gestion automatique des positions
 
 **Stack** : Python 3.11 + Django 5.2 + Vanilla JS + CSS DeFi dark-theme  
-**Utilisateurs** : Mono-utilisateur (admin créé via `createsuperuser`)  
+**Utilisateurs** : Multi-utilisateur depuis le 2026-09-14 (isolation des données par compte + inscription publique ; voir `decisions.md` "Multi-utilisateur"). Historique de données conservé sous le compte `samsan`.  
 **Déploiement** : Render (web) + Railway (worker) + Neon (DB)
 
 ---
@@ -95,6 +95,19 @@
 - ✅ Pas de flicker au rechargement
 - ✅ Menu replié n'occulte pas le contenu (margin-left)
 - ✅ Refacto CSS : style.css (layout global) + side-menu.css (styling menu)
+
+#### Multi-utilisateur (2026-09-14)
+- ✅ Chaque modèle métier (SimpleInvestment, SpotTrading, FuturesTrading, ApiCredential, KrakenOrderAttempt, KrakenNonceCounter) a un propriétaire (`user`)
+- ✅ Toutes les vues filtrent/rattachent par `request.user` ; `get_object_or_404` scopé par utilisateur (faille IDOR corrigée)
+- ✅ Page d'inscription publique (`accounts/signup/`), connexion automatique après inscription
+- ✅ Clés Kraken, nonce, et positions LIVE scopées par utilisateur (watcher global, clés par propriétaire)
+- ✅ Tests d'isolation multi-utilisateur (`MultiUserIsolationTests`, 5 tests) + suite complète (26 tests) verte
+- ⏳ Module de coaching IA : volontairement non développé (prochaine étape, hors périmètre de cette session)
+
+#### Time frame (2026-09-14)
+- ✅ Champ `timeframe` (texte libre, ex: 15min/4h/1D) ajouté au modèle mère `Investment` — hérité par `SpotTrading`/`FuturesTrading` (pas `SimpleInvestment`)
+- ✅ Migration `core.0015` appliquée en local, formulaires + modals Spot/Futures mis à jour
+- 🟡 Migration production (Neon) : PAS encore appliquée — se fait automatiquement au prochain déploiement Render (build command inclut `migrate`), ou manuellement si besoin (voir marche à suivre transmise à l'utilisateur)
 
 ### À faire ⏳
 

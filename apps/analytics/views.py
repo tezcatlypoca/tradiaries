@@ -10,7 +10,7 @@ def analytics(request):
     if trade_mode not in ('LIVE', 'PAPER'):
         trade_mode = 'LIVE'
 
-    stats = compute_futures_analytics(trade_mode)
+    stats = compute_futures_analytics(request.user, trade_mode)
 
     kpi_cards = [
         {'label': 'Positions clôturées', 'value': stats['nb_closed'], 'is_count': True},
