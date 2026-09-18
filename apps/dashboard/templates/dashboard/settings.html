@@ -28,6 +28,24 @@
     </div>
 
     <div class="settings-section">
+        <h2>Stratégie</h2>
+        <p>Décrivez votre approche générale afin qu'elle puisse être utilisée dans les futures fonctions de coaching.</p>
+
+        <div class="settings-card">
+            <form method="POST" action="{% url 'settings:strategy_save' %}">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="{{ strategy_form.strategy.id_for_label }}">Stratégie</label>
+                    {{ strategy_form.strategy }}
+                </div>
+                <div class="form-actions" style="border-top: none; margin-top: 1rem; padding-top: 0;">
+                    <button type="submit" class="btn-primary">Enregistrer la stratégie</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="settings-section">
         <h2>Clés API</h2>
         <p>Clés utilisées pour récupérer vos données/exécuter des ordres sur les plateformes connectées. Les secrets sont chiffrés en base.</p>
 

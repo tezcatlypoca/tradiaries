@@ -184,15 +184,14 @@
 }
 
 .side-menu::-webkit-scrollbar-track {
-    background: transparent;
+    background: var(--page-bg);
 }
 
 .side-menu::-webkit-scrollbar-thumb {
-    background: var(--border);
+    background: var(--primary-color);
     border-radius: 3px;
 }
 
 .side-menu::-webkit-scrollbar-thumb:hover {
     background: var(--primary-strong);
 }
-

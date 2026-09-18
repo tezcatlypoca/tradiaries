@@ -5,6 +5,27 @@
 
 ---
 
+## 2026-09-18 | FEATURE | Time frame visible, stratégie utilisateur, Coaching et scrollbars
+
+### Interface et données
+- Les listes Spot et Futures affichent maintenant le champ `timeframe` déjà présent en base et dans
+  leurs formulaires.
+- Nouveau modèle `UserPreferences`, lié en OneToOne au compte, avec un champ `strategy` en texte long.
+  La page Paramètres permet à chaque utilisateur d'enregistrer et de modifier sa propre stratégie.
+- Migration `core.0016_userpreferences` ajoutée ; elle devra être appliquée en production lors du
+  prochain déploiement, sans modification des données existantes.
+
+### Navigation et thème
+- Nouvelle route authentifiée `/coaching/`, ajoutée au menu ; son contenu reste volontairement vide.
+- Les scrollbars utilisent désormais le fond global sombre et le vert primaire des boutons, sur Firefox
+  comme sur les navigateurs WebKit.
+
+### Tests
+- Couverture d'intégration ajoutée pour la persistance et l'affichage du `timeframe`, la sauvegarde et
+  l'isolation de la stratégie utilisateur, ainsi que l'accès à la page Coaching vide.
+
+---
+
 ## 2026-09-18 | DEBUG | 500 déploiement Render vs local
 
 ### Diagnostic

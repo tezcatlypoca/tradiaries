@@ -8,7 +8,14 @@ from django.urls import reverse
 
 from .forms import FuturesTradingForm, SimpleInvestmentForm, SpotTradingForm
 from .kraken_client import KrakenAPIError
-from .models import FuturesTrading, KrakenOrderAttempt, SimpleInvestment, SpotTrading, WatcherHeartbeat
+from .models import (
+    FuturesTrading,
+    KrakenOrderAttempt,
+    SimpleInvestment,
+    SpotTrading,
+    UserPreferences,
+    WatcherHeartbeat,
+)
 from .portfolio_service import futures_trade_pnl
 from .trading_service import TradingError, check_tp_sl, close_position, open_position
 from .watcher_health import touch_watcher_heartbeat
@@ -250,7 +257,7 @@ class TradingViewTests(TestCase):
         self.assertRedirects(response, reverse('spot_trading:index'))
         self.assertFalse(SpotTrading.objects.exists())
 
-    def test_valid_futures_post_persists_strategy_and_mode(self):
+    def test_valid_futures_post_persists_strategy_mode_and_timeframe(self):
         response = self.client.post(
             reverse('futures_trading:create'),
             {
@@ -260,6 +267,7 @@ class TradingViewTests(TestCase):
                 'direction': 'SHORT',
                 'trade_mode': 'LIVE',
                 'strategy': 'IRC 4h',
+                'timeframe': '15min',
             },
         )
 
@@ -268,6 +276,49 @@ class TradingViewTests(TestCase):
         self.assertEqual(trade.symbol, 'BTC')
         self.assertEqual(trade.strategy, 'IRC 4h')
         self.assertEqual(trade.trade_mode, 'LIVE')
+        self.assertEqual(trade.timeframe, '15min')
+
+    def test_trading_lists_display_timeframes(self):
+        SpotTrading.objects.create(
+            user=self.user,
+            symbol='ETH',
+            amount=Decimal('1'),
+            entry_price=Decimal('100'),
+            timeframe='1h',
+        )
+        FuturesTrading.objects.create(
+            user=self.user,
+            symbol='BTC',
+            amount=Decimal('1'),
+            entry_price=Decimal('100'),
+            timeframe='4h',
+        )
+
+        self.assertContains(self.client.get(reverse('spot_trading:index')), '1h')
+        self.assertContains(self.client.get(reverse('futures_trading:index')), '4h')
+
+    def test_user_can_save_and_view_strategy(self):
+        response = self.client.post(
+            reverse('settings:strategy_save'),
+            {'strategy': 'Attendre une confirmation sur plusieurs unités de temps.'},
+        )
+
+        self.assertRedirects(response, reverse('settings:index'))
+        preferences = UserPreferences.objects.get(user=self.user)
+        self.assertEqual(
+            preferences.strategy,
+            'Attendre une confirmation sur plusieurs unités de temps.',
+        )
+        self.assertContains(
+            self.client.get(reverse('settings:index')),
+            'Attendre une confirmation sur plusieurs unités de temps.',
+        )
+
+    def test_coaching_page_is_available_and_empty(self):
+        response = self.client.get(reverse('dashboard:coaching'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, '<h1>')
 
     def test_invalid_simple_investment_post_does_not_create_investment(self):
         response = self.client.post(
@@ -364,3 +415,21 @@ class MultiUserIsolationTests(TestCase):
 
         trade = SpotTrading.objects.get(symbol='SOL')
         self.assertEqual(trade.user, self.bob)
+
+    def test_user_strategy_is_isolated(self):
+        UserPreferences.objects.create(user=self.alice, strategy='Stratégie Alice')
+        self.client.force_login(self.bob)
+
+        self.client.post(
+            reverse('settings:strategy_save'),
+            {'strategy': 'Stratégie Bob'},
+        )
+
+        self.assertEqual(
+            UserPreferences.objects.get(user=self.alice).strategy,
+            'Stratégie Alice',
+        )
+        self.assertEqual(
+            UserPreferences.objects.get(user=self.bob).strategy,
+            'Stratégie Bob',
+        )

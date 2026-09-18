@@ -55,6 +55,7 @@
                         <th>Quantité</th>
                         <th>Prix d'entrée</th>
                         <th>Prix de sortie</th>
+                        <th>Time frame</th>
                         <th>Exchange</th>
                         <th>Mode</th>
                         <th class="investments-table-actions">Actions</th>
@@ -70,6 +71,7 @@
                         <td>{{ trade.amount }}</td>
                         <td>${{ trade.entry_price }}</td>
                         <td>{% if trade.exit_price %}${{ trade.exit_price }}{% else %}-{% endif %}</td>
+                        <td data-label="Time frame">{{ trade.timeframe|default:"-" }}</td>
                         <td>{{ trade.get_exchange_display }}</td>
                         <td>
                             <span class="investment-action investment-action-{{ trade.trade_mode|lower }}">{{ trade.get_trade_mode_display }}</span>
