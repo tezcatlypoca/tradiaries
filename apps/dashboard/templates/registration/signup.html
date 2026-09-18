@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion - Tradiaries</title>
+    <title>Créer un compte - Tradiaries</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
@@ -17,8 +17,10 @@
     <main class="auth-container">
         <div class="auth-card">
             <h2 class="auth-brand">Tradiaries</h2>
-            <h1>Connexion</h1>
-            {% if form.errors %}<p class="auth-error">Nom d'utilisateur ou mot de passe incorrect.</p>{% endif %}
+            <h1>Créer un compte</h1>
+            {% if form.non_field_errors %}
+            <p class="auth-error">{{ form.non_field_errors.0 }}</p>
+            {% endif %}
             <form method="post" class="auth-form">
                 {% csrf_token %}
                 {% for field in form %}
@@ -34,12 +36,15 @@
                     {% else %}
                     {{ field }}
                     {% endif %}
+                    {% for error in field.errors %}
+                    <p class="auth-error">{{ error }}</p>
+                    {% endfor %}
+                    {% if field.help_text %}<p class="auth-help">{{ field.help_text|safe }}</p>{% endif %}
                 </div>
                 {% endfor %}
-                <input type="hidden" name="next" value="{{ next }}">
-                <button type="submit" class="btn-primary auth-submit">Se connecter</button>
+                <button type="submit" class="btn-primary auth-submit">Créer mon compte</button>
             </form>
-            <p class="auth-secondary-link"><a href="{% url 'signup' %}">Pas encore de compte ? En créer un</a></p>
+            <p class="auth-secondary-link"><a href="{% url 'login' %}">Déjà un compte ? Se connecter</a></p>
         </div>
     </main>
     <script>

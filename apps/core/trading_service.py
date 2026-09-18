@@ -48,6 +48,7 @@ def _userref_from_client_order_id(client_order_id: str) -> int:
 
 def open_position(
     *,
+    user,
     category: str,
     trade_mode: str,
     symbol: str,
@@ -61,7 +62,7 @@ def open_position(
     why: str = '',
     notes: str = '',
 ):
-    """Ouvre une position spot ou futures, en mode paper (local) ou live (ordre Kraken).
+    """Ouvre une position spot ou futures, en mode paper (local) ou live (ordre Kraken), pour `user`.
 
     `entry_price=None` signifie une entrée au prix du marché.
     Retourne l'objet trade créé (SpotTrading ou FuturesTrading).
@@ -79,6 +80,7 @@ def open_position(
         side = 'buy'  # spot = toujours un achat à l'ouverture
         # Persisté AVANT l'appel Kraken : trace de réconciliation en cas de plantage.
         attempt = KrakenOrderAttempt.objects.create(
+            user=user,
             client_order_id=uuid.uuid4().hex,
             operation='OPEN',
             symbol=symbol,
@@ -91,6 +93,7 @@ def open_position(
         try:
             order = add_spot_order(
                 symbol, side, amount,
+                user=user,
                 ordertype='market' if entry_price is None else 'limit',
                 price=entry_price,
                 userref=userref,
@@ -110,7 +113,7 @@ def open_position(
         if entry_price is None:
             time.sleep(1)
             try:
-                entry_price = fetch_order_fill_price(external_ref) or _entry_market_price(symbol)
+                entry_price = fetch_order_fill_price(external_ref, user=user) or _entry_market_price(symbol)
             except (KrakenAPIError, TradingError) as exc:
                 # L'ordre est bien parti sur Kraken : ne PAS le faire disparaître, marquer à réconcilier.
                 attempt.status = 'RECONCILE_REQUIRED'
@@ -125,6 +128,7 @@ def open_position(
         entry_price = _entry_market_price(symbol)
 
     common = {
+        'user': user,
         'symbol': symbol,
         'amount': amount,
         'entry_price': entry_price,
@@ -161,15 +165,15 @@ def open_position(
 
 
 def _close_via_kraken(trade) -> Decimal | None:
-    """Envoie l'ordre de vente spot sur Kraken et retourne le prix d'exécution (ou None)."""
+    """Envoie l'ordre de vente spot sur Kraken (avec les clés du propriétaire) et retourne le prix d'exécution (ou None)."""
     try:
-        order = add_spot_order(trade.symbol, 'sell', trade.amount, ordertype='market')
+        order = add_spot_order(trade.symbol, 'sell', trade.amount, user=trade.user, ordertype='market')
     except (KrakenAPIError, TradingError) as exc:
         # Position laissée ouverte : on réessaiera au prochain cycle / à la main.
         logger.warning('Kraken close order failed for %s: %s', trade, exc)
         return None
     time.sleep(1)
-    fill_price = fetch_order_fill_price(order['txid'])
+    fill_price = fetch_order_fill_price(order['txid'], user=trade.user)
     trade.notes = f"{trade.notes}\n[Clôture Kraken ordre {order['txid']}]".strip()
     return fill_price or fetch_current_price(trade.symbol)
 
@@ -244,7 +248,10 @@ def _tp_sl_triggered(trade, price: Decimal) -> str | None:
 
 
 def check_tp_sl() -> list[dict]:
-    """Surveille les positions ouvertes avec TP/SL et clôture celles déclenchées.
+    """Surveille les positions ouvertes (tous utilisateurs) avec TP/SL et clôture celles déclenchées.
+
+    Processus global (watcher) : parcourt les positions de TOUS les comptes, chaque
+    clôture LIVE utilisant les clés Kraken propres au propriétaire de la position.
 
     Retourne la liste des clôtures effectuées ({trade, reason, price}).
     """
@@ -282,14 +289,14 @@ def check_tp_sl() -> list[dict]:
     return closed
 
 
-def live_positions() -> tuple[list[dict], set]:
-    """Données de suivi en temps réel des positions ouvertes (spot + futures, tous modes).
+def live_positions(user) -> tuple[list[dict], set]:
+    """Données de suivi en temps réel des positions ouvertes de `user` (spot + futures, tous modes).
 
     Retourne (positions, symboles sans prix). Chaque position : référence du trade,
     prix courant, PnL latent, et distance relative au TP/SL si définis.
     """
-    open_trades = list(SpotTrading.objects.filter(exit_price__isnull=True)) + list(
-        FuturesTrading.objects.filter(exit_price__isnull=True)
+    open_trades = list(SpotTrading.objects.filter(user=user, exit_price__isnull=True)) + list(
+        FuturesTrading.objects.filter(user=user, exit_price__isnull=True)
     )
     prices, unavailable = fetch_current_prices({t.symbol for t in open_trades})
 

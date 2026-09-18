@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.cache import never_cache
@@ -43,11 +44,29 @@ def index(request):
     return render(request, 'dashboard/landing.html')
 
 
+def signup(request):
+    """Inscription publique : le nouveau compte démarre sans aucune donnée existante."""
+    if request.user.is_authenticated:
+        return redirect('dashboard:index')
+
+    if request.method == 'POST':
+        form = SignupForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            auth_login(request, user)
+            messages.success(request, f'✓ Bienvenue {user.username} ! Votre compte a été créé.')
+            return redirect('dashboard:index')
+    else:
+        form = SignupForm()
+
+    return render(request, 'registration/signup.html', {'form': form})
+
+
 # Create your views here.
 @login_required
 def dashboard(request):
-    stats = compute_global_stats()
-    chart_series = build_chart_series()
+    stats = compute_global_stats(request.user)
+    chart_series = build_chart_series(request.user)
 
     kpi_cards = [
         {'label': 'Portfolio Value', 'value': stats['portfolio_value']},
@@ -100,6 +119,7 @@ def create_api_credential(request: HttpRequest) -> HttpResponse:
     form = ApiCredentialForm(request.POST, user=request.user)
     if form.is_valid():
         credential = ApiCredential(
+            user=request.user,
             platform=form.cleaned_data['platform'],
             label=form.cleaned_data['label'],
         )

@@ -119,9 +119,15 @@ class OpenPositionFormTests(TestCase):
 
 
 class TradingServiceTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='trader', password='strong-test-password'
+        )
+
     @patch('apps.core.trading_service.fetch_current_price', return_value=Decimal('100'))
     def test_open_paper_spot_at_market_creates_local_position(self, mocked_current_price):
         trade = open_position(
+            user=self.user,
             category='SPOT',
             trade_mode='PAPER',
             symbol=' btc ',
@@ -139,6 +145,7 @@ class TradingServiceTests(TestCase):
     @patch('apps.core.trading_service.fetch_current_prices', return_value=({'BTC': Decimal('120')}, set()))
     def test_check_tp_sl_closes_long_position_at_take_profit(self, mocked_prices, mocked_current_price):
         trade = SpotTrading.objects.create(
+            user=self.user,
             symbol='BTC',
             amount=Decimal('1'),
             entry_price=Decimal('100'),
@@ -158,6 +165,7 @@ class TradingServiceTests(TestCase):
     def test_open_live_futures_is_rejected(self):
         with self.assertRaises(TradingError):
             open_position(
+                user=self.user,
                 category='FUTURES',
                 trade_mode='LIVE',
                 symbol='BTC',
@@ -183,11 +191,16 @@ class WatcherCommandTests(TestCase):
 class LiveOrderReconciliationTests(TestCase):
     """Vérifie que chaque tentative d'ordre LIVE laisse une trace exploitable (P0-1)."""
 
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='trader', password='strong-test-password'
+        )
+
     @patch('apps.core.trading_service.add_spot_order', side_effect=KrakenAPIError('boom'))
     def test_kraken_failure_before_submission_is_recorded_as_failed(self, mocked_add_order):
         with self.assertRaises(TradingError):
             open_position(
-                category='SPOT', trade_mode='LIVE', symbol='BTC',
+                user=self.user, category='SPOT', trade_mode='LIVE', symbol='BTC',
                 amount=Decimal('1'), entry_price=Decimal('100'),
             )
 
@@ -205,7 +218,7 @@ class LiveOrderReconciliationTests(TestCase):
     )
     def test_successful_order_confirms_attempt_and_links_trade(self, mocked_add_order, mocked_fill, mocked_sleep):
         trade = open_position(
-            category='SPOT', trade_mode='LIVE', symbol='BTC',
+            user=self.user, category='SPOT', trade_mode='LIVE', symbol='BTC',
             amount=Decimal('1'), entry_price=None,
         )
 
@@ -220,10 +233,15 @@ class LiveOrderReconciliationTests(TestCase):
 class ClosePositionConcurrencyTests(TestCase):
     """Vérifie la revendication atomique anti double-clôture (P0-3)."""
 
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='trader', password='strong-test-password'
+        )
+
     @patch('apps.core.trading_service.fetch_current_price', return_value=Decimal('150'))
     def test_close_is_skipped_if_already_claimed(self, mocked_price):
         trade = SpotTrading.objects.create(
-            symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'), trade_mode='PAPER',
+            user=self.user, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'), trade_mode='PAPER',
         )
         # Simule une clôture déjà en cours (autre process/watcher).
         SpotTrading.objects.filter(pk=trade.pk).update(is_closing=True)

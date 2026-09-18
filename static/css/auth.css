@@ -153,3 +153,29 @@ body {
 .btn-primary:hover {
     background: var(--primary-strong);
 }
+
+.auth-help {
+    margin: 0.35rem 0 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.auth-help ul {
+    margin: 0.25rem 0 0;
+    padding-left: 1.1rem;
+}
+
+.auth-secondary-link {
+    margin: 1.25rem 0 0;
+    text-align: center;
+    font-size: 13px;
+}
+
+.auth-secondary-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.auth-secondary-link a:hover {
+    text-decoration: underline;
+}

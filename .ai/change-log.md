@@ -105,6 +105,102 @@
 4. apps/dashboard/views.py (decorators/headers)
 5. apps/dashboard/tests.py (PWA tests)
 
+**Dernière entrée** : 2026-09-14
+
+---
+
+## 2026-09-14 | FEATURE | Champ `timeframe` sur le modèle mère Investment
+
+### Contexte
+Ajout d'une donnée "Time frame" (ex: 15min, 1h, 4h, 1D) sur les positions de trading, à la demande
+de l'utilisateur. Clarifié avec lui : texte libre (comme `strategy`), optionnel — pas de liste fixe.
+
+### Modèles + migration
+- `apps/core/models.py` : nouveau champ `Investment.timeframe` (`CharField(max_length=20, blank=True)`)
+  sur le modèle abstrait mère — hérité par `SpotTrading` et `FuturesTrading` (pas `SimpleInvestment`,
+  qui n'hérite pas de `Investment`).
+- Migration `core.0015_futurestrading_timeframe_spottrading_timeframe` (AddField sur les deux tables
+  concrètes, colonne nullable via `blank=True`, aucune perte de données). Appliquée en local
+  (`python manage.py migrate core`). Suite de tests ciblée verte (23 tests : `apps.core`,
+  `apps.spot_trading`, `apps.futures_trading`).
+
+### Formulaires + templates
+- `apps/core/forms.py` : `TradingForm.Meta.fields` inclut désormais `timeframe` (hérité par
+  `SpotTradingForm` et `FuturesTradingForm`).
+- `components/spot-trading-form.html`, `components/futures-trading-form.html` : nouveau champ texte
+  `timeframe` dans le modal de création/édition + population dans `openEditTradeModal()`.
+- `apps/spot_trading/templates/spot_trading/spot_trading.html`,
+  `apps/futures_trading/templates/futures_trading/futures_trading.html` : `data-timeframe` ajouté au
+  bouton d'édition (pas de nouvelle colonne dans le tableau, même traitement que `strategy` qui n'est
+  pas encore affiché en colonne — voir "à faire" dans project-context.md).
+
+### Production (Neon via Render)
+- Non appliqué par l'IA (règle d'autonomie : migration de schéma sur une base de production =
+  validation obligatoire). Le Build Command Render (`deploy/README.md`) exécute déjà
+  `python manage.py migrate` à chaque déploiement — un simple `git push` suffit donc à propager cette
+  migration en prod au prochain déploiement. Marche à suivre détaillée transmise à l'utilisateur en fin
+  de session.
+
+### Contexte
+En vue d'un futur module de coaching IA, l'app devait d'abord gérer correctement plusieurs comptes.
+Audit du code (voir `docs/audit-production.md`, section "Autorisation globale") confirmé : `login_required`
+protégeait les vues, mais aucun modèle n'avait de propriétaire — n'importe quel compte connecté pouvait
+voir/modifier/supprimer les trades et clés API de n'importe quel autre compte (IDOR). Décision validée
+avec l'utilisateur (voir `decisions.md`) : isolation complète des données + page d'inscription publique.
+
+### Modèles (apps/core/models.py) + migrations 0012/0013/0014
+- Ajout d'un champ `user` (FK vers `AUTH_USER_MODEL`, `on_delete=CASCADE`) sur `Investment` (abstrait, donc
+  `SpotTrading`/`FuturesTrading`), `SimpleInvestment`, `ApiCredential`, `KrakenOrderAttempt`.
+- `KrakenNonceCounter` passe de singleton global (pk=1) à un compteur `OneToOneField(user)` : chaque compte
+  a son propre espace de nonce Kraken (spécifique à une paire clé/secret).
+- Migration en 3 temps : `0012` ajoute les champs nullable, `0013` (data migration) rattache tout l'historique
+  au superuser existant (`samsan`), `0014` rend les champs obligatoires. `WatcherHeartbeat` reste un singleton
+  global (heartbeat du process watcher lui-même, pas une donnée utilisateur).
+
+### Services (portfolio_service.py, trading_service.py, kraken_client.py)
+- Toutes les fonctions de stats/agrégation prennent désormais un paramètre `user` obligatoire et filtrent
+  leurs querysets en conséquence : `compute_investment_stats`, `compute_spot_stats`, `compute_futures_stats`,
+  `compute_global_stats`, `compute_futures_analytics`, `build_chart_series`, `sync_kraken_trades`.
+- `trading_service.open_position(user=...)` et `live_positions(user)` scopent la création/lecture des
+  positions ; `close_position`/`check_tp_sl` utilisent `trade.user` pour retrouver les bonnes clés Kraken
+  (le watcher continue d'itérer sur TOUTES les positions ouvertes, tous utilisateurs confondus, mais chaque
+  clôture LIVE utilise les clés Kraken propres au propriétaire de la position — pas de clé globale partagée).
+- `kraken_client.py` : `_get_kraken_credentials`, `_next_nonce`, `_private_request`, `add_spot_order`,
+  `query_orders`, `fetch_order_fill_price`, `cancel_order`, `fetch_trades_history` prennent tous un `user`.
+  Les endpoints publics (`fetch_current_price(s)`, `resolve_pair`) restent globaux (marché partagé, pas
+  de secret impliqué).
+- `ApiCredentialForm` (apps/core/forms.py) prend un `user` en `__init__` : l'unicité "une clé par
+  plateforme" est désormais vérifiée par utilisateur (et non plus globalement).
+
+### Vues (dashboard, investment, spot_trading, futures_trading, analytics, journal, live_trading)
+- Tous les querysets de liste filtrent sur `request.user`. Toute création assigne explicitement
+  `obj.user = request.user` avant sauvegarde. Tous les `get_object_or_404(...)` d'update/delete/close
+  ajoutent `user=request.user` — corrige la faille IDOR (404 au lieu d'un accès/modif croisé).
+
+### Inscription (nouveau)
+- Vue `apps/dashboard/views.signup` (formulaire `apps/dashboard/forms.SignupForm`, basé sur
+  `UserCreationForm`) : connexion automatique après inscription, compte créé sans aucune donnée
+  préexistante. Route `accounts/signup/` (avant l'include `django.contrib.auth.urls`).
+- Template `apps/dashboard/templates/registration/signup.html` (même style que `login.html`,
+  `static/css/auth.css`). Lien croisé ajouté entre `login.html` et `signup.html`.
+
+### Commande de management
+- `import_kraken_trades` exige désormais `--username <compte>` (les clés Kraken et les investissements
+  importés sont propres à un utilisateur, plus de comportement implicite global).
+
+### Tests
+- `apps/core/tests.py` : tests existants adaptés (ajout de `user=` sur les appels directs à
+  `open_position`/`SpotTrading.objects.create`). Nouvelle classe `MultiUserIsolationTests` (5 tests) :
+  un utilisateur ne voit que ses propres trades, ne peut pas modifier/supprimer les données d'un autre
+  (404), et toute création est bien rattachée à l'utilisateur authentifié.
+- Suite complète : 26 tests, tous verts. `python manage.py check` : OK.
+
+### Non traité dans cette passe (décisions en suspens, voir decisions.md)
+- Clé de chiffrement Fernet (`apps/core/crypto.py`) reste globale (dérivée de `SECRET_KEY`), pas
+  encore par utilisateur — hors périmètre de cette session (isolation des données ≠ dérivation de clé).
+- Rate limiting / quotas Kraken par utilisateur : non traité (roadmap `docs/tradiaries-plan-prod.md`).
+- Le module de coaching IA lui-même n'a volontairement pas été développé (hors périmètre demandé).
+
 ---
 
 ## 2026-09-12 (Session 2) | PWA ICON | Intégration icône candlestick (SVG + PNG 192/512)
