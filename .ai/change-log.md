@@ -1,7 +1,56 @@
 # Tradiaries — Change Log
 
 **Format** : ISO 8601 YYYY-MM-DD | Catégorie | Description courte | Fichiers modifiés  
-**Dernière entrée** : 2026-09-13
+**Dernière entrée** : 2026-09-18
+
+---
+
+## 2026-09-18 | FEATURE | Time frame visible, stratégie utilisateur, Coaching et scrollbars
+
+### Interface et données
+- Les listes Spot et Futures affichent maintenant le champ `timeframe` déjà présent en base et dans
+  leurs formulaires.
+- Nouveau modèle `UserPreferences`, lié en OneToOne au compte, avec un champ `strategy` en texte long.
+  La page Paramètres permet à chaque utilisateur d'enregistrer et de modifier sa propre stratégie.
+- Migration `core.0016_userpreferences` ajoutée ; elle devra être appliquée en production lors du
+  prochain déploiement, sans modification des données existantes.
+
+### Navigation et thème
+- Nouvelle route authentifiée `/coaching/`, ajoutée au menu ; son contenu reste volontairement vide.
+- Les scrollbars utilisent désormais le fond global sombre et le vert primaire des boutons, sur Firefox
+  comme sur les navigateurs WebKit.
+
+### Tests
+- Couverture d'intégration ajoutée pour la persistance et l'affichage du `timeframe`, la sauvegarde et
+  l'isolation de la stratégie utilisateur, ainsi que l'accès à la page Coaching vide.
+
+---
+
+## 2026-09-18 | DEBUG | 500 déploiement Render vs local
+
+### Diagnostic
+- Reproduction locale en configuration proche production (`DEBUG=False`) : les routes de base répondent
+  sans 500 en HTTPS simulé (`/` → 302, `/accounts/login/` → 200, `/healthz/` → 200,
+  `/service-worker.js` → 200, `/manifest.webmanifest` → 200). `collectstatic` passe aussi avec
+  `CompressedManifestStaticFilesStorage`.
+- Cause probable si Render affiche directement une erreur serveur au démarrage : variable
+  `API_CREDENTIAL_ENCRYPTION_KEY` absente ou invalide. `config/settings.py` lève explicitement
+  `RuntimeError: API_CREDENTIAL_ENCRYPTION_KEY must be configured when DEBUG=False`, ce qui est
+  cohérent avec un commit qui fonctionne localement (`DEBUG=True`) mais tombe en prod (`DEBUG=False`).
+- Autre point à vérifier côté Render/Neon si le 500 apparaît seulement sur les pages de trading :
+  migration `core.0015_futurestrading_timeframe_spottrading_timeframe` bien appliquée sur la base
+  production (`python manage.py migrate --check`).
+
+### Correctif préventif
+- `.github/workflows/django.yml` : ajout de `API_CREDENTIAL_ENCRYPTION_KEY` au `check --deploy` CI et
+  exécution de `collectstatic` avec `DEBUG=False` + variables de sécurité production. Le workflow
+  détectera désormais plus tôt une configuration prod cassée au lieu de tester `collectstatic` en mode dev.
+
+### Action Render attendue
+- Définir `API_CREDENTIAL_ENCRYPTION_KEY` dans les variables d'environnement Render avec une vraie clé
+  Fernet générée par `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
+- Vérifier que le Build Command Render reste :
+  `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate`.
 
 ---
 

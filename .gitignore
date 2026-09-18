@@ -3,7 +3,9 @@ __pycache__/
 build/
 dist/
 .vscode/
-.github/
+.github/*
+!.github/workflows/
+!.github/workflows/django.yml
 
 docs/futures_trades
 crypto.csv

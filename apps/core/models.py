@@ -244,6 +244,26 @@ class ApiCredential(models.Model):
         return f"{'•' * (len(plain) - 4)}{plain[-4:]}"
 
 
+class UserPreferences(models.Model):
+    """Préférences de trading propres à un utilisateur."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='tradiaries_preferences',
+    )
+    strategy = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'core_user_preferences'
+        verbose_name = 'Préférences utilisateur'
+        verbose_name_plural = 'Préférences utilisateur'
+
+    def __str__(self) -> str:
+        return f"Préférences de {self.user}"
+
+
 class WatcherHeartbeat(models.Model):
     """Ligne unique (pk=1) : instant du dernier cycle réussi du watcher TP/SL.
 
