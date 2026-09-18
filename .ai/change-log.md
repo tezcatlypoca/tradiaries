@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-09-18 | DEBUG | NameError settings dans UserPreferences après merge
+
+### Cause réelle
+Le commit `db9c972` avait délibérément reverté le multi-utilisateur (`58a4ca3`). Le remerge suivant
+de `dev` (`ca4da6c`) a réintroduit `UserPreferences` et le filtrage `request.user` dans
+`dashboard/views.py` sans les champs `user`/migrations 0012-0014 correspondants, laissant un état
+hybride : `settings` non importé dans `models.py` et des `FieldError` latentes partout où le code
+filtrait par `user` sur des modèles qui ne l'avaient plus.
+
+### Correctif (validé avec l'utilisateur — décision architecturale)
+`git revert db9c972` : restaure intégralement le multi-utilisateur (champs `user`, migrations
+0012–0014, vues, formulaires, tests) tout en conservant les apports du merge `dev` (`UserPreferences`,
+page Coaching, affichage `timeframe`, style scrollbar). Conflits résolus manuellement dans
+`.ai/change-log.md`, `apps/core/tests.py`, `apps/dashboard/forms.py`, `apps/dashboard/views.py`.
+
+### Vérifications
+- `python manage.py check` : OK
+- `python manage.py makemigrations --check --dry-run` : aucun changement détecté
+- Commit `a173fba` sur `prod`.
+
+---
+
 ## 2026-09-18 | FEATURE | Time frame visible, stratégie utilisateur, Coaching et scrollbars
 
 ### Interface et données
