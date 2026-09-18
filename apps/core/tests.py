@@ -112,15 +112,9 @@ class OpenPositionFormTests(TestCase):
 
 
 class TradingServiceTests(TestCase):
-    def setUp(self):
-        self.user = get_user_model().objects.create_user(
-            username='trader', password='strong-test-password'
-        )
-
     @patch('apps.core.trading_service.fetch_current_price', return_value=Decimal('100'))
     def test_open_paper_spot_at_market_creates_local_position(self, mocked_current_price):
         trade = open_position(
-            user=self.user,
             category='SPOT',
             trade_mode='PAPER',
             symbol=' btc ',
@@ -138,7 +132,6 @@ class TradingServiceTests(TestCase):
     @patch('apps.core.trading_service.fetch_current_prices', return_value=({'BTC': Decimal('120')}, set()))
     def test_check_tp_sl_closes_long_position_at_take_profit(self, mocked_prices, mocked_current_price):
         trade = SpotTrading.objects.create(
-            user=self.user,
             symbol='BTC',
             amount=Decimal('1'),
             entry_price=Decimal('100'),
@@ -158,7 +151,6 @@ class TradingServiceTests(TestCase):
     def test_open_live_futures_is_rejected(self):
         with self.assertRaises(TradingError):
             open_position(
-                user=self.user,
                 category='FUTURES',
                 trade_mode='LIVE',
                 symbol='BTC',
@@ -184,16 +176,11 @@ class WatcherCommandTests(TestCase):
 class LiveOrderReconciliationTests(TestCase):
     """Vérifie que chaque tentative d'ordre LIVE laisse une trace exploitable (P0-1)."""
 
-    def setUp(self):
-        self.user = get_user_model().objects.create_user(
-            username='trader', password='strong-test-password'
-        )
-
     @patch('apps.core.trading_service.add_spot_order', side_effect=KrakenAPIError('boom'))
     def test_kraken_failure_before_submission_is_recorded_as_failed(self, mocked_add_order):
         with self.assertRaises(TradingError):
             open_position(
-                user=self.user, category='SPOT', trade_mode='LIVE', symbol='BTC',
+                category='SPOT', trade_mode='LIVE', symbol='BTC',
                 amount=Decimal('1'), entry_price=Decimal('100'),
             )
 
@@ -211,7 +198,7 @@ class LiveOrderReconciliationTests(TestCase):
     )
     def test_successful_order_confirms_attempt_and_links_trade(self, mocked_add_order, mocked_fill, mocked_sleep):
         trade = open_position(
-            user=self.user, category='SPOT', trade_mode='LIVE', symbol='BTC',
+            category='SPOT', trade_mode='LIVE', symbol='BTC',
             amount=Decimal('1'), entry_price=None,
         )
 
@@ -226,15 +213,10 @@ class LiveOrderReconciliationTests(TestCase):
 class ClosePositionConcurrencyTests(TestCase):
     """Vérifie la revendication atomique anti double-clôture (P0-3)."""
 
-    def setUp(self):
-        self.user = get_user_model().objects.create_user(
-            username='trader', password='strong-test-password'
-        )
-
     @patch('apps.core.trading_service.fetch_current_price', return_value=Decimal('150'))
     def test_close_is_skipped_if_already_claimed(self, mocked_price):
         trade = SpotTrading.objects.create(
-            user=self.user, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'), trade_mode='PAPER',
+            symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'), trade_mode='PAPER',
         )
         # Simule une clôture déjà en cours (autre process/watcher).
         SpotTrading.objects.filter(pk=trade.pk).update(is_closing=True)
@@ -312,69 +294,3 @@ class TradingViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {'status': 'ok', 'watcher': 'running'})
-
-
-@override_settings(ALLOWED_HOSTS=['testserver'])
-class MultiUserIsolationTests(TestCase):
-    """Vérifie qu'un compte ne peut jamais voir/modifier/supprimer les données d'un autre (P1 audit)."""
-
-    def setUp(self):
-        self.alice = get_user_model().objects.create_user(username='alice', password='strong-test-password')
-        self.bob = get_user_model().objects.create_user(username='bob', password='strong-test-password')
-        self.alice_trade = SpotTrading.objects.create(
-            user=self.alice, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'), trade_mode='PAPER',
-        )
-        self.alice_investment = SimpleInvestment.objects.create(
-            user=self.alice, symbol='BTC', amount=Decimal('1'), price=Decimal('100'), action='ACHAT',
-        )
-
-    def test_user_only_sees_own_spot_trades(self):
-        self.client.force_login(self.bob)
-        SpotTrading.objects.create(
-            user=self.bob, symbol='ETH', amount=Decimal('2'), entry_price=Decimal('50'), trade_mode='PAPER',
-        )
-
-        response = self.client.get(reverse('spot_trading:index'))
-
-        trades = list(response.context['trades'])
-        self.assertEqual(len(trades), 1)
-        self.assertEqual(trades[0].symbol, 'ETH')
-
-    def test_user_cannot_update_another_users_trade(self):
-        self.client.force_login(self.bob)
-
-        response = self.client.post(
-            reverse('spot_trading:update', args=[self.alice_trade.pk]),
-            {'symbol': 'ETH', 'amount': '5', 'entry_price': '200', 'exchange': 'BINANCE'},
-        )
-
-        self.assertEqual(response.status_code, 404)
-        self.alice_trade.refresh_from_db()
-        self.assertEqual(self.alice_trade.symbol, 'BTC')
-
-    def test_user_cannot_delete_another_users_trade(self):
-        self.client.force_login(self.bob)
-
-        response = self.client.post(reverse('spot_trading:delete', args=[self.alice_trade.pk]))
-
-        self.assertEqual(response.status_code, 404)
-        self.assertTrue(SpotTrading.objects.filter(pk=self.alice_trade.pk).exists())
-
-    def test_user_cannot_delete_another_users_investment(self):
-        self.client.force_login(self.bob)
-
-        response = self.client.post(reverse('investment:delete', args=[self.alice_investment.pk]))
-
-        self.assertEqual(response.status_code, 404)
-        self.assertTrue(SimpleInvestment.objects.filter(pk=self.alice_investment.pk).exists())
-
-    def test_created_trade_is_owned_by_the_authenticated_user(self):
-        self.client.force_login(self.bob)
-
-        self.client.post(
-            reverse('spot_trading:create'),
-            {'symbol': 'SOL', 'amount': '1', 'entry_price': '20', 'exchange': 'BINANCE', 'trade_mode': 'PAPER'},
-        )
-
-        trade = SpotTrading.objects.get(symbol='SOL')
-        self.assertEqual(trade.user, self.bob)

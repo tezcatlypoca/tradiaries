@@ -11,7 +11,7 @@ def journal(request):
     strategy = request.GET.get('strategy', '')
     symbol = request.GET.get('symbol', '').upper()
 
-    trades = FuturesTrading.objects.filter(user=request.user).order_by('-entry_date')
+    trades = FuturesTrading.objects.all().order_by('-entry_date')
     if trade_mode in ('LIVE', 'PAPER'):
         trades = trades.filter(trade_mode=trade_mode)
     if strategy:
@@ -20,9 +20,9 @@ def journal(request):
         trades = trades.filter(symbol=symbol)
 
     strategies = sorted(
-        FuturesTrading.objects.filter(user=request.user).exclude(strategy='').values_list('strategy', flat=True).distinct()
+        FuturesTrading.objects.exclude(strategy='').values_list('strategy', flat=True).distinct()
     )
-    symbols = sorted(FuturesTrading.objects.filter(user=request.user).values_list('symbol', flat=True).distinct())
+    symbols = sorted(FuturesTrading.objects.values_list('symbol', flat=True).distinct())
 
     # Le PnL n'est pas un champ du modèle : on l'attache à chaque trade pour l'affichage.
     for trade in trades:

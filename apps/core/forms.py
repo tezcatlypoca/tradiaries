@@ -29,7 +29,7 @@ class TradingForm(forms.ModelForm):
     class Meta:
         fields = (
             'symbol', 'amount', 'entry_price', 'exit_price', 'exit_price_2',
-            'take_profit', 'stop_loss', 'timeframe', 'notes'
+            'take_profit', 'stop_loss', 'notes'
         )
 
     def get_direction(self):
@@ -120,10 +120,6 @@ class ApiCredentialForm(forms.Form):
     api_secret = forms.CharField(max_length=255, required=False)
     passphrase = forms.CharField(max_length=255, required=False)
 
-    def __init__(self, *args, user=None, **kwargs):
-        self.user = user
-        super().__init__(*args, **kwargs)
-
     def clean(self):
         cleaned_data = super().clean()
         platform = cleaned_data.get('platform')
@@ -132,9 +128,9 @@ class ApiCredentialForm(forms.Form):
             self.add_error('api_secret', 'La clé secrète est requise pour cette plateforme.')
         if requirements.get('passphrase') and not cleaned_data.get('passphrase'):
             self.add_error('passphrase', 'La passphrase est requise pour cette plateforme.')
-        # Une seule clé active par plateforme ET par utilisateur : Kraken (et les autres)
-        # ne choisissent jamais silencieusement "la première" en cas de doublon.
-        if platform and ApiCredential.objects.filter(platform=platform, user=self.user).exists():
+        # Une seule clé active par plateforme : Kraken (et les autres) ne choisissent
+        # jamais silencieusement "la première" en cas de doublon.
+        if platform and ApiCredential.objects.filter(platform=platform).exists():
             self.add_error(
                 'platform',
                 'Une clé existe déjà pour cette plateforme. Supprimez-la avant d\'en ajouter une nouvelle.',

@@ -1,32 +1,8 @@
 # Tradiaries — Décisions
 
-<<<<<<< HEAD
 **Dernière mise à jour** : 2026-09-13
-=======
-**Dernière mise à jour** : 2026-09-14
->>>>>>> dev
 
 ## Décisions retenues ✅
-
-### Multi-utilisateur (2026-09-14)
-- **Décidé** : isolation complète des données par compte (chaque modèle métier a un `user` FK,
-  chaque vue filtre/rattache par `request.user`) + page d'inscription publique (`accounts/signup/`).
-- **Raison** : préparer l'intégration d'un futur coach IA ; l'audit du 2026-09-10 avait déjà identifié
-  l'absence de propriétaire comme faille P1 (IDOR — tout compte pouvait voir/modifier les données
-  d'un autre). Validé explicitement avec l'utilisateur avant implémentation (changement structurant
-  touchant sécurité/authentification).
-- **Impact** : migrations `core.0012/0013/0014` (backfill de l'historique existant vers le compte
-  `samsan`) ; toutes les fonctions de `portfolio_service.py`/`trading_service.py`/`kraken_client.py`
-  prennent désormais un `user` obligatoire ; `KrakenNonceCounter` devient un compteur par utilisateur ;
-  `ApiCredential` unique par (utilisateur, plateforme) au lieu de globalement unique par plateforme.
-- **Rattachement des données historiques** : tout l'historique (trades, clés API) est rattaché au
-  superuser existant (`samsan`) — validé explicitement par l'utilisateur.
-- **Watcher TP/SL** : reste un process global qui surveille les positions de TOUS les utilisateurs,
-  mais chaque clôture LIVE utilise désormais les clés Kraken du propriétaire de la position (plus de
-  clé globale partagée). Les clés Kraken déjà en place restent celles de `samsan` et ne sont PAS
-  répliquées automatiquement pour les nouvelles inscriptions — chaque nouvel utilisateur doit
-  renseigner ses propres clés depuis la page Paramètres avant de pouvoir trader en LIVE.
-- **Hors périmètre explicite** : développement du module de coaching IA lui-même (demandé pour plus tard).
 
 ### Modèle Investment (2026-09-07)
 - **Décidé** : `entry_date` = `default=timezone.now` (pas `auto_now_add`)
@@ -52,7 +28,6 @@
 - **Décidé** : ApiCredential chiffré (Fernet), clé unique par plateforme
 - **Raison** : Secrets ne doivent jamais traîner en clair, pas de choix silencieux
 - **Impact** : `kraken_client._get_kraken_credentials()` lit BDD (pas .env)
-- **MAJ 2026-09-14** : l'unicité "une clé par plateforme" est désormais par (utilisateur, plateforme) suite à l'introduction du multi-utilisateur — voir décision "Multi-utilisateur".
 
 ### HTTPS production (2026-09-10)
 - **Décidé** : `RuntimeError` si `DEBUG=False` sans SECURE_SSL_REDIRECT/SESSION_COOKIE_SECURE/CSRF_COOKIE_SECURE
@@ -107,7 +82,6 @@
 
 ## Décisions en suspens ⏳
 
-<<<<<<< HEAD
 ### PWA Installation en Production
 - **Question** : Pourquoi l'install prompt n'apparaît pas en production ?
 - **Current** : Manifest locally valid, PNG icons should be collected by Render buildpack
@@ -123,15 +97,6 @@
 ### Afficher `strategy` dans la table futures_trading.html
 - **Question** : Afficher le champ `strategy` dans la table ?
 - **Current** : Champ exists en DB, importé de Notion, affiché en journal/analytics, hidden en futures table
-=======
-### Clé de chiffrement Fernet par utilisateur
-- **Question** : dériver une clé de chiffrement distincte par utilisateur pour `ApiCredential` (au lieu d'une clé unique dérivée de `SECRET_KEY` pour toute l'instance) ?
-- **Contexte** : signalé par `docs/tradiaries-plan-prod.md` (Niveau 2) comme durcissement recommandé en multi-utilisateur ; non traité lors de la session du 2026-09-14 (isolation des données ≠ dérivation de clé, jugé hors périmètre de cette passe).
-- **Risque si non traité** : une fuite de `SECRET_KEY` (ou de la BDD + `SECRET_KEY`) expose les secrets de TOUS les utilisateurs, pas un seul.
-- **Décision** : à trancher avant une ouverture publique large (plusieurs comptes avec clés Kraken LIVE actives).
-- **Question** : Afficher `strategy` dans la table futures_trading.html ?
-- **Current** : Champ exists en DB, importé de Notion, affiché en journal/analytics
->>>>>>> dev
 - **Options** :
   - A) Ajouter colonne dans table futures (encombre l'affichage)
   - B) Garder en détail modal seulement (vue dégradée)

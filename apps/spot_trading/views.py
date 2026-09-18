@@ -13,10 +13,10 @@ def spot_trading(request):
     if trade_mode not in ('LIVE', 'PAPER'):
         trade_mode = None
 
-    trades = SpotTrading.objects.filter(user=request.user).order_by('-entry_date')
+    trades = SpotTrading.objects.all().order_by('-entry_date')
     if trade_mode:
         trades = trades.filter(trade_mode=trade_mode)
-    stats = compute_spot_stats(request.user, trade_mode=trade_mode)
+    stats = compute_spot_stats(trade_mode=trade_mode)
     kpi_cards = [
         {'label': "Capital engagé (positions ouvertes)", 'value': stats['capital_investi']},
         {'label': "Valeur actuelle (positions ouvertes)", 'value': stats['valeur_actuelle']},
@@ -41,9 +41,7 @@ def spot_trading(request):
 def create_trade(request):
     form = SpotTradingForm(request.POST)
     if form.is_valid():
-        trade = form.save(commit=False)
-        trade.user = request.user
-        trade.save()
+        trade = form.save()
         messages.success(request, f'✓ Position {trade.symbol} créée avec succès !')
     else:
         add_form_errors_to_messages(request, form)
@@ -54,7 +52,7 @@ def create_trade(request):
 @require_http_methods(["POST"])
 @login_required
 def update_trade(request, pk):
-    trade = get_object_or_404(SpotTrading, pk=pk, user=request.user)
+    trade = get_object_or_404(SpotTrading, pk=pk)
     form = SpotTradingForm(request.POST, instance=trade)
     if form.is_valid():
         trade = form.save()
@@ -68,7 +66,7 @@ def update_trade(request, pk):
 @require_http_methods(["POST"])
 @login_required
 def delete_trade(request, pk):
-    trade = get_object_or_404(SpotTrading, pk=pk, user=request.user)
+    trade = get_object_or_404(SpotTrading, pk=pk)
     symbol = trade.symbol
     trade.delete()
     messages.success(request, f'✓ Position {symbol} supprimée avec succès !')

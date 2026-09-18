@@ -33,7 +33,7 @@ def _position_to_json(position: dict) -> dict:
 @login_required
 def live_trading(request):
     """Page Trading Live : positions ouvertes avec prix et PnL en temps réel."""
-    positions, unavailable_symbols = live_positions(request.user)
+    positions, unavailable_symbols = live_positions()
     context = {
         'positions': positions,
         'unavailable_symbols': sorted(unavailable_symbols),
@@ -61,7 +61,7 @@ def open_position(request):
     for field_name in ('regime_confirmed', 'sar_confirmed', 'volume_profile_confirmed'):
         data.pop(field_name, None)
     try:
-        trade = service_open_position(user=request.user, **data)
+        trade = service_open_position(**data)
     except TradingError as exc:
         messages.error(request, f"✗ {exc}")
         return redirect('live_trading:index')
@@ -78,7 +78,7 @@ def open_position(request):
 @login_required
 def close_position(request, kind, pk):
     model = FuturesTrading if kind == 'futures' else SpotTrading
-    trade = get_object_or_404(model, pk=pk, user=request.user)
+    trade = get_object_or_404(model, pk=pk)
     if service_close_position(trade, reason='manuelle'):
         messages.success(request, f'✓ Position {trade.symbol} clôturée à {trade.exit_price}')
     else:
@@ -89,7 +89,7 @@ def close_position(request, kind, pk):
 @login_required
 def positions_json(request):
     """Endpoint de polling pour le rafraîchissement automatique du suivi live."""
-    positions, unavailable_symbols = live_positions(request.user)
+    positions, unavailable_symbols = live_positions()
     return JsonResponse({
         'positions': [_position_to_json(p) for p in positions],
         'unavailable_symbols': sorted(unavailable_symbols),
