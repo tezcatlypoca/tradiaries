@@ -17,14 +17,14 @@ from .models import FuturesTrading, SimpleInvestment, SpotTrading
 logger = logging.getLogger(__name__)
 
 
-def sync_kraken_trades() -> dict:
+def sync_kraken_trades(user) -> dict:
     """Importe les nouveaux trades de l'historique Kraken (DCA inclus) dans SimpleInvestment.
 
     Idempotent : les trades déjà importés (identifiés par leur txid Kraken, stocké
     dans `external_ref`) sont ignorés.
     """
     try:
-        result = fetch_trades_history()
+        result = fetch_trades_history(user)
     except KrakenAPIError as exc:
         logger.warning('Kraken trade synchronization failed: %s', exc)
         return {'status': 'error', 'error': str(exc), 'created': 0, 'skipped': 0}
@@ -39,6 +39,7 @@ def sync_kraken_trades() -> dict:
             continue
 
         SimpleInvestment.objects.create(
+            user=user,
             symbol=parse_symbol_from_pair(trade.get('pair', '')),
             amount=Decimal(trade['vol']),
             price=Decimal(trade['price']),
@@ -58,12 +59,12 @@ def sync_kraken_trades() -> dict:
 
 
 
-def compute_investment_stats() -> dict:
+def compute_investment_stats(user) -> dict:
     """Stats Simple Invest : position nette par symbole (achats - ventes), valorisée au prix Kraken."""
     holdings = defaultdict(Decimal)
     capital_investi = Decimal('0')
     nb_positions = 0
-    for inv in SimpleInvestment.objects.all():
+    for inv in SimpleInvestment.objects.filter(user=user):
         nb_positions += 1
         signed_amount = inv.amount if inv.action == 'ACHAT' else -inv.amount
         holdings[inv.symbol] += signed_amount
@@ -88,13 +89,13 @@ def compute_investment_stats() -> dict:
     }
 
 
-def compute_spot_stats(trade_mode: str | None = None) -> dict:
+def compute_spot_stats(user, trade_mode: str | None = None) -> dict:
     """Stats Spot Trading : positions ouvertes (exit_price non renseigné) vs clôturées.
 
     Args:
         trade_mode: si renseigné ('LIVE' ou 'PAPER'), ne prend en compte que les positions de ce mode.
     """
-    queryset = SpotTrading.objects.all()
+    queryset = SpotTrading.objects.filter(user=user)
     if trade_mode:
         queryset = queryset.filter(trade_mode=trade_mode)
 
@@ -143,13 +144,13 @@ def futures_trade_pnl(trade: FuturesTrading) -> Decimal | None:
     return (trade.entry_price - exit_price) * trade.amount
 
 
-def compute_futures_stats(trade_mode: str | None = None) -> dict:
+def compute_futures_stats(user, trade_mode: str | None = None) -> dict:
     """Stats Futures Trading : idem Spot, mais le PnL dépend de la direction LONG/SHORT.
 
     Args:
         trade_mode: si renseigné ('LIVE' ou 'PAPER'), ne prend en compte que les positions de ce mode.
     """
-    queryset = FuturesTrading.objects.all()
+    queryset = FuturesTrading.objects.filter(user=user)
     if trade_mode:
         queryset = queryset.filter(trade_mode=trade_mode)
 
@@ -192,15 +193,15 @@ def compute_futures_stats(trade_mode: str | None = None) -> dict:
     }
 
 
-def compute_global_stats() -> dict:
+def compute_global_stats(user) -> dict:
     """Stats agrégées toutes catégories confondues, pour le dashboard général.
 
     Les positions spot et futures en mode Paper sont exclues (positions fictives,
     ne doivent pas fausser le résumé du portefeuille réel).
     """
-    investment = compute_investment_stats()
-    spot = compute_spot_stats(trade_mode='LIVE')
-    futures = compute_futures_stats(trade_mode='LIVE')
+    investment = compute_investment_stats(user)
+    spot = compute_spot_stats(user, trade_mode='LIVE')
+    futures = compute_futures_stats(user, trade_mode='LIVE')
 
     portfolio_value = investment['valeur_actuelle'] + spot['valeur_actuelle'] + futures['valeur_actuelle']
     capital_investi_total = investment['capital_investi'] + spot['capital_investi'] + futures['capital_investi']
@@ -229,13 +230,13 @@ def _breakdown_by(closed_trades: list, pnls: dict, key_func) -> list[dict]:
     return sorted(rows, key=lambda r: r['pnl'], reverse=True)
 
 
-def compute_futures_analytics(trade_mode: str) -> dict:
+def compute_futures_analytics(user, trade_mode: str) -> dict:
     """Statistiques de performance (win rate, R, ventilations) pour un mode donné (LIVE ou PAPER).
 
     Contrairement à `compute_futures_stats`, ces chiffres portent uniquement sur les positions
     clôturées (le but est d'évaluer la performance passée, pas la valeur du portefeuille).
     """
-    trades = list(FuturesTrading.objects.filter(trade_mode=trade_mode).order_by('-entry_date'))
+    trades = list(FuturesTrading.objects.filter(user=user, trade_mode=trade_mode).order_by('-entry_date'))
     closed = [t for t in trades if t.exit_price is not None]
     open_trades = [t for t in trades if t.exit_price is None]
 
@@ -296,20 +297,20 @@ def _cumulative_series(events: list[tuple]) -> list[dict]:
     return series
 
 
-def build_chart_series() -> dict:
+def build_chart_series(user) -> dict:
     """Construit les séries 'capital cumulé investi' par catégorie pour le graphique du dashboard."""
     investment_events = [
         (inv.entry_date.date(), (inv.amount if inv.action == 'ACHAT' else -inv.amount) * inv.price)
-        for inv in SimpleInvestment.objects.all()
+        for inv in SimpleInvestment.objects.filter(user=user)
     ]
     # Les positions Paper sont fictives : exclues du graphique de capital investi réel.
     spot_events = [
         (t.entry_date.date(), t.amount * t.entry_price)
-        for t in SpotTrading.objects.filter(trade_mode='LIVE')
+        for t in SpotTrading.objects.filter(user=user, trade_mode='LIVE')
     ]
     futures_events = [
         (t.entry_date.date(), t.amount * t.entry_price)
-        for t in FuturesTrading.objects.filter(trade_mode='LIVE')
+        for t in FuturesTrading.objects.filter(user=user, trade_mode='LIVE')
     ]
 
     return {

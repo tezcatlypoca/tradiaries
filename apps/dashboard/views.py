@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.cache import never_cache
@@ -11,6 +12,8 @@ from django.views.decorators.http import require_GET, require_http_methods
 from apps.core.forms import ApiCredentialForm, add_form_errors_to_messages
 from apps.core.models import ApiCredential
 from apps.core.portfolio_service import build_chart_series, compute_global_stats
+
+from .forms import SignupForm
 
 
 @require_GET
@@ -31,6 +34,7 @@ def manifest(request: HttpRequest) -> HttpResponse:
     return render(request, 'pwa/manifest.webmanifest', content_type='application/manifest+json')
 
 
+<<<<<<< HEAD
 def index(request):
     """
     Page d'accueil : landing publique si non-loggé, dashboard si loggé.
@@ -39,13 +43,31 @@ def index(request):
     if request.user.is_authenticated:
         return dashboard(request)
     return render(request, 'dashboard/landing.html')
+=======
+def signup(request):
+    """Inscription publique : le nouveau compte démarre sans aucune donnée existante."""
+    if request.user.is_authenticated:
+        return redirect('dashboard:index')
+
+    if request.method == 'POST':
+        form = SignupForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            auth_login(request, user)
+            messages.success(request, f'✓ Bienvenue {user.username} ! Votre compte a été créé.')
+            return redirect('dashboard:index')
+    else:
+        form = SignupForm()
+
+    return render(request, 'registration/signup.html', {'form': form})
+>>>>>>> dev
 
 
 # Create your views here.
 @login_required
 def dashboard(request):
-    stats = compute_global_stats()
-    chart_series = build_chart_series()
+    stats = compute_global_stats(request.user)
+    chart_series = build_chart_series(request.user)
 
     kpi_cards = [
         {'label': 'Portfolio Value', 'value': stats['portfolio_value']},
@@ -63,7 +85,7 @@ def dashboard(request):
 
 @login_required
 def settings_view(request):
-    credentials = ApiCredential.objects.all()
+    credentials = ApiCredential.objects.filter(user=request.user)
     context = {
         'credentials': credentials,
         'platform_requirements_json': json.dumps(ApiCredential.PLATFORM_REQUIREMENTS),
@@ -74,9 +96,10 @@ def settings_view(request):
 @require_http_methods(["POST"])
 @login_required
 def create_api_credential(request):
-    form = ApiCredentialForm(request.POST)
+    form = ApiCredentialForm(request.POST, user=request.user)
     if form.is_valid():
         credential = ApiCredential(
+            user=request.user,
             platform=form.cleaned_data['platform'],
             label=form.cleaned_data['label'],
         )
@@ -96,7 +119,7 @@ def create_api_credential(request):
 @require_http_methods(["POST"])
 @login_required
 def delete_api_credential(request, pk):
-    credential = get_object_or_404(ApiCredential, pk=pk)
+    credential = get_object_or_404(ApiCredential, pk=pk, user=request.user)
     platform_label = credential.get_platform_display()
     credential.delete()
     messages.success(request, f'✓ Clé API {platform_label} supprimée avec succès !')
