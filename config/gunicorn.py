@@ -1,5 +1,6 @@
 import os
 
+import django
 from django.core.management import call_command
 
 
@@ -12,5 +13,6 @@ def on_starting(server) -> None:
         return
 
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+    django.setup()
     server.log.info('Applying pending Django migrations before starting workers')
     call_command('migrate', interactive=False)

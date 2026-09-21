@@ -19,9 +19,15 @@ class GunicornMigrationHookTests(SimpleTestCase):
         call_command.assert_not_called()
 
     @patch('config.gunicorn.call_command')
-    def test_migrations_run_before_workers_when_enabled(self, call_command: Mock) -> None:
+    @patch('config.gunicorn.django.setup')
+    def test_migrations_run_before_workers_when_enabled(
+        self,
+        django_setup: Mock,
+        call_command: Mock,
+    ) -> None:
         with patch.dict(os.environ, {'RUN_MIGRATIONS_ON_START': 'true'}, clear=True):
             on_starting(self.server)
 
+        django_setup.assert_called_once_with()
         call_command.assert_called_once_with('migrate', interactive=False)
         self.server.log.info.assert_called_once()

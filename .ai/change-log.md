@@ -26,7 +26,9 @@
 
 ### Vérifications
 - Tests unitaires du hook : désactivé par défaut, exécution unique de `migrate`
-  lorsqu'il est activé.
+  lorsqu'il est activé, après initialisation explicite du registre Django.
+- Un premier redémarrage Render a identifié puis permis de corriger
+  `AppRegistryNotReady` avant toute modification du schéma.
 - Vérification post-déploiement attendue : migrations `core.0012` à `core.0016`
   appliquées et route `/` sans erreur 500.
 
