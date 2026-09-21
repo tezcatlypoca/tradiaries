@@ -1,7 +1,7 @@
 # Tradiaries — Project Context
 
-**Dernière mise à jour** : 2026-09-14  
-**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI bugs corrigés, multi-utilisateur opérationnel
+**Dernière mise à jour** : 2026-09-21  
+**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI trading refondue, multi-utilisateur opérationnel, 42 tests ✅
 
 ## Cadrage
 
@@ -108,6 +108,20 @@
 - ✅ Champ `timeframe` (texte libre, ex: 15min/4h/1D) ajouté au modèle mère `Investment` — hérité par `SpotTrading`/`FuturesTrading` (pas `SimpleInvestment`)
 - ✅ Migration `core.0015` appliquée en local, formulaires + modals Spot/Futures mis à jour
 - 🟡 Migration production (Neon) : PAS encore appliquée — se fait automatiquement au prochain déploiement Render (build command inclut `migrate`), ou manuellement si besoin (voir marche à suivre transmise à l'utilisateur)
+
+#### Positions (2026-09-21)
+- ✅ Nouvelle app `apps/positions` : fusion Spot/Futures en page unique, lecture seule (aucune création/clôture ici)
+- ✅ Onglets Spot/Futures, filtres par mode (LIVE/PAPER), KPI recalculées côté serveur
+- ✅ Panneau détail JS en lecture seule, suppression déléguée aux endpoints existants
+- ✅ Menu mis à jour : lien "📂 Positions" unique
+
+#### Trading UI (2026-09-21)
+- ✅ Refonte page Trading (exchange-like) : dropdown d'actifs (au lieu de liste de boutons)
+- ✅ Graphique OHLC : hauteur 420px → 480px, comble largeur entière (grid 3col → 2col)
+- ✅ Graphique Volume : histogramme coloré (vert haussier, rouge baissier)
+- ✅ Indicateur SAR (Stop And Reverse) : courbe pointillée jaune, algorithme Wilder, synchronisé avec chart
+- ✅ Correction drag & drop TP/SL : priceScale.coordinateToPrice() cohérente, seuil 8px → 12px
+- ✅ Tests : 1 test mis à jour pour nouveau sélecteur d'actif
 
 ### À faire ⏳
 
