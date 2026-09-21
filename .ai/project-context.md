@@ -1,7 +1,7 @@
 # Tradiaries — Project Context
 
 **Dernière mise à jour** : 2026-09-21  
-**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI trading refondue, multi-utilisateur opérationnel, 42 tests ✅
+**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI trading refondue (drag & drop TP/SL fiabilisé, SAR corrigé, graphiques synchronisés), page Positions limitée aux positions clôturées, multi-utilisateur opérationnel, 43 tests ✅
 
 ## Cadrage
 
@@ -109,19 +109,25 @@
 - ✅ Migration `core.0015` appliquée en local, formulaires + modals Spot/Futures mis à jour
 - 🟡 Migration production (Neon) : PAS encore appliquée — se fait automatiquement au prochain déploiement Render (build command inclut `migrate`), ou manuellement si besoin (voir marche à suivre transmise à l'utilisateur)
 
-#### Positions (2026-09-21)
+#### Positions (2026-09-21, mise à jour même session)
 - ✅ Nouvelle app `apps/positions` : fusion Spot/Futures en page unique, lecture seule (aucune création/clôture ici)
 - ✅ Onglets Spot/Futures, filtres par mode (LIVE/PAPER), KPI recalculées côté serveur
 - ✅ Panneau détail JS en lecture seule, suppression déléguée aux endpoints existants
 - ✅ Menu mis à jour : lien "📂 Positions" unique
+- ✅ N'affiche plus que les positions **clôturées** (`exit_price__isnull=False`) ; les positions ouvertes ne s'affichent plus que sur la page Trading (décision explicite : la page Investissements/`SimpleInvestment` reste inchangée, pas de notion d'ouvert/fermé pour ce modèle)
 
-#### Trading UI (2026-09-21)
+#### Trading UI (2026-09-21, plusieurs passes)
 - ✅ Refonte page Trading (exchange-like) : dropdown d'actifs (au lieu de liste de boutons)
 - ✅ Graphique OHLC : hauteur 420px → 480px, comble largeur entière (grid 3col → 2col)
-- ✅ Graphique Volume : histogramme coloré (vert haussier, rouge baissier)
-- ✅ Indicateur SAR (Stop And Reverse) : courbe pointillée jaune, algorithme Wilder, synchronisé avec chart
-- ✅ Correction drag & drop TP/SL : priceScale.coordinateToPrice() cohérente, seuil 8px → 12px
+- ✅ Graphique Volume : histogramme coloré (vert haussier, rouge baissier) + ligne Moyenne Mobile 20 superposée
+- ✅ Indicateur SAR (Stop And Reverse) : affiché en points disjoints (style TradingView, `pointMarkersVisible`) ; algorithme Wilder corrigé (l'extreme point `ep` était figé pendant la poursuite de tendance, causant une convergence vers une asymptote horizontale fixe — voir `change-log.md`)
+- ✅ Graphique prix et graphique volume/MM20 synchronisés horizontalement (pan/zoom bidirectionnel via `subscribeVisibleLogicalRangeChange`)
 - ✅ Tests : 1 test mis à jour pour nouveau sélecteur d'actif
+
+#### Drag & drop TP/SL (2026-09-21, 2 correctifs successifs)
+- ✅ Cause racine #1 : `priceScale().priceToCoordinate()/coordinateToPrice()` n'existent pas sur `IPriceScaleApi` (seulement sur `ISeriesApi`) → `TypeError` silencieuse bloquant tout drag. Corrigé via `candleSeries.priceToCoordinate()/coordinateToPrice()` directement.
+- ✅ Cause racine #2 (bug intermittent restant) : le clic-glissé simple entrait en concurrence avec le pan/zoom natif de lightweight-charts (`handleScroll`/`handleScale`, actifs par défaut). Résolu par un key binding : clic-glissé simple = navigation native (pan/zoom), **Maj + clic-glissé** = déplacement de ligne Entrée/TP/SL (avec `handleScroll`/`handleScale` désactivés temporairement pendant le geste).
+- ✅ Vérifié manuellement en navigateur (serveur de dev + compte de test temporaire) : pan simple n'altère plus TP/SL, Maj+glissé déplace correctement, aucune erreur console.
 
 ### À faire ⏳
 

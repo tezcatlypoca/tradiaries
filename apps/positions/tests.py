@@ -17,12 +17,14 @@ class PositionsPageTests(TestCase):
         self.client.force_login(self.user)
 
     @patch('apps.core.portfolio_service.fetch_current_prices', return_value=({}, set()))
-    def test_default_tab_shows_only_spot_trades(self, _mocked_prices):
+    def test_default_tab_shows_only_closed_spot_trades(self, _mocked_prices):
         SpotTrading.objects.create(
-            user=self.user, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'), trade_mode='PAPER',
+            user=self.user, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'),
+            exit_price=Decimal('110'), trade_mode='PAPER',
         )
         FuturesTrading.objects.create(
-            user=self.user, symbol='ETH', amount=Decimal('1'), entry_price=Decimal('50'), trade_mode='PAPER',
+            user=self.user, symbol='ETH', amount=Decimal('1'), entry_price=Decimal('50'),
+            exit_price=Decimal('55'), trade_mode='PAPER',
         )
 
         response = self.client.get(reverse('positions:index'))
@@ -34,12 +36,14 @@ class PositionsPageTests(TestCase):
         self.assertEqual(response.context['active_category'], 'SPOT')
 
     @patch('apps.core.portfolio_service.fetch_current_prices', return_value=({}, set()))
-    def test_futures_tab_shows_only_futures_trades(self, _mocked_prices):
+    def test_futures_tab_shows_only_closed_futures_trades(self, _mocked_prices):
         SpotTrading.objects.create(
-            user=self.user, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'), trade_mode='PAPER',
+            user=self.user, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'),
+            exit_price=Decimal('110'), trade_mode='PAPER',
         )
         FuturesTrading.objects.create(
-            user=self.user, symbol='ETH', amount=Decimal('1'), entry_price=Decimal('50'), trade_mode='PAPER',
+            user=self.user, symbol='ETH', amount=Decimal('1'), entry_price=Decimal('50'),
+            exit_price=Decimal('55'), trade_mode='PAPER',
         )
 
         response = self.client.get(reverse('positions:index'), {'category': 'FUTURES'})
@@ -52,10 +56,12 @@ class PositionsPageTests(TestCase):
     @patch('apps.core.portfolio_service.fetch_current_prices', return_value=({}, set()))
     def test_mode_filter_is_applied(self, _mocked_prices):
         SpotTrading.objects.create(
-            user=self.user, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'), trade_mode='LIVE',
+            user=self.user, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'),
+            exit_price=Decimal('110'), trade_mode='LIVE',
         )
         SpotTrading.objects.create(
-            user=self.user, symbol='ETH', amount=Decimal('1'), entry_price=Decimal('50'), trade_mode='PAPER',
+            user=self.user, symbol='ETH', amount=Decimal('1'), entry_price=Decimal('50'),
+            exit_price=Decimal('55'), trade_mode='PAPER',
         )
 
         response = self.client.get(reverse('positions:index'), {'mode': 'LIVE'})
@@ -65,9 +71,26 @@ class PositionsPageTests(TestCase):
         self.assertEqual(trades[0].symbol, 'BTC')
 
     @patch('apps.core.portfolio_service.fetch_current_prices', return_value=({}, set()))
+    def test_open_positions_are_excluded(self, _mocked_prices):
+        """Les positions ouvertes ne s'affichent plus ici : uniquement sur la page Trading."""
+        SpotTrading.objects.create(
+            user=self.user, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'), trade_mode='PAPER',
+        )
+        FuturesTrading.objects.create(
+            user=self.user, symbol='ETH', amount=Decimal('1'), entry_price=Decimal('50'), trade_mode='PAPER',
+        )
+
+        response = self.client.get(reverse('positions:index'))
+        self.assertEqual(list(response.context['trades']), [])
+
+        response = self.client.get(reverse('positions:index'), {'category': 'FUTURES'})
+        self.assertEqual(list(response.context['trades']), [])
+
+    @patch('apps.core.portfolio_service.fetch_current_prices', return_value=({}, set()))
     def test_user_only_sees_own_positions(self, _mocked_prices):
         SpotTrading.objects.create(
-            user=self.other, symbol='SOL', amount=Decimal('1'), entry_price=Decimal('20'), trade_mode='PAPER',
+            user=self.other, symbol='SOL', amount=Decimal('1'), entry_price=Decimal('20'),
+            exit_price=Decimal('22'), trade_mode='PAPER',
         )
 
         response = self.client.get(reverse('positions:index'))
@@ -83,7 +106,8 @@ class PositionsPageTests(TestCase):
     @patch('apps.core.portfolio_service.fetch_current_prices', return_value=({}, set()))
     def test_delete_form_targets_existing_scoped_endpoint(self, _mocked_prices):
         trade = SpotTrading.objects.create(
-            user=self.user, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'), trade_mode='PAPER',
+            user=self.user, symbol='BTC', amount=Decimal('1'), entry_price=Decimal('100'),
+            exit_price=Decimal('110'), trade_mode='PAPER',
         )
 
         response = self.client.get(reverse('positions:index'))

@@ -28,11 +28,11 @@ def positions(request):
         trade_mode = None
 
     if category == 'SPOT':
-        trades = SpotTrading.objects.filter(user=request.user).order_by('-entry_date')
+        trades = SpotTrading.objects.filter(user=request.user, exit_price__isnull=False).order_by('-entry_date')
         stats = compute_spot_stats(request.user, trade_mode=trade_mode)
         delete_url_name = 'spot_trading:delete'
     else:
-        trades = FuturesTrading.objects.filter(user=request.user).order_by('-entry_date')
+        trades = FuturesTrading.objects.filter(user=request.user, exit_price__isnull=False).order_by('-entry_date')
         stats = compute_futures_stats(request.user, trade_mode=trade_mode)
         delete_url_name = 'futures_trading:delete'
 

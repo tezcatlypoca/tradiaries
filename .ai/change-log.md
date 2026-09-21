@@ -5,6 +5,134 @@
 
 ---
 
+## 2026-09-21 | FEATURE | Page Positions limitée aux positions clôturées ; positions ouvertes réservées à la page Trading
+
+### Décision clarifiée avec l'utilisateur
+La page Investissements (`apps/investment`, modèle `SimpleInvestment`) n'a pas de notion d'ouvert/fermé (pas de `exit_price`, chaque ligne est déjà une transaction complète) : laissée inchangée sur demande explicite de l'utilisateur. Seule la page Positions (Spot/Futures) est concernée.
+
+### Implémentation
+- `apps/positions/views.py` : `trades` filtré par `exit_price__isnull=False` pour les deux catégories (SPOT et FUTURES). Les KPI (`compute_spot_stats`/`compute_futures_stats`) restent calculés sur l'ensemble du portefeuille (ouvertes + fermées), seule la liste affichée change.
+- `apps/positions/templates/positions/positions.html` : texte d'intro et état vide mis à jour pour préciser que les positions ouvertes sont désormais sur la page Trading.
+- La page Trading (`apps/live_trading`) affichait déjà les positions ouvertes en temps réel dans la section "Positions ouvertes" sous le graphique (`live_positions()`, filtré `exit_price__isnull=True`) — aucun changement nécessaire de ce côté, l'exigence était déjà satisfaite.
+
+### Tests
+- `apps/positions/tests.py` : tests existants adaptés (les trades de test sont désormais créés avec `exit_price` pour rester visibles) + nouveau test `test_open_positions_are_excluded` couvrant explicitement l'exclusion des positions ouvertes (Spot et Futures) de la page.
+- Suite complète : `python manage.py test` → 43 tests, tous verts.
+
+### Vérification
+- Serveur de dev + compte de test temporaire (supprimé après coup, ainsi que les positions de test créées) : page Positions (onglets Spot/Futures) n'affiche que les positions clôturées ; page Trading affiche bien les positions ouvertes restantes sous le graphique. Aucune erreur console.
+
+**Fichiers modifiés** : `apps/positions/views.py`, `apps/positions/templates/positions/positions.html`, `apps/positions/tests.py`
+
+---
+
+## 2026-09-21 | FEATURE | Synchronisation du déplacement horizontal (pan/zoom) entre le graphique prix et le graphique volume/MM20
+
+### Contexte
+`chart` (prix/SAR) et `volumeChart` (volume/MM20) sont deux instances lightweight-charts indépendantes ; chacune gérait son propre pan/zoom sans lien avec l'autre, rendant la lecture croisée prix/volume malaisée dès qu'on naviguait sur le graphique.
+
+### Implémentation
+- `apps/live_trading/templates/live_trading/live_trading.html` : ajout de `syncTimeScale(source, target)`, qui s'abonne à `source.timeScale().subscribeVisibleLogicalRangeChange` et répercute la plage logique visible sur `target.timeScale().setVisibleLogicalRange(range)`. Abonnement bidirectionnel (`chart` → `volumeChart` et `volumeChart` → `chart`), avec un verrou `isSyncingTimeScale` pour éviter la boucle infinie de rappels croisés.
+- `loadChart()` : suppression de l'appel `volumeChart.timeScale().fitContent()`, devenu redondant — le `fitContent()` sur `chart` déclenche désormais la synchronisation qui aligne `volumeChart` automatiquement.
+
+### Vérification
+- Serveur de dev + compte de test temporaire (supprimé après coup).
+- Glisser-déposer (pan) sur le graphique prix → le graphique volume suit exactement la même plage visible, et inversement (testé dans les deux sens).
+- Molette (zoom) sur le graphique prix → le graphique volume zoome en cohérence.
+- Changement d'intervalle (1h → 4h) : les deux graphiques rechargent et s'alignent correctement après `fitContent()`.
+- Aucune erreur console.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
+## 2026-09-21 | BUGFIX | Calcul du SAR faussé : convergeait vers une asymptote horizontale fixe
+
+### Cause réelle
+Dans `calculateSAR`, la variable `ep` (extreme point — le plus haut/plus bas atteint pendant la tendance en cours, utilisé dans la formule `SAR += AF * (EP - SAR)`) n'était **jamais mise à jour pendant la poursuite d'une tendance**. Le code maintenait bien des variables `hp`/`lp` séparées pour suivre les nouveaux extrêmes, mais celles-ci ne servaient qu'à initialiser le SAR lors d'un retournement de tendance — la formule de récurrence continuait, elle, à utiliser l'`ep` figé à sa valeur initiale (le plus haut/bas de la toute première bougie). Résultat : `SAR += AF * (EP_fixe - SAR)` est une suite contractante qui converge mathématiquement vers `EP_fixe`, d'où l'asymptote horizontale observée à 77530.30 (prix de la première bougie visible).
+
+### Correctif (conforme à l'algorithme Wilder standard, tel qu'utilisé par TradingView `ta.sar`)
+- `apps/live_trading/templates/live_trading/live_trading.html`, fonction `calculateSAR` :
+  - Suppression des variables `hp`/`lp` redondantes ; `ep` est désormais mis à jour à chaque nouveau plus haut (tendance haussière) / plus bas (tendance baissière), avec incrémentation de l'AF à ce moment précis (comportement Wilder standard).
+  - Clamp du SAR calculé par le min/max des deux bougies précédentes (`prev`, `prev2`) au lieu d'inclure à tort la bougie courante dans le clamp.
+  - Lors d'un retournement, le nouveau SAR repart bien de l'`ep` de la tendance qui se termine (comportement inchangé, déjà correct).
+
+### Vérification
+- Serveur de dev + compte de test temporaire (supprimé après coup).
+- `sarSeries.data()` : 193 valeurs distinctes sur 200 points (au lieu de converger vers une valeur quasi constante), min/max cohérents avec la plage de prix affichée, SAR bascule visiblement au-dessus/en-dessous des bougies aux retournements.
+- Aucune erreur console.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
+## 2026-09-21 | FEATURE | Moyenne mobile 20 (ligne) sur le graphique de volume
+
+### Implémentation
+- `apps/live_trading/templates/live_trading/live_trading.html` :
+  - Nouvelle fonction `calculateSMA(points, period)` (moyenne mobile simple générique, fenêtre glissante).
+  - Nouvelle série `volumeMaSeries` (`volumeChart.addLineSeries`, couleur bleu clair `#8ec1ff`) superposée à l'histogramme de volume existant.
+  - `loadChart()` calcule `calculateSMA(volume, 20)` et l'injecte via `volumeMaSeries.setData(...)` à chaque chargement/changement d'actif ou d'intervalle.
+
+### Vérification
+- `volumeMaSeries.data()` : 181 points pour 200 bougies (200 − 19, cohérent avec une SMA20 qui démarre au 20e point).
+- Ligne bleue visible superposée à l'histogramme de volume dans le navigateur, aucune erreur console.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
+## 2026-09-21 | FEATURE | SAR affiché en points (style TradingView) au lieu d'une courbe pointillée
+
+### Implémentation
+- `apps/live_trading/templates/live_trading/live_trading.html` : `sarSeries` (lightweight-charts) passe de `addLineSeries({ lineStyle: Dotted })` (courbe continue en pointillés) à `addLineSeries({ lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: 2 })` — n'affiche que des points ronds disjoints à chaque valeur SAR calculée, sans segment reliant les points.
+- Calcul du SAR (`calculateSAR`) inchangé.
+
+### Vérification
+- Serveur de dev + compte de test temporaire (supprimé après coup) : SAR affiché en points jaunes disjoints sur le graphique BTC, aucune erreur console.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
+## 2026-09-21 | BUGFIX | Drag & drop TP/SL intermittent : clic-glissé simple réservé à la navigation, Maj+glissé pour déplacer TP/SL
+
+### Cause réelle
+Le correctif précédent (voir entrée BUGFIX suivante) rendait le glisser-déposer syntaxiquement correct, mais le clic-glissé simple restait en concurrence avec le comportement natif de lightweight-charts (`handleScroll.pressedMouseMove` / `handleScale`, activés par défaut) : un clic démarré près d'une ligne TP/SL pouvait être capté tantôt par notre handler, tantôt par le pan/zoom natif de la lib selon l'endroit exact du clic et le mouvement de la souris — d'où le comportement intermittent rapporté.
+
+### Correctif
+- `apps/live_trading/templates/live_trading/live_trading.html` :
+  - Le clic-glissé simple sur le graphique n'est plus intercepté : il déclenche uniquement le comportement natif de la lib (pan/zoom).
+  - Ajout d'un key binding **Maj + clic-glissé** : seul un `mousedown` avec `event.shiftKey` déclenche la détection de ligne (Entrée/TP/SL) et le déplacement.
+  - Pendant un déplacement Maj+glissé, `chart.applyOptions({ handleScroll: false, handleScale: false })` désactive temporairement le pan/zoom natif pour éliminer toute concurrence entre les deux gestes ; ré-activé au `mouseup`.
+  - Indice utilisateur sous le graphique mis à jour pour mentionner Maj+glissé.
+
+### Vérification
+- Serveur de dev + utilisateur de test temporaire (supprimé après coup).
+- Clic-glissé simple sur une ligne TP : le graphique navigue (pan), le champ TP ne change pas (régression testée, OK).
+- Maj+clic-glissé (simulé via dispatch d'événements `MouseEvent` avec `shiftKey: true`, le geste synthétique de l'outil de contrôle navigateur ne propageant pas le modificateur) sur la ligne TP : le champ se met à jour avec le nouveau prix.
+- Après relâchement, `chart.options().handleScroll`/`handleScale` repassent à `true` (pan/zoom natif restauré).
+- Aucune erreur console.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
+## 2026-09-21 | BUGFIX | Drag & drop TP/SL sur le graphique Trading toujours inopérant
+
+### Cause réelle
+Le correctif précédent (voir entrée FEATURE ci-dessous) appelait `candleSeries.priceScale().priceToCoordinate()` / `.coordinateToPrice()`. Ces méthodes n'existent que sur l'API série (`ISeriesApi`), pas sur l'API échelle de prix (`IPriceScaleApi`, retournée par `.priceScale()`) — vérifié dans le bundle vendorisé `lightweight-charts.standalone.production.js` (classe `ge` : seulement `applyOptions`/`options`/`width`). L'appel levait une `TypeError` silencieuse à chaque `mousedown`/`mousemove`, empêchant `draggingField` d'être positionné : aucun glisser-déposer ne pouvait jamais démarrer.
+
+### Correctif
+- `apps/live_trading/templates/live_trading/live_trading.html` : remplacement par `candleSeries.priceToCoordinate(price)` et `candleSeries.coordinateToPrice(mouseY)` (méthodes de la série, pas de l'échelle de prix).
+
+### Vérification
+- Serveur de dev lancé localement, page `/live/` testée dans Chrome (utilisateur de test temporaire, supprimé après coup) : glisser-déposer des lignes **Take profit** et **Stop loss** confirmé fonctionnel (le champ associé se met à jour avec le nouveau prix). La ligne **Entrée** reste volontairement non-draggable tant que le champ est vide (placeholder "vide = marché") — comportement voulu, pas un bug.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
 ## 2026-09-21 | FEATURE | Refonte UI page Trading : dropdown actifs, graphique volume/SAR, drag & drop TP/SL
 
 ### Améliorations UX

@@ -71,7 +71,7 @@
                     <div id="tradingChart" class="trading-chart"></div>
                     <div id="tradingVolume" class="trading-volume"></div>
                     <p class="trading-chart-hint">
-                        💡 Glissez les lignes Entrée / Take profit / Stop loss directement sur le graphique, ou saisissez les valeurs dans le panneau.
+                        💡 Maj + glissez une ligne Entrée / Take profit / Stop loss pour la déplacer sur le graphique (le clic-glissé simple sert à naviguer dans le graphique), ou saisissez les valeurs dans le panneau.
                     </p>
                 </section>
 
@@ -329,13 +329,30 @@
     const volumeSeries = volumeChart.addHistogramSeries({
         color: 'rgba(98, 230, 173, 0.4)',
     });
+    const volumeMaSeries = volumeChart.addLineSeries({
+        color: '#8ec1ff', lineWidth: 1,
+    });
     const sarSeries = chart.addLineSeries({
-        color: '#fbbf24', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted,
+        color: '#fbbf24', lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: 2,
     });
     new ResizeObserver(() => {
         chart.applyOptions({ width: chartContainer.clientWidth });
         volumeChart.applyOptions({ width: volumeContainer.clientWidth });
     }).observe(chartContainer);
+
+    // ---------- Synchronisation du déplacement horizontal (pan/zoom) entre les deux graphiques ----------
+
+    let isSyncingTimeScale = false;
+    function syncTimeScale(source, target) {
+        source.timeScale().subscribeVisibleLogicalRangeChange((range) => {
+            if (isSyncingTimeScale || range === null) return;
+            isSyncingTimeScale = true;
+            target.timeScale().setVisibleLogicalRange(range);
+            isSyncingTimeScale = false;
+        });
+    }
+    syncTimeScale(chart, volumeChart);
+    syncTimeScale(volumeChart, chart);
 
     let currentInterval = 60;
     let lastClose = null;
@@ -400,47 +417,62 @@
 
     function calculateSAR(candles) {
         if (candles.length < 2) return [];
+        const AF_START = 0.02, AF_STEP = 0.02, AF_MAX = 0.2;
         const sar = [];
         let isUptrend = candles[1].close > candles[0].close;
-        let af = 0.02, ep = isUptrend ? candles[0].high : candles[0].low;
-        let hp = isUptrend ? candles[0].high : Number.NEGATIVE_INFINITY;
-        let lp = isUptrend ? Number.POSITIVE_INFINITY : candles[0].low;
+        let af = AF_START;
+        // ep = extreme point atteint pendant la tendance en cours (doit être mis à jour à
+        // chaque nouveau plus haut/plus bas, sinon le SAR converge vers sa valeur initiale)
+        let ep = isUptrend ? candles[0].high : candles[0].low;
         let sarValue = isUptrend ? candles[0].low : candles[0].high;
 
         sar.push({ time: candles[0].time, value: sarValue });
 
         for (let i = 1; i < candles.length; i++) {
             const candle = candles[i];
-            sarValue = sarValue + af * (ep - sarValue);
+            const prev = candles[i - 1];
+            const prev2 = candles[i - 2] || prev;
+            let nextSar = sarValue + af * (ep - sarValue);
 
             if (isUptrend) {
-                if (candle.low <= sarValue) {
+                nextSar = Math.min(nextSar, prev.low, prev2.low);
+                if (candle.low <= nextSar) {
                     isUptrend = false;
-                    sarValue = hp;
+                    nextSar = ep;
                     ep = candle.low;
-                    af = 0.02;
-                    lp = candle.low;
-                } else {
-                    if (candle.high > hp) { hp = candle.high; af = Math.min(af + 0.02, 0.2); }
-                    lp = Math.min(lp, candle.low);
-                    sarValue = Math.min(sarValue, candles[i - 1].low, candle.low);
+                    af = AF_START;
+                } else if (candle.high > ep) {
+                    ep = candle.high;
+                    af = Math.min(af + AF_STEP, AF_MAX);
                 }
             } else {
-                if (candle.high >= sarValue) {
+                nextSar = Math.max(nextSar, prev.high, prev2.high);
+                if (candle.high >= nextSar) {
                     isUptrend = true;
-                    sarValue = lp;
+                    nextSar = ep;
                     ep = candle.high;
-                    af = 0.02;
-                    hp = candle.high;
-                } else {
-                    if (candle.low < lp) { lp = candle.low; af = Math.min(af + 0.02, 0.2); }
-                    hp = Math.max(hp, candle.high);
-                    sarValue = Math.max(sarValue, candles[i - 1].high, candle.high);
+                    af = AF_START;
+                } else if (candle.low < ep) {
+                    ep = candle.low;
+                    af = Math.min(af + AF_STEP, AF_MAX);
                 }
             }
+
+            sarValue = nextSar;
             sar.push({ time: candle.time, value: sarValue });
         }
         return sar;
+    }
+
+    function calculateSMA(points, period) {
+        const result = [];
+        let sum = 0;
+        for (let i = 0; i < points.length; i++) {
+            sum += points[i].value;
+            if (i >= period) sum -= points[i - period].value;
+            if (i >= period - 1) result.push({ time: points[i].time, value: sum / period });
+        }
+        return result;
     }
 
     function loadChart(symbol, interval) {
@@ -454,15 +486,16 @@
                     time: c.time, value: c.volume || 0, color: (c.close >= c.open) ? 'rgba(98, 230, 173, 0.5)' : 'rgba(255, 128, 145, 0.5)',
                 }));
                 const sar = calculateSAR(candles);
+                const volumeMa = calculateSMA(volume, 20);
 
                 candleSeries.setData(candles);
                 volumeSeries.setData(volume);
+                volumeMaSeries.setData(volumeMa);
                 sarSeries.setData(sar);
 
                 if (candles.length) {
                     lastClose = candles[candles.length - 1].close;
                     chart.timeScale().fitContent();
-                    volumeChart.timeScale().fitContent();
                     applyDefaultLevelsIfEmpty(true);
                 } else {
                     lastClose = null;
@@ -497,18 +530,24 @@
     let draggingField = null;
     const DRAG_THRESHOLD_PX = 12;
 
+    // Le clic-glissé simple reste le comportement par défaut de la lib (pan du graphique).
+    // Maj + clic-glissé sur une ligne Entrée/TP/SL la déplace à la place de pan-ner le graphique :
+    // on désactive temporairement le pan/scale de la lib pour éviter que les deux gestes
+    // s'exécutent en même temps (source du bug intermittent).
     chartContainer.addEventListener('mousedown', (event) => {
-        const priceScale = candleSeries.priceScale();
+        if (!event.shiftKey) return;
         const mouseY = event.clientY - chartContainer.getBoundingClientRect().top;
 
         for (const fieldId of ['entry_price', 'take_profit', 'stop_loss']) {
             const price = fieldValue(fieldId);
             if (price === null) continue;
-            const coord = priceScale.priceToCoordinate(price);
+            const coord = candleSeries.priceToCoordinate(price);
             if (coord !== null && Math.abs(coord - mouseY) <= DRAG_THRESHOLD_PX) {
                 draggingField = fieldId;
                 chartContainer.style.cursor = 'ns-resize';
+                chart.applyOptions({ handleScroll: false, handleScale: false });
                 event.preventDefault();
+                event.stopPropagation();
                 break;
             }
         }
@@ -516,9 +555,8 @@
 
     document.addEventListener('mousemove', (event) => {
         if (!draggingField) return;
-        const priceScale = candleSeries.priceScale();
         const mouseY = event.clientY - chartContainer.getBoundingClientRect().top;
-        const price = priceScale.coordinateToPrice(mouseY);
+        const price = candleSeries.coordinateToPrice(mouseY);
         if (price === null || price <= 0) return;
         document.getElementById(draggingField).value = price.toFixed(8);
         updatePriceLine(draggingField, price);
@@ -529,6 +567,7 @@
         if (draggingField) {
             draggingField = null;
             chartContainer.style.cursor = '';
+            chart.applyOptions({ handleScroll: true, handleScale: true });
         }
     });
 
