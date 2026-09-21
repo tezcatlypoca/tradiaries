@@ -29,8 +29,12 @@
   lorsqu'il est activé, après initialisation explicite du registre Django.
 - Un premier redémarrage Render a identifié puis permis de corriger
   `AppRegistryNotReady` avant toute modification du schéma.
-- Vérification post-déploiement attendue : migrations `core.0012` à `core.0016`
-  appliquées et route `/` sans erreur 500.
+- Déploiement Render `dep-daoi0gojo6nc73acm930` actif : migrations
+  `core.0012` à `core.0015` confirmées `OK` dans les logs, démarrage des workers
+  uniquement après leur application.
+- Vérification HTTP : `/` redirige vers la connexion, dont la réponse finale est
+  `200`; `/healthz/` répond `{"status": "ok"}`; aucun nouveau log d'erreur après
+  le déploiement.
 
 ---
 
