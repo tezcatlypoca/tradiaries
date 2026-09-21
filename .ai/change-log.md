@@ -1,7 +1,34 @@
 # Tradiaries — Change Log
 
 **Format** : ISO 8601 YYYY-MM-DD | Catégorie | Description courte | Fichiers modifiés  
-**Dernière entrée** : 2026-09-18
+**Dernière entrée** : 2026-09-21
+
+---
+
+## 2026-09-21 | DEBUG | Erreur 500 production causée par des migrations non appliquées
+
+### Cause réelle
+- Les logs Render remontaient `psycopg.errors.UndefinedColumn:
+  column core_simple_investment.user_id does not exist` sur `/`.
+- La migration locale est cohérente jusqu'à `core.0016`, mais le Build Command réel
+  du service Render exécutait uniquement `pip install` et `collectstatic`, sans
+  `python manage.py migrate`. La production utilisait donc le code multi-utilisateur
+  avec un schéma antérieur à `core.0012`.
+
+### Correctif
+- Ajout de `config/gunicorn.py`, activable par
+  `GUNICORN_CMD_ARGS=--config config/gunicorn.py` et
+  `RUN_MIGRATIONS_ON_START=True`.
+- Le hook Gunicorn applique les migrations dans le processus maître avant la
+  création des workers. Toute erreur de migration bloque le démarrage afin
+  d'éviter de servir un code incompatible avec la base.
+- Documentation Render et `.env.example` mis à jour.
+
+### Vérifications
+- Tests unitaires du hook : désactivé par défaut, exécution unique de `migrate`
+  lorsqu'il est activé.
+- Vérification post-déploiement attendue : migrations `core.0012` à `core.0016`
+  appliquées et route `/` sans erreur 500.
 
 ---
 

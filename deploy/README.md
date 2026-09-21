@@ -24,6 +24,12 @@ Topologie gratuite pour un usage personnel : Render héberge l'app web (Gunicorn
 ### Render (service web)
 - Build Command : `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate`
 - Start Command : `gunicorn config.wsgi:application`
+- Filet de sécurité si le Build Command Render ne peut pas être corrigé immédiatement :
+  définir `GUNICORN_CMD_ARGS=--config config/gunicorn.py` et
+  `RUN_MIGRATIONS_ON_START=True`. Gunicorn applique alors les migrations une fois,
+  dans le processus maître, avant d'ouvrir les workers. Une erreur de migration
+  bloque volontairement le démarrage plutôt que de servir une application avec un
+  schéma incompatible.
 - Variables d'environnement : `SECRET_KEY`, `API_CREDENTIAL_ENCRYPTION_KEY`, `DATABASE_URL`, `DEBUG=False`, `SECURE_SSL_REDIRECT=True`, `SESSION_COOKIE_SECURE=True`, `CSRF_COOKIE_SECURE=True`, `SECURE_PROXY_SSL_HEADER_ENABLED=True` (Render termine le TLS et transmet `X-Forwarded-Proto`). `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS` n'ont pas besoin d'inclure le domaine Render : `RENDER_EXTERNAL_HOSTNAME` (fourni automatiquement par Render) est ajouté automatiquement par `config/settings.py`. Ajouter un domaine perso si utilisé.
 
 ### Railway (worker)
@@ -66,4 +72,3 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 ```
 
 Ne jamais placer ces valeurs dans Git. Sur Render, le TLS est terminé par la plateforme (`SECURE_PROXY_SSL_HEADER_ENABLED=True` requis) ; en dehors de Render/Railway, utiliser un reverse proxy HTTPS (Caddy, Traefik ou Nginx) et ne lancer `SECURE_SSL_REDIRECT=True` qu'après validation de `SECURE_PROXY_SSL_HEADER`.
-
