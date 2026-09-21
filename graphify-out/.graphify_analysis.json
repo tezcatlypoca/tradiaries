@@ -1,0 +1,885 @@
+{
+  "communities": {
+    "0": [
+      "apps_analytics_init",
+      "apps_analytics_urls",
+      "apps_analytics_views",
+      "apps_analytics_views_analytics",
+      "apps_analytics_views_py_login_required",
+      "apps_core_converters",
+      "apps_core_converters_rationale_1",
+      "apps_core_forms",
+      "apps_core_forms_add_form_errors_to_messages",
+      "apps_core_forms_futurestradingform",
+      "apps_core_forms_futurestradingform_clean_risk_reward_ratio",
+      "apps_core_forms_meta",
+      "apps_core_forms_rationale_36",
+      "apps_core_forms_spottradingform",
+      "apps_core_forms_tradingform",
+      "apps_core_forms_tradingform_clean_amount",
+      "apps_core_forms_tradingform_clean_entry_price",
+      "apps_core_forms_tradingform_clean_symbol",
+      "apps_core_forms_tradingform_get_direction",
+      "apps_core_models",
+      "apps_core_models_futurestrading",
+      "apps_core_models_futurestrading_str",
+      "apps_core_models_investment",
+      "apps_core_models_investment_effective_exit_price",
+      "apps_core_models_krakennoncecounter",
+      "apps_core_models_meta",
+      "apps_core_models_rationale_1",
+      "apps_core_models_rationale_10",
+      "apps_core_models_rationale_183",
+      "apps_core_models_rationale_280",
+      "apps_core_models_rationale_42",
+      "apps_core_models_rationale_79",
+      "apps_core_models_spottrading",
+      "apps_core_models_spottrading_str",
+      "apps_core_models_watcherheartbeat",
+      "apps_core_portfolio_service",
+      "apps_core_portfolio_service_breakdown_by",
+      "apps_core_portfolio_service_build_chart_series",
+      "apps_core_portfolio_service_compute_futures_analytics",
+      "apps_core_portfolio_service_compute_futures_stats",
+      "apps_core_portfolio_service_compute_spot_stats",
+      "apps_core_portfolio_service_cumulative_series",
+      "apps_core_portfolio_service_futures_trade_pnl",
+      "apps_core_portfolio_service_py_decimal",
+      "apps_core_portfolio_service_rationale_1",
+      "apps_core_portfolio_service_rationale_135",
+      "apps_core_portfolio_service_rationale_148",
+      "apps_core_portfolio_service_rationale_222",
+      "apps_core_portfolio_service_rationale_234",
+      "apps_core_portfolio_service_rationale_287",
+      "apps_core_portfolio_service_rationale_301",
+      "apps_core_portfolio_service_rationale_93",
+      "apps_core_tests",
+      "apps_core_tests_domainvalidationtests",
+      "apps_core_tests_domainvalidationtests_test_non_positive_amount_is_rejected",
+      "apps_core_tests_domainvalidationtests_test_second_exit_requires_first_exit",
+      "apps_core_tests_domainvalidationtests_test_two_equal_exits_use_average_price_for_pnl",
+      "apps_futures_trading_init",
+      "apps_futures_trading_urls",
+      "apps_futures_trading_views",
+      "apps_futures_trading_views_create_trade",
+      "apps_futures_trading_views_delete_trade",
+      "apps_futures_trading_views_futures_trading",
+      "apps_futures_trading_views_py_login_required",
+      "apps_futures_trading_views_py_require_http_methods",
+      "apps_futures_trading_views_update_trade",
+      "apps_journal_init",
+      "apps_journal_urls",
+      "apps_journal_views",
+      "apps_journal_views_journal",
+      "apps_journal_views_py_login_required",
+      "apps_live_trading_forms",
+      "apps_live_trading_forms_rationale_1",
+      "apps_spot_trading_init",
+      "apps_spot_trading_urls",
+      "apps_spot_trading_views",
+      "apps_spot_trading_views_create_trade",
+      "apps_spot_trading_views_delete_trade",
+      "apps_spot_trading_views_py_login_required",
+      "apps_spot_trading_views_py_require_http_methods",
+      "apps_spot_trading_views_spot_trading",
+      "apps_spot_trading_views_update_trade"
+    ],
+    "1": [
+      "apps_core_kraken_client",
+      "apps_core_kraken_client_add_spot_order",
+      "apps_core_kraken_client_cancel_order",
+      "apps_core_kraken_client_fetch_current_price",
+      "apps_core_kraken_client_fetch_current_prices",
+      "apps_core_kraken_client_fetch_order_fill_price",
+      "apps_core_kraken_client_fetch_trades_history",
+      "apps_core_kraken_client_get_kraken_credentials",
+      "apps_core_kraken_client_http_session",
+      "apps_core_kraken_client_krakenapierror",
+      "apps_core_kraken_client_next_nonce",
+      "apps_core_kraken_client_parse_symbol_from_pair",
+      "apps_core_kraken_client_private_request",
+      "apps_core_kraken_client_public_request",
+      "apps_core_kraken_client_py_decimal",
+      "apps_core_kraken_client_py_exception",
+      "apps_core_kraken_client_query_orders",
+      "apps_core_kraken_client_rationale_1",
+      "apps_core_kraken_client_rationale_101",
+      "apps_core_kraken_client_rationale_145",
+      "apps_core_kraken_client_rationale_172",
+      "apps_core_kraken_client_rationale_199",
+      "apps_core_kraken_client_rationale_217",
+      "apps_core_kraken_client_rationale_236",
+      "apps_core_kraken_client_rationale_25",
+      "apps_core_kraken_client_rationale_273",
+      "apps_core_kraken_client_rationale_322",
+      "apps_core_kraken_client_rationale_329",
+      "apps_core_kraken_client_rationale_341",
+      "apps_core_kraken_client_rationale_57",
+      "apps_core_kraken_client_rationale_69",
+      "apps_core_kraken_client_rationale_91",
+      "apps_core_kraken_client_resolve_pair",
+      "apps_core_kraken_client_sign",
+      "apps_core_management_commands_watch_tp_sl",
+      "apps_core_management_commands_watch_tp_sl_command",
+      "apps_core_management_commands_watch_tp_sl_command_add_arguments",
+      "apps_core_management_commands_watch_tp_sl_command_handle",
+      "apps_core_management_commands_watch_tp_sl_py_basecommand",
+      "apps_core_management_commands_watch_tp_sl_rationale_1",
+      "apps_core_portfolio_service_rationale_21",
+      "apps_core_portfolio_service_sync_kraken_trades",
+      "apps_core_tests_tradingviewtests_test_watcher_health_endpoint_requires_recent_heartbeat",
+      "apps_core_trading_service",
+      "apps_core_trading_service_check_tp_sl",
+      "apps_core_trading_service_close_position",
+      "apps_core_trading_service_close_via_kraken",
+      "apps_core_trading_service_entry_market_price",
+      "apps_core_trading_service_py_decimal",
+      "apps_core_trading_service_rationale_1",
+      "apps_core_trading_service_rationale_168",
+      "apps_core_trading_service_rationale_182",
+      "apps_core_trading_service_rationale_235",
+      "apps_core_trading_service_rationale_251",
+      "apps_core_trading_service_rationale_37",
+      "apps_core_trading_service_tp_sl_triggered",
+      "apps_core_watcher_health_rationale_14",
+      "apps_core_watcher_health_touch_watcher_heartbeat",
+      "deploy_backup_postgres",
+      "deploy_backup_postgres_sh__entry",
+      "docs_audit_production",
+      "docs_audit_production_concurrent_closure_risk",
+      "docs_audit_production_kraken_retry_risk",
+      "docs_audit_production_order_state_machine",
+      "session"
+    ],
+    "2": [
+      "apps_core_forms_apicredentialform",
+      "apps_core_forms_apicredentialform_clean",
+      "apps_core_forms_apicredentialform_init",
+      "apps_core_forms_futurestradingform_get_direction",
+      "apps_core_forms_rationale_116",
+      "apps_core_forms_tradingform_clean",
+      "apps_core_models_apicredential",
+      "apps_core_models_apicredential_get_api_key",
+      "apps_core_models_apicredential_masked_api_key",
+      "apps_core_models_apicredential_str",
+      "apps_core_models_rationale_201",
+      "apps_core_models_rationale_252",
+      "apps_core_models_rationale_260",
+      "apps_core_models_userpreferences",
+      "apps_core_models_userpreferences_str",
+      "apps_core_portfolio_service_compute_global_stats",
+      "apps_core_portfolio_service_rationale_197",
+      "apps_dashboard_forms",
+      "apps_dashboard_forms_meta",
+      "apps_dashboard_forms_rationale_17",
+      "apps_dashboard_forms_rationale_9",
+      "apps_dashboard_forms_signupform",
+      "apps_dashboard_forms_userstrategyform",
+      "apps_dashboard_init",
+      "apps_dashboard_settings_urls",
+      "apps_dashboard_urls",
+      "apps_dashboard_views",
+      "apps_dashboard_views_coaching",
+      "apps_dashboard_views_create_api_credential",
+      "apps_dashboard_views_dashboard",
+      "apps_dashboard_views_delete_api_credential",
+      "apps_dashboard_views_index",
+      "apps_dashboard_views_manifest",
+      "apps_dashboard_views_py_login_required",
+      "apps_dashboard_views_py_require_http_methods",
+      "apps_dashboard_views_rationale_22",
+      "apps_dashboard_views_rationale_38",
+      "apps_dashboard_views_rationale_48",
+      "apps_dashboard_views_save_strategy",
+      "apps_dashboard_views_service_worker",
+      "apps_dashboard_views_settings_view",
+      "apps_dashboard_views_signup",
+      "apps_investment_views_healthz",
+      "config_urls",
+      "config_urls_rationale_1",
+      "httprequest",
+      "httpresponse",
+      "never_cache",
+      "require_get",
+      "usercreationform"
+    ],
+    "3": [
+      "apps_core_tests_closepositionconcurrencytests",
+      "apps_core_tests_closepositionconcurrencytests_setup",
+      "apps_core_tests_closepositionconcurrencytests_test_close_is_skipped_if_already_claimed",
+      "apps_core_tests_liveorderreconciliationtests",
+      "apps_core_tests_liveorderreconciliationtests_setup",
+      "apps_core_tests_liveorderreconciliationtests_test_kraken_failure_before_submission_is_recorded_as_failed",
+      "apps_core_tests_liveorderreconciliationtests_test_successful_order_confirms_attempt_and_links_trade",
+      "apps_core_tests_multiuserisolationtests",
+      "apps_core_tests_multiuserisolationtests_setup",
+      "apps_core_tests_multiuserisolationtests_test_created_trade_is_owned_by_the_authenticated_user",
+      "apps_core_tests_multiuserisolationtests_test_user_cannot_delete_another_users_investment",
+      "apps_core_tests_multiuserisolationtests_test_user_cannot_delete_another_users_trade",
+      "apps_core_tests_multiuserisolationtests_test_user_cannot_update_another_users_trade",
+      "apps_core_tests_multiuserisolationtests_test_user_only_sees_own_spot_trades",
+      "apps_core_tests_multiuserisolationtests_test_user_strategy_is_isolated",
+      "apps_core_tests_rationale_192",
+      "apps_core_tests_rationale_234",
+      "apps_core_tests_rationale_370",
+      "apps_core_tests_tradingservicetests",
+      "apps_core_tests_tradingservicetests_setup",
+      "apps_core_tests_tradingservicetests_test_check_tp_sl_closes_long_position_at_take_profit",
+      "apps_core_tests_tradingservicetests_test_open_live_futures_is_rejected",
+      "apps_core_tests_tradingservicetests_test_open_paper_spot_at_market_creates_local_position",
+      "apps_core_tests_tradingviewtests",
+      "apps_core_tests_tradingviewtests_setup",
+      "apps_core_tests_tradingviewtests_test_coaching_page_is_available_and_empty",
+      "apps_core_tests_tradingviewtests_test_health_endpoint_checks_database_without_login",
+      "apps_core_tests_tradingviewtests_test_invalid_simple_investment_post_does_not_create_investment",
+      "apps_core_tests_tradingviewtests_test_invalid_spot_post_does_not_create_trade",
+      "apps_core_tests_tradingviewtests_test_trading_lists_display_timeframes",
+      "apps_core_tests_tradingviewtests_test_user_can_save_and_view_strategy",
+      "apps_core_tests_tradingviewtests_test_valid_futures_post_persists_strategy_mode_and_timeframe",
+      "apps_core_tests_watchercommandtests",
+      "apps_core_tests_watchercommandtests_test_transient_cycle_error_does_not_escape_once_mode",
+      "apps_core_trading_service_open_position",
+      "apps_core_trading_service_py_exception",
+      "apps_core_trading_service_rationale_33",
+      "apps_core_trading_service_rationale_45",
+      "apps_core_trading_service_rationale_65",
+      "apps_core_trading_service_tradingerror",
+      "apps_core_trading_service_userref_from_client_order_id",
+      "override_settings",
+      "patch",
+      "testcase"
+    ],
+    "4": [
+      "apps_analytics_templates_analytics_analytics",
+      "apps_core_management_commands_import_kraken_trades",
+      "apps_core_management_commands_import_kraken_trades_command",
+      "apps_core_management_commands_import_kraken_trades_command_add_arguments",
+      "apps_core_management_commands_import_kraken_trades_command_handle",
+      "apps_core_management_commands_import_kraken_trades_rationale_1",
+      "apps_dashboard_templates_dashboard_dashboard",
+      "apps_dashboard_templates_dashboard_settings",
+      "apps_futures_trading_templates_futures_trading_futures_trading",
+      "apps_investment_templates_investment_investment",
+      "apps_journal_templates_journal_journal",
+      "apps_live_trading_apps",
+      "apps_live_trading_apps_livetradingconfig",
+      "apps_live_trading_apps_py_appconfig",
+      "apps_live_trading_init",
+      "apps_live_trading_templates_live_trading_live_trading",
+      "apps_live_trading_urls",
+      "apps_spot_trading_templates_spot_trading_spot_trading",
+      "basecommand",
+      "components_futures_trading_form",
+      "components_investment_form",
+      "components_kpi_cards",
+      "components_listing",
+      "components_portfolio_chart",
+      "components_side_menu",
+      "components_spot_trading_form",
+      "config_settings",
+      "config_settings_rationale_1",
+      "deploy_readme",
+      "docs_feature_trading_live",
+      "readme",
+      "requirements"
+    ],
+    "5": [
+      "apps_core_tests_openpositionformtests",
+      "apps_core_tests_openpositionformtests_test_live_position_accepts_two_validated_irc_criteria",
+      "apps_core_tests_openpositionformtests_test_live_position_requires_two_validated_irc_criteria",
+      "apps_core_tests_openpositionformtests_test_short_position_rejects_inverted_take_profit",
+      "apps_core_trading_service_live_positions",
+      "apps_core_trading_service_live_positions_distance_pct",
+      "apps_core_trading_service_rationale_293",
+      "apps_live_trading_forms_openpositionform",
+      "apps_live_trading_forms_openpositionform_clean",
+      "apps_live_trading_forms_openpositionform_clean_symbol",
+      "apps_live_trading_forms_rationale_10",
+      "apps_live_trading_tests",
+      "apps_live_trading_tests_livetradingviewtests",
+      "apps_live_trading_tests_livetradingviewtests_test_positions_json_serializes_decimals_and_entry_date",
+      "apps_live_trading_tests_py_patch",
+      "apps_live_trading_tests_py_testcase",
+      "apps_live_trading_views",
+      "apps_live_trading_views_close_position",
+      "apps_live_trading_views_live_trading",
+      "apps_live_trading_views_open_position",
+      "apps_live_trading_views_position_to_json",
+      "apps_live_trading_views_positions_json",
+      "apps_live_trading_views_py_login_required",
+      "apps_live_trading_views_py_require_http_methods",
+      "apps_live_trading_views_rationale_1",
+      "apps_live_trading_views_rationale_35",
+      "apps_live_trading_views_rationale_91",
+      "apps_live_trading_views_serialize_decimal",
+      "apps_live_trading_views_watcher_interval"
+    ],
+    "6": [
+      "apps_core_forms_simpleinvestmentform",
+      "apps_core_forms_simpleinvestmentform_clean_amount",
+      "apps_core_forms_simpleinvestmentform_clean_price",
+      "apps_core_forms_simpleinvestmentform_clean_symbol",
+      "apps_core_models_rationale_51",
+      "apps_core_models_simpleinvestment",
+      "apps_core_models_simpleinvestment_str",
+      "apps_core_portfolio_service_compute_investment_stats",
+      "apps_core_portfolio_service_rationale_63",
+      "apps_core_tests_domainvalidationtests_test_positive_values_and_symbol_normalization",
+      "apps_core_watcher_health",
+      "apps_core_watcher_health_rationale_1",
+      "apps_core_watcher_health_rationale_19",
+      "apps_core_watcher_health_watcher_is_healthy",
+      "apps_investment_init",
+      "apps_investment_urls",
+      "apps_investment_views",
+      "apps_investment_views_create_investment",
+      "apps_investment_views_delete_investment",
+      "apps_investment_views_investment",
+      "apps_investment_views_py_login_required",
+      "apps_investment_views_py_require_http_methods",
+      "apps_investment_views_rationale_21",
+      "apps_investment_views_update_investment",
+      "apps_investment_views_watcher_healthz",
+      "deploy_readme_watcher_heartbeat_db"
+    ],
+    "7": [
+      "apps_core_converters_futures_entity_to_model",
+      "apps_core_converters_futures_model_to_entity",
+      "apps_core_converters_py_futurestrading",
+      "apps_core_converters_rationale_21",
+      "apps_core_converters_rationale_35",
+      "apps_core_converters_rationale_52",
+      "apps_core_converters_rationale_7",
+      "apps_core_converters_spot_entity_to_model",
+      "apps_core_converters_spot_model_to_entity",
+      "apps_core_entities",
+      "apps_core_entities_futurestrading",
+      "apps_core_entities_investment",
+      "apps_core_entities_rationale_1",
+      "apps_core_entities_rationale_10",
+      "apps_core_entities_rationale_22",
+      "apps_core_entities_rationale_28",
+      "apps_core_entities_spottrading",
+      "futurestradingentity",
+      "spottrading",
+      "spottradingentity"
+    ],
+    "8": [
+      "apps_core_crypto",
+      "apps_core_crypto_decrypt",
+      "apps_core_crypto_encrypt",
+      "apps_core_crypto_fernet",
+      "apps_core_crypto_rationale_1",
+      "apps_core_crypto_rationale_23",
+      "apps_core_crypto_rationale_30",
+      "apps_core_migrations_0009_seed_kraken_credential_from_env",
+      "apps_core_migrations_0009_seed_kraken_credential_from_env_migration",
+      "apps_core_migrations_0009_seed_kraken_credential_from_env_noop_reverse",
+      "apps_core_migrations_0009_seed_kraken_credential_from_env_rationale_32",
+      "apps_core_migrations_0009_seed_kraken_credential_from_env_seed_kraken_credential_from_env",
+      "apps_core_models_apicredential_get_api_secret",
+      "apps_core_models_apicredential_get_passphrase",
+      "apps_core_models_apicredential_set_credentials",
+      "apps_core_models_rationale_237"
+    ],
+    "9": [
+      "apps_core_admin",
+      "apps_core_admin_apicredentialadmin",
+      "apps_core_admin_apicredentialadmin_has_add_permission",
+      "apps_core_admin_apicredentialadmin_has_change_permission",
+      "apps_core_admin_futurestradingadmin",
+      "apps_core_admin_krakenorderattemptadmin",
+      "apps_core_admin_krakenorderattemptadmin_has_add_permission",
+      "apps_core_admin_krakenorderattemptadmin_has_change_permission",
+      "apps_core_admin_simpleinvestmentadmin",
+      "apps_core_admin_spottradingadmin",
+      "apps_core_models_krakenorderattempt",
+      "apps_core_models_krakenorderattempt_str",
+      "apps_core_models_rationale_137",
+      "register"
+    ],
+    "10": [
+      "apps_core_parsing",
+      "apps_core_parsing_normalize_decimal",
+      "apps_core_parsing_py_decimal",
+      "apps_core_parsing_rationale_1",
+      "apps_core_parsing_rationale_11",
+      "datetime",
+      "utils_csv2bdd",
+      "utils_csv2bdd_import_csv",
+      "utils_import_futures_journal",
+      "utils_import_futures_journal_import_futures_journal",
+      "utils_import_futures_journal_parse_french_date",
+      "utils_import_futures_journal_rationale_1",
+      "utils_import_futures_journal_rationale_27"
+    ],
+    "11": [
+      "apps_core_migrations_0007_futurestrading_external_ref_futurestrading_stop_loss_and_more",
+      "apps_core_migrations_0007_futurestrading_external_ref_futurestrading_stop_loss_and_more_mark_existing_spot_trades_live",
+      "apps_core_migrations_0007_futurestrading_external_ref_futurestrading_stop_loss_and_more_mark_existing_spot_trades_paper",
+      "apps_core_migrations_0007_futurestrading_external_ref_futurestrading_stop_loss_and_more_migration",
+      "apps_core_migrations_0007_futurestrading_external_ref_futurestrading_stop_loss_and_more_rationale_13",
+      "apps_core_migrations_0007_futurestrading_external_ref_futurestrading_stop_loss_and_more_rationale_7"
+    ],
+    "12": [
+      "apps_dashboard_tests",
+      "apps_dashboard_tests_pwaendpointtests",
+      "apps_dashboard_tests_pwaendpointtests_test_manifest_is_public_and_has_global_scope",
+      "apps_dashboard_tests_pwaendpointtests_test_service_worker_is_served_from_root_without_http_cache",
+      "apps_dashboard_tests_rationale_6",
+      "simpletestcase"
+    ],
+    "13": [
+      "apps_core_migrations_0013_backfill_user_ownership",
+      "apps_core_migrations_0013_backfill_user_ownership_assign_existing_data_to_first_superuser",
+      "apps_core_migrations_0013_backfill_user_ownership_migration",
+      "apps_core_migrations_0013_backfill_user_ownership_noop_reverse",
+      "apps_core_migrations_0013_backfill_user_ownership_rationale_27"
+    ],
+    "14": [
+      "diagnose_pwa_prod",
+      "diagnose_pwa_prod_check_url",
+      "diagnose_pwa_prod_rationale_12",
+      "diagnose_pwa_prod_rationale_2"
+    ],
+    "15": [
+      "manage",
+      "manage_main",
+      "manage_rationale_2",
+      "manage_rationale_8"
+    ],
+    "16": [
+      "static_icons_icon",
+      "static_icons_icon_rounded_square_background",
+      "static_icons_icon_trend_line_glyph",
+      "tradiaries_app"
+    ],
+    "17": [
+      "utils_generate_pwa_icons",
+      "utils_generate_pwa_icons_generate_icons",
+      "utils_generate_pwa_icons_rationale_11",
+      "utils_generate_pwa_icons_rationale_2"
+    ],
+    "18": [
+      "apps_analytics_apps",
+      "apps_analytics_apps_analyticsconfig",
+      "apps_analytics_apps_py_appconfig"
+    ],
+    "19": [
+      "apps_core_apps",
+      "apps_core_apps_coreconfig",
+      "apps_core_apps_py_appconfig"
+    ],
+    "20": [
+      "apps_dashboard_apps",
+      "apps_dashboard_apps_dashboardconfig",
+      "apps_dashboard_apps_py_appconfig"
+    ],
+    "21": [
+      "apps_futures_trading_apps",
+      "apps_futures_trading_apps_futurestradingconfig",
+      "apps_futures_trading_apps_py_appconfig"
+    ],
+    "22": [
+      "apps_investment_apps",
+      "apps_investment_apps_investmentconfig",
+      "apps_investment_apps_py_appconfig"
+    ],
+    "23": [
+      "apps_journal_apps",
+      "apps_journal_apps_journalconfig",
+      "apps_journal_apps_py_appconfig"
+    ],
+    "24": [
+      "apps_spot_trading_apps",
+      "apps_spot_trading_apps_py_appconfig",
+      "apps_spot_trading_apps_spottradingconfig"
+    ],
+    "25": [
+      "deploy_readme_render_railway_neon_topology",
+      "docs_audit_production_global_authorization_model",
+      "docs_tradiaries_plan_prod"
+    ],
+    "26": [
+      "apps_core_init",
+      "apps_core_init_rationale_1"
+    ],
+    "27": [
+      "apps_core_migrations_0001_initial",
+      "apps_core_migrations_0001_initial_migration"
+    ],
+    "28": [
+      "apps_core_migrations_0002_simpleinvestment",
+      "apps_core_migrations_0002_simpleinvestment_migration"
+    ],
+    "29": [
+      "apps_core_migrations_0003_remove_simpleinvestment_entry_price_and_more",
+      "apps_core_migrations_0003_remove_simpleinvestment_entry_price_and_more_migration"
+    ],
+    "30": [
+      "apps_core_migrations_0004_simpleinvestment_external_ref_and_more",
+      "apps_core_migrations_0004_simpleinvestment_external_ref_and_more_migration"
+    ],
+    "31": [
+      "apps_core_migrations_0005_futurestrading_strategy_and_more",
+      "apps_core_migrations_0005_futurestrading_strategy_and_more_migration"
+    ],
+    "32": [
+      "apps_core_migrations_0006_futurestrading_trade_mode",
+      "apps_core_migrations_0006_futurestrading_trade_mode_migration"
+    ],
+    "33": [
+      "apps_core_migrations_0008_apicredential",
+      "apps_core_migrations_0008_apicredential_migration"
+    ],
+    "34": [
+      "apps_core_migrations_0010_krakennoncecounter_futurestrading_is_closing_and_more",
+      "apps_core_migrations_0010_krakennoncecounter_futurestrading_is_closing_and_more_migration"
+    ],
+    "35": [
+      "apps_core_migrations_0011_watcherheartbeat",
+      "apps_core_migrations_0011_watcherheartbeat_migration"
+    ],
+    "36": [
+      "apps_core_migrations_0012_add_user_ownership_nullable",
+      "apps_core_migrations_0012_add_user_ownership_nullable_migration"
+    ],
+    "37": [
+      "apps_core_migrations_0014_require_user_ownership",
+      "apps_core_migrations_0014_require_user_ownership_migration"
+    ],
+    "38": [
+      "apps_core_migrations_0015_futurestrading_timeframe_spottrading_timeframe",
+      "apps_core_migrations_0015_futurestrading_timeframe_spottrading_timeframe_migration"
+    ],
+    "39": [
+      "apps_core_migrations_0016_userpreferences",
+      "apps_core_migrations_0016_userpreferences_migration"
+    ],
+    "40": [
+      "apps_dashboard_templates_registration_password_change_done",
+      "apps_dashboard_templates_registration_password_change_form"
+    ],
+    "41": [
+      "check_pwa_manifest",
+      "check_pwa_manifest_rationale_2"
+    ],
+    "42": [
+      "components_side_menu_html",
+      "docs_image_side_menu"
+    ],
+    "43": [
+      "config_asgi",
+      "config_asgi_rationale_1"
+    ],
+    "44": [
+      "config_wsgi",
+      "config_wsgi_rationale_1"
+    ],
+    "45": [
+      "docs_project_overview_ai_discipline_coach",
+      "docs_tradiaries_plan_prod_coach_ia_spinoff"
+    ],
+    "46": [
+      "apps_analytics_admin"
+    ],
+    "47": [
+      "apps_analytics_migrations_init"
+    ],
+    "48": [
+      "apps_analytics_models"
+    ],
+    "49": [
+      "apps_analytics_tests"
+    ],
+    "50": [
+      "apps_core_management_commands_import_kraken_trades_py_basecommand"
+    ],
+    "51": [
+      "apps_core_management_commands_init"
+    ],
+    "52": [
+      "apps_core_management_init"
+    ],
+    "53": [
+      "apps_core_migrations_init"
+    ],
+    "54": [
+      "apps_core_tests_py_patch"
+    ],
+    "55": [
+      "apps_core_tests_py_testcase"
+    ],
+    "56": [
+      "apps_dashboard_admin"
+    ],
+    "57": [
+      "apps_dashboard_migrations_init"
+    ],
+    "58": [
+      "apps_dashboard_models"
+    ],
+    "59": [
+      "apps_dashboard_templates_registration_login"
+    ],
+    "60": [
+      "apps_futures_trading_admin"
+    ],
+    "61": [
+      "apps_futures_trading_migrations_init"
+    ],
+    "62": [
+      "apps_futures_trading_models"
+    ],
+    "63": [
+      "apps_futures_trading_tests"
+    ],
+    "64": [
+      "apps_init"
+    ],
+    "65": [
+      "apps_investment_admin"
+    ],
+    "66": [
+      "apps_investment_migrations_init"
+    ],
+    "67": [
+      "apps_investment_models"
+    ],
+    "68": [
+      "apps_investment_tests"
+    ],
+    "69": [
+      "apps_journal_admin"
+    ],
+    "70": [
+      "apps_journal_migrations_init"
+    ],
+    "71": [
+      "apps_journal_models"
+    ],
+    "72": [
+      "apps_journal_tests"
+    ],
+    "73": [
+      "apps_spot_trading_admin"
+    ],
+    "74": [
+      "apps_spot_trading_migrations_init"
+    ],
+    "75": [
+      "apps_spot_trading_models"
+    ],
+    "76": [
+      "apps_spot_trading_tests"
+    ],
+    "77": [
+      "config_init"
+    ],
+    "78": [
+      "docs_project_overview"
+    ],
+    "79": [
+      "static_js_pwa_register"
+    ],
+    "80": [
+      "static_js_service_worker"
+    ]
+  },
+  "cohesion": {
+    "0": 0.05209274314965372,
+    "1": 0.05336538461538461,
+    "2": 0.07428571428571429,
+    "3": 0.05708245243128964,
+    "4": 0.07661290322580645,
+    "5": 0.10098522167487685,
+    "6": 0.12,
+    "7": 0.11052631578947368,
+    "8": 0.15833333333333333,
+    "9": 0.1978021978021978,
+    "10": 0.2564102564102564,
+    "11": 0.3333333333333333,
+    "12": 0.3333333333333333,
+    "13": 0.4,
+    "14": 0.5,
+    "15": 0.5,
+    "16": 0.8333333333333334,
+    "17": 0.5,
+    "18": 0.6666666666666666,
+    "19": 0.6666666666666666,
+    "20": 0.6666666666666666,
+    "21": 0.6666666666666666,
+    "22": 0.6666666666666666,
+    "23": 0.6666666666666666,
+    "24": 0.6666666666666666,
+    "25": 0.6666666666666666,
+    "26": 1.0,
+    "27": 1.0,
+    "28": 1.0,
+    "29": 1.0,
+    "30": 1.0,
+    "31": 1.0,
+    "32": 1.0,
+    "33": 1.0,
+    "34": 1.0,
+    "35": 1.0,
+    "36": 1.0,
+    "37": 1.0,
+    "38": 1.0,
+    "39": 1.0,
+    "40": 1.0,
+    "41": 1.0,
+    "42": 1.0,
+    "43": 1.0,
+    "44": 1.0,
+    "45": 1.0,
+    "46": 1.0,
+    "47": 1.0,
+    "48": 1.0,
+    "49": 1.0,
+    "50": 1.0,
+    "51": 1.0,
+    "52": 1.0,
+    "53": 1.0,
+    "54": 1.0,
+    "55": 1.0,
+    "56": 1.0,
+    "57": 1.0,
+    "58": 1.0,
+    "59": 1.0,
+    "60": 1.0,
+    "61": 1.0,
+    "62": 1.0,
+    "63": 1.0,
+    "64": 1.0,
+    "65": 1.0,
+    "66": 1.0,
+    "67": 1.0,
+    "68": 1.0,
+    "69": 1.0,
+    "70": 1.0,
+    "71": 1.0,
+    "72": 1.0,
+    "73": 1.0,
+    "74": 1.0,
+    "75": 1.0,
+    "76": 1.0,
+    "77": 1.0,
+    "78": 1.0,
+    "79": 1.0,
+    "80": 1.0
+  },
+  "gods": [
+    {
+      "id": "apps_core_models_futurestrading",
+      "label": "FuturesTrading",
+      "degree": 37
+    },
+    {
+      "id": "apps_core_models_spottrading",
+      "label": "SpotTrading",
+      "degree": 30
+    },
+    {
+      "id": "apps_core_models_simpleinvestment",
+      "label": "SimpleInvestment",
+      "degree": 20
+    },
+    {
+      "id": "apps_core_models_apicredential",
+      "label": "ApiCredential",
+      "degree": 18
+    },
+    {
+      "id": "apps_core_trading_service_open_position",
+      "label": "open_position()",
+      "degree": 18
+    },
+    {
+      "id": "apps_core_tests_tradingviewtests",
+      "label": "TradingViewTests",
+      "degree": 17
+    },
+    {
+      "id": "docs_feature_trading_live",
+      "label": "Feature Trading Live \u2014 \u00e9tat d'impl\u00e9mentation",
+      "degree": 14
+    },
+    {
+      "id": "apps_core_kraken_client_krakenapierror",
+      "label": "KrakenAPIError",
+      "degree": 14
+    },
+    {
+      "id": "apps_core_tests_multiuserisolationtests",
+      "label": "MultiUserIsolationTests",
+      "degree": 14
+    },
+    {
+      "id": "apps_core_forms_add_form_errors_to_messages",
+      "label": "add_form_errors_to_messages()",
+      "degree": 13
+    }
+  ],
+  "surprises": [
+    {
+      "source": "Side Menu Layout Wireframe",
+      "target": "side-menu.html (Side Menu Component)",
+      "source_files": [
+        "docs/image_side_menu.png",
+        "components/side-menu.html"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (doc \u2194 image); connects across different repos/directories"
+    },
+    {
+      "source": "import_csv()",
+      "target": "SimpleInvestment",
+      "source_files": [
+        "utils/csv2bdd.py",
+        "apps/core/models.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "import_futures_journal()",
+      "target": "FuturesTrading",
+      "source_files": [
+        "utils/import_futures_journal.py",
+        "apps/core/models.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; bridges separate communities"
+    },
+    {
+      "source": "Render + Railway + Neon Free-Tier Deployment Topology",
+      "target": "Tradiaries \u2014 Plan de mise en production",
+      "source_files": [
+        "deploy/README.md",
+        "docs/tradiaries-plan-prod.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories"
+    },
+    {
+      "source": "OpenPositionForm",
+      "target": "FuturesTrading",
+      "source_files": [
+        "apps/live_trading/forms.py",
+        "apps/core/models.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "uses",
+      "why": "inferred connection - not explicitly stated in source; bridges separate communities"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}

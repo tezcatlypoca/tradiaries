@@ -48,10 +48,10 @@
     "semantic_hash": "c281401a10b87cf190672cc7b6cf6449"
   },
   "apps/analytics/views.py": {
-    "mtime": 1789742960.6205633,
-    "seen": 1789992473.1104734,
-    "ast_hash": "593e64cc033f64dfdbb148c3f7cc6153",
-    "semantic_hash": "593e64cc033f64dfdbb148c3f7cc6153"
+    "mtime": 1788880336.551146,
+    "seen": 1789232830.191246,
+    "ast_hash": "8edcb0772aa0a760a61e7aba12cc3722",
+    "semantic_hash": "8edcb0772aa0a760a61e7aba12cc3722"
   },
   "apps/core/__init__.py": {
     "mtime": 1788698875.8764887,
@@ -60,10 +60,10 @@
     "semantic_hash": "70c68c5565148766d90dab9c6d811535"
   },
   "apps/core/admin.py": {
-    "mtime": 1789742960.6215665,
-    "seen": 1789992473.1104734,
-    "ast_hash": "bc1639bdd7f7257b64b4c8f6a0be4c5f",
-    "semantic_hash": "bc1639bdd7f7257b64b4c8f6a0be4c5f"
+    "mtime": 1789058008.06299,
+    "seen": 1789232830.191246,
+    "ast_hash": "452b0b9b8fe8fc1b2e07a9777c52d8df",
+    "semantic_hash": "452b0b9b8fe8fc1b2e07a9777c52d8df"
   },
   "apps/core/apps.py": {
     "mtime": 1788698875.8904903,
@@ -90,16 +90,16 @@
     "semantic_hash": "9d587c7b0cfd55cda12cb5c29bccb118"
   },
   "apps/core/forms.py": {
-    "mtime": 1789742960.6215665,
-    "seen": 1789992473.1114743,
-    "ast_hash": "087befd5de8567837a6b7f0f89440c4e",
-    "semantic_hash": "087befd5de8567837a6b7f0f89440c4e"
+    "mtime": 1789058008.06299,
+    "seen": 1789232830.191246,
+    "ast_hash": "f1bc547a9a34a9b904feee463a672be9",
+    "semantic_hash": "f1bc547a9a34a9b904feee463a672be9"
   },
   "apps/core/kraken_client.py": {
-    "mtime": 1789742960.6215665,
-    "seen": 1789992473.1114743,
-    "ast_hash": "1de0c2d4f6a1ad5221b93c9da61562a5",
-    "semantic_hash": "1de0c2d4f6a1ad5221b93c9da61562a5"
+    "mtime": 1789058008.0639915,
+    "seen": 1789232830.191246,
+    "ast_hash": "ca715550f238cd0c11792998924effd1",
+    "semantic_hash": "ca715550f238cd0c11792998924effd1"
   },
   "apps/core/management/__init__.py": {
     "mtime": 1788705520.1919248,
@@ -114,10 +114,10 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "apps/core/management/commands/import_kraken_trades.py": {
-    "mtime": 1789742960.6225615,
-    "seen": 1789992473.1124735,
-    "ast_hash": "78559e30e5e292d4882adcef6155c37d",
-    "semantic_hash": "78559e30e5e292d4882adcef6155c37d"
+    "mtime": 1788882103.3860683,
+    "seen": 1789232830.191246,
+    "ast_hash": "41faf447d0944914523a5550153fbeeb",
+    "semantic_hash": "41faf447d0944914523a5550153fbeeb"
   },
   "apps/core/management/commands/watch_tp_sl.py": {
     "mtime": 1789058403.1829624,
@@ -198,10 +198,10 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "apps/core/models.py": {
-    "mtime": 1789742960.6245625,
-    "seen": 1789992473.1164753,
-    "ast_hash": "1a8c7b5af1dcdf231e8f3988fbbe7c7b",
-    "semantic_hash": "1a8c7b5af1dcdf231e8f3988fbbe7c7b"
+    "mtime": 1789058008.0679877,
+    "seen": 1789232830.191246,
+    "ast_hash": "b9e0991440c3bf9ad8f9a7f4420dda7f",
+    "semantic_hash": "b9e0991440c3bf9ad8f9a7f4420dda7f"
   },
   "apps/core/parsing.py": {
     "mtime": 1788779681.388251,
@@ -210,22 +210,22 @@
     "semantic_hash": "c3e76abe42119cca07c4bf16ef6ac701"
   },
   "apps/core/portfolio_service.py": {
-    "mtime": 1789742960.6245625,
-    "seen": 1789992473.116981,
-    "ast_hash": "1f06f4c31c78b9ee8b2b904bfa777b2e",
-    "semantic_hash": "1f06f4c31c78b9ee8b2b904bfa777b2e"
+    "mtime": 1788883647.51238,
+    "seen": 1789232830.191246,
+    "ast_hash": "3b62dbfc8a7e498c4b9c1fde244336d4",
+    "semantic_hash": "3b62dbfc8a7e498c4b9c1fde244336d4"
   },
   "apps/core/tests.py": {
-    "mtime": 1789743026.2322583,
-    "seen": 1789992473.116981,
-    "ast_hash": "5fef0025ff000d41198781fb6f68fcfa",
-    "semantic_hash": "5fef0025ff000d41198781fb6f68fcfa"
+    "mtime": 1789210495.1105964,
+    "seen": 1789232830.191246,
+    "ast_hash": "68e75a0f15c366014d01c83a0cba4cf9",
+    "semantic_hash": "68e75a0f15c366014d01c83a0cba4cf9"
   },
   "apps/core/trading_service.py": {
-    "mtime": 1789742960.6255624,
-    "seen": 1789992473.116981,
-    "ast_hash": "3f85dc5021d3a5652924fdd02d89898e",
-    "semantic_hash": "3f85dc5021d3a5652924fdd02d89898e"
+    "mtime": 1789058403.1829624,
+    "seen": 1789232830.191246,
+    "ast_hash": "3e525eb87a59cad505796bffb5e63cb2",
+    "semantic_hash": "3e525eb87a59cad505796bffb5e63cb2"
   },
   "apps/core/watcher_health.py": {
     "mtime": 1789058008.0689878,
@@ -264,28 +264,28 @@
     "semantic_hash": "d66d26e53e7ac2028454d3dd6f7e92ad"
   },
   "apps/dashboard/settings_urls.py": {
-    "mtime": 1789739299.8828807,
-    "seen": 1789992473.1179886,
-    "ast_hash": "ba86333dbf913090bbb7fcddccdbe441",
-    "semantic_hash": "ba86333dbf913090bbb7fcddccdbe441"
+    "mtime": 1788959715.5103796,
+    "seen": 1789232830.191246,
+    "ast_hash": "82b0d3a7e02f6650807e707d5fb3fc01",
+    "semantic_hash": "82b0d3a7e02f6650807e707d5fb3fc01"
   },
   "apps/dashboard/tests.py": {
-    "mtime": 1789307582.6562026,
-    "seen": 1789992473.1179886,
-    "ast_hash": "6805736b219f9bb1652a221914b3b02e",
-    "semantic_hash": "6805736b219f9bb1652a221914b3b02e"
+    "mtime": 1788696466.6748033,
+    "seen": 1789232830.191246,
+    "ast_hash": "e08f0582500f6562bf0a931ef9503b39",
+    "semantic_hash": "e08f0582500f6562bf0a931ef9503b39"
   },
   "apps/dashboard/urls.py": {
-    "mtime": 1789741677.2233021,
-    "seen": 1789992473.1179886,
-    "ast_hash": "ba76ba355c25922b773da6b0144b56f1",
-    "semantic_hash": "ba76ba355c25922b773da6b0144b56f1"
+    "mtime": 1788696466.6748033,
+    "seen": 1789232830.191246,
+    "ast_hash": "007cb2d158a9da95bcd765f238fca32d",
+    "semantic_hash": "007cb2d158a9da95bcd765f238fca32d"
   },
   "apps/dashboard/views.py": {
-    "mtime": 1789743009.7593653,
-    "seen": 1789992473.1179886,
-    "ast_hash": "3a8f817ad091f6492d3c7841d55edb94",
-    "semantic_hash": "3a8f817ad091f6492d3c7841d55edb94"
+    "mtime": 1789138357.2246282,
+    "seen": 1789232830.191246,
+    "ast_hash": "852bd99ddf58e62e0c6fd99a4d708100",
+    "semantic_hash": "852bd99ddf58e62e0c6fd99a4d708100"
   },
   "apps/futures_trading/__init__.py": {
     "mtime": 1788702998.4485288,
@@ -330,10 +330,10 @@
     "semantic_hash": "2f4fe679f0c19ba9e7724ce4acddd1c3"
   },
   "apps/futures_trading/views.py": {
-    "mtime": 1789742960.627563,
-    "seen": 1789992473.1199887,
-    "ast_hash": "c5df115b56bf5e05bfafa522b27b807f",
-    "semantic_hash": "c5df115b56bf5e05bfafa522b27b807f"
+    "mtime": 1788959715.5103796,
+    "seen": 1789232830.191246,
+    "ast_hash": "df5fa5a7df655d80b65e389c0a96596c",
+    "semantic_hash": "df5fa5a7df655d80b65e389c0a96596c"
   },
   "apps/investment/__init__.py": {
     "mtime": 1788699208.3400092,
@@ -378,10 +378,10 @@
     "semantic_hash": "702d8563b9ff0c488c82b843aa84db05"
   },
   "apps/investment/views.py": {
-    "mtime": 1789742960.6285634,
-    "seen": 1789992473.1219883,
-    "ast_hash": "aaa7d19e3c227fad2a892b564becc5de",
-    "semantic_hash": "aaa7d19e3c227fad2a892b564becc5de"
+    "mtime": 1789027896.5030842,
+    "seen": 1789232830.191246,
+    "ast_hash": "d3469a652c273f28921c37c73ff7a1d9",
+    "semantic_hash": "d3469a652c273f28921c37c73ff7a1d9"
   },
   "apps/journal/__init__.py": {
     "mtime": 1788877076.1862369,
@@ -426,10 +426,10 @@
     "semantic_hash": "16cab31af7d4a0bb03b0af2c38c6a1f6"
   },
   "apps/journal/views.py": {
-    "mtime": 1789742960.6285634,
-    "seen": 1789992473.122989,
-    "ast_hash": "119753860f03f24aff2ff326c2728afb",
-    "semantic_hash": "119753860f03f24aff2ff326c2728afb"
+    "mtime": 1788880336.551146,
+    "seen": 1789232830.191246,
+    "ast_hash": "0e84bf6dd59996366cd1d830871edf45",
+    "semantic_hash": "0e84bf6dd59996366cd1d830871edf45"
   },
   "apps/live_trading/__init__.py": {
     "mtime": 1788883492.421454,
@@ -462,10 +462,10 @@
     "semantic_hash": "2e0628d2acdfa2d0f1318feefad30a69"
   },
   "apps/live_trading/views.py": {
-    "mtime": 1789742960.6285634,
-    "seen": 1789992473.1249897,
-    "ast_hash": "295b81e2c3c10bb9f8d13f06ed6aa54e",
-    "semantic_hash": "295b81e2c3c10bb9f8d13f06ed6aa54e"
+    "mtime": 1788945394.5403728,
+    "seen": 1789232830.191246,
+    "ast_hash": "e558c3d1b786a3b21d09f779df90d6c6",
+    "semantic_hash": "e558c3d1b786a3b21d09f779df90d6c6"
   },
   "apps/spot_trading/__init__.py": {
     "mtime": 1788702997.382946,
@@ -510,10 +510,10 @@
     "semantic_hash": "2ccb3a2c0cedf2a8411228bd96e767a8"
   },
   "apps/spot_trading/views.py": {
-    "mtime": 1789742960.6295626,
-    "seen": 1789992473.1249897,
-    "ast_hash": "bc19a5c57b4764a8cbc74ab579adee86",
-    "semantic_hash": "bc19a5c57b4764a8cbc74ab579adee86"
+    "mtime": 1788959715.5103796,
+    "seen": 1789232830.191246,
+    "ast_hash": "9af5ac885f41712f262e1363a8f7ae3d",
+    "semantic_hash": "9af5ac885f41712f262e1363a8f7ae3d"
   },
   "config/__init__.py": {
     "mtime": 1788527485.9828281,
@@ -528,16 +528,16 @@
     "semantic_hash": "dc1d14b8620f0bbfd17c2192a70c25da"
   },
   "config/settings.py": {
-    "mtime": 1789739280.0311916,
-    "seen": 1789992473.126497,
+    "mtime": 1789210495.111596,
+    "seen": 1789232830.191246,
     "ast_hash": "7111b34b79e4e72c9240aa872d7c6139",
     "semantic_hash": "7111b34b79e4e72c9240aa872d7c6139"
   },
   "config/urls.py": {
-    "mtime": 1789742960.6305625,
-    "seen": 1789992473.126497,
-    "ast_hash": "0c7498b0d8f40540de08f954296db39b",
-    "semantic_hash": "0c7498b0d8f40540de08f954296db39b"
+    "mtime": 1789138357.2286282,
+    "seen": 1789232830.191246,
+    "ast_hash": "6452e3ca5fd7ec32659c0850d9c07f25",
+    "semantic_hash": "6452e3ca5fd7ec32659c0850d9c07f25"
   },
   "config/wsgi.py": {
     "mtime": 1788527485.9818275,
@@ -558,16 +558,16 @@
     "semantic_hash": "747c8c1f612fb07e1ea90758e5c3b6ad"
   },
   "static/js/pwa-register.js": {
-    "mtime": 1789307582.6572037,
-    "seen": 1789992473.1275082,
-    "ast_hash": "98301a77b84906c9cd5e01112c560143",
-    "semantic_hash": "98301a77b84906c9cd5e01112c560143"
+    "mtime": 1789138357.2306275,
+    "seen": 1789232830.191246,
+    "ast_hash": "475397495d157249a650136f8db2beb6",
+    "semantic_hash": "475397495d157249a650136f8db2beb6"
   },
   "static/js/service-worker.js": {
-    "mtime": 1789739280.0351973,
-    "seen": 1789992473.1275082,
-    "ast_hash": "e150eefc18ee832d6a39243d5184379e",
-    "semantic_hash": "e150eefc18ee832d6a39243d5184379e"
+    "mtime": 1789138357.2306275,
+    "seen": 1789232830.191246,
+    "ast_hash": "f561680bb10a6fb784087d3dbd2f5dee",
+    "semantic_hash": "f561680bb10a6fb784087d3dbd2f5dee"
   },
   "utils/csv2bdd.py": {
     "mtime": 1788779681.322738,
@@ -742,59 +742,5 @@
     "seen": 1789232830.191246,
     "ast_hash": "e2db24f2197b42eb6f8a668138957dc1",
     "semantic_hash": "e2db24f2197b42eb6f8a668138957dc1"
-  },
-  "apps/core/migrations/0012_add_user_ownership_nullable.py": {
-    "mtime": 1789742960.6225615,
-    "seen": 1789992473.1154737,
-    "ast_hash": "97e9338de04d0063e84c3c2fa239725b",
-    "semantic_hash": "97e9338de04d0063e84c3c2fa239725b"
-  },
-  "apps/core/migrations/0013_backfill_user_ownership.py": {
-    "mtime": 1789742960.6225615,
-    "seen": 1789992473.1154737,
-    "ast_hash": "2ad35334238227fcc311d7f1f688be94",
-    "semantic_hash": "2ad35334238227fcc311d7f1f688be94"
-  },
-  "apps/core/migrations/0014_require_user_ownership.py": {
-    "mtime": 1789742960.6235626,
-    "seen": 1789992473.1154737,
-    "ast_hash": "dfaecd0ce85e8b58cbd06eeb71f11450",
-    "semantic_hash": "dfaecd0ce85e8b58cbd06eeb71f11450"
-  },
-  "apps/core/migrations/0015_futurestrading_timeframe_spottrading_timeframe.py": {
-    "mtime": 1789742960.6245625,
-    "seen": 1789992473.1154737,
-    "ast_hash": "60d7743b7f74f678a0f917cc7f74db58",
-    "semantic_hash": "60d7743b7f74f678a0f917cc7f74db58"
-  },
-  "apps/core/migrations/0016_userpreferences.py": {
-    "mtime": 1789739299.8808804,
-    "seen": 1789992473.1154737,
-    "ast_hash": "baf2440674525440493800da12968e39",
-    "semantic_hash": "baf2440674525440493800da12968e39"
-  },
-  "apps/dashboard/forms.py": {
-    "mtime": 1789742992.3819993,
-    "seen": 1789992473.1179886,
-    "ast_hash": "41f49b9589f4cf1180eb65f77f9f4dc0",
-    "semantic_hash": "41f49b9589f4cf1180eb65f77f9f4dc0"
-  },
-  "check_pwa_manifest.py": {
-    "mtime": 1789739280.0231824,
-    "seen": 1789992473.1249897,
-    "ast_hash": "dfcafad087cc25cfe59a9b72faf61eef",
-    "semantic_hash": "dfcafad087cc25cfe59a9b72faf61eef"
-  },
-  "diagnose_pwa_prod.py": {
-    "mtime": 1789739280.0332003,
-    "seen": 1789992473.126497,
-    "ast_hash": "333627404b27dc9f038fcf609dd91b6c",
-    "semantic_hash": "333627404b27dc9f038fcf609dd91b6c"
-  },
-  "utils/generate_pwa_icons.py": {
-    "mtime": 1789240460.423181,
-    "seen": 1789992473.1275082,
-    "ast_hash": "f3b918a2e96d2e9f4a6a7575482e080c",
-    "semantic_hash": "f3b918a2e96d2e9f4a6a7575482e080c"
   }
 }
