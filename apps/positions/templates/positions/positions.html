@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Positions - Tradiaries</title>
+
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- CSS global -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
+    <link rel="stylesheet" href="{% static 'css/investment.css' %}">
+
+    <!-- PWA -->
+    <link rel="manifest" href="{% url 'manifest' %}">
+    <meta name="theme-color" content="#080c10">
+    <link rel="apple-touch-icon" href="{% static 'icons/candlestick-icon.svg' %}">
+</head>
+<body>
+    {% include 'components/side-menu.html' %}
+
+    <div class="main-content">
+        <div class="investments-container">
+            {% if messages %}
+            <ul class="django-messages">
+                {% for message in messages %}
+                <li class="django-message django-message-{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            {% include 'components/kpi-cards.html' %}
+            <div class="investments-header">
+                <div>
+                    <h1>📂 Positions</h1>
+                    <p style="color: #6b7280; margin: 0.5rem 0 0;">Suivi des positions Spot et Futures. Pour ouvrir ou clôturer une position, rendez-vous sur la page Trading.</p>
+                </div>
+            </div>
+
+            <div class="analytics-tabs">
+                <a href="?category=SPOT&amp;mode={{ active_mode }}" class="analytics-tab{% if active_category == 'SPOT' %} active{% endif %}">🟢 Spot</a>
+                <a href="?category=FUTURES&amp;mode={{ active_mode }}" class="analytics-tab{% if active_category == 'FUTURES' %} active{% endif %}">📈 Futures</a>
+            </div>
+
+            <div class="analytics-tabs">
+                <a href="?category={{ active_category }}&amp;mode=ALL" class="analytics-tab{% if active_mode == 'ALL' %} active{% endif %}">🔎 Tous</a>
+                <a href="?category={{ active_category }}&amp;mode=LIVE" class="analytics-tab{% if active_mode == 'LIVE' %} active{% endif %}">🔵 Live</a>
+                <a href="?category={{ active_category }}&amp;mode=PAPER" class="analytics-tab{% if active_mode == 'PAPER' %} active{% endif %}">⚪ Paper</a>
+            </div>
+
+            {% if trades %}
+            <table class="investments-table">
+                <thead>
+                    <tr>
+                        <th>Symbole</th>
+                        <th>Date</th>
+                        <th>Quantité</th>
+                        <th>Prix d'entrée</th>
+                        <th>Prix de sortie</th>
+                        {% if active_category == 'FUTURES' %}
+                        <th>Direction</th>
+                        {% else %}
+                        <th>Exchange</th>
+                        {% endif %}
+                        <th>Mode</th>
+                        <th class="investments-table-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trade in trades %}
+                    <tr class="position-row" tabindex="0"
+                        data-symbol="{{ trade.symbol }}"
+                        data-entry-date="{{ trade.entry_date|date:'d/m/Y H:i' }}"
+                        data-amount="{{ trade.amount }}"
+                        data-entry-price="{{ trade.entry_price }}"
+                        data-exit-price="{{ trade.exit_price|default_if_none:'' }}"
+                        data-exit-price-2="{{ trade.exit_price_2|default_if_none:'' }}"
+                        data-take-profit="{{ trade.take_profit|default_if_none:'' }}"
+                        data-stop-loss="{{ trade.stop_loss|default_if_none:'' }}"
+                        data-timeframe="{{ trade.timeframe|default:'' }}"
+                        data-trade-mode="{{ trade.get_trade_mode_display }}"
+                        data-notes="{{ trade.notes }}"
+                        {% if active_category == 'FUTURES' %}
+                        data-direction="{{ trade.get_direction_display }}"
+                        data-strategy="{{ trade.strategy }}"
+                        data-feeling="{{ trade.get_feeling_display }}"
+                        data-why="{{ trade.why }}"
+                        data-risk-reward-ratio="{{ trade.risk_reward_ratio|default_if_none:'' }}"
+                        {% else %}
+                        data-exchange="{{ trade.get_exchange_display }}"
+                        {% endif %}
+                    >
+                        <td>
+                            <span class="investment-symbol">{{ trade.symbol }}</span>
+                        </td>
+                        <td>{{ trade.entry_date|date:"d/m/Y" }}</td>
+                        <td>{{ trade.amount }}</td>
+                        <td>${{ trade.entry_price }}</td>
+                        <td>{% if trade.exit_price %}${{ trade.exit_price }}{% else %}-{% endif %}</td>
+                        {% if active_category == 'FUTURES' %}
+                        <td>
+                            <span class="investment-action investment-action-{{ trade.direction|lower }}">{{ trade.get_direction_display }}</span>
+                        </td>
+                        {% else %}
+                        <td>{{ trade.get_exchange_display }}</td>
+                        {% endif %}
+                        <td>
+                            <span class="investment-action investment-action-{{ trade.trade_mode|lower }}">{{ trade.get_trade_mode_display }}</span>
+                        </td>
+                        <td class="investments-table-actions">
+                            <button type="button" class="icon-btn icon-details" title="Détails">
+                                <span class="material-icons">visibility</span>
+                            </button>
+                            <form method="POST" action="{% url delete_url_name trade.pk %}"
+                                class="inline-delete-form"
+                                onsubmit="return confirm('Supprimer la position {{ trade.symbol }} ?');">
+                                {% csrf_token %}
+                                <button type="submit" class="icon-btn icon-delete" title="Supprimer">
+                                    <span class="material-icons">delete</span>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <p>📭 Aucune position enregistrée</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Panneau de détail (lecture seule) -->
+    <div class="detail-panel-overlay" id="detailPanelOverlay">
+        <div class="detail-panel" id="detailPanel">
+            <div class="detail-panel-header">
+                <h2 id="detailPanelTitle">Détails</h2>
+                <button type="button" class="modal-close" id="detailPanelClose">&times;</button>
+            </div>
+            <dl class="detail-panel-body" id="detailPanelBody"></dl>
+        </div>
+    </div>
+
+    <script src="{% static 'js/pwa-register.js' %}"></script>
+    <script src="{% static 'js/positions-detail-panel.js' %}"></script>
+</body>
+</html>

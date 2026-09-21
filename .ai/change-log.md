@@ -1,7 +1,98 @@
 # Tradiaries — Change Log
 
 **Format** : ISO 8601 YYYY-MM-DD | Catégorie | Description courte | Fichiers modifiés  
-**Dernière entrée** : 2026-09-18
+**Dernière entrée** : 2026-09-21
+
+---
+
+## 2026-09-21 | FEATURE | Refonte UI page Trading : dropdown actifs, graphique volume/SAR, drag & drop TP/SL
+
+### Améliorations UX
+1. **Sélection d'actifs** : remplacé la liste de boutons par un dropdown placé dans la toolbar du graphique
+   - Moins encombrant, meilleur responsive
+   - Conserve tous les symboles par défaut
+
+2. **Hauteur et largeur du graphique** :
+   - Augmentation hauteur graphique : 420px → 480px
+   - Le graphique comble désormais la largeur entière (grid 2 colonnes au lieu de 3)
+   - Deux graphiques : OHLC (480px) + Volume (120px)
+
+3. **Indicateurs techniques** :
+   - Ajout graphique de **volume** (histogramme coloré : vert si haussier, rouge si baissier)
+   - Ajout **SAR (Stop And Reverse)** : courbe pointillée jaune, calculé via algorithme Wilder
+   - Synchronisation timeScale entre les deux graphiques
+
+4. **Drag & drop TP/SL** :
+   - Correction bug : utilisation cohérente de priceScale.coordinateToPrice()
+   - Augmentation seuil détection : 8px → 12px (plus facile de cliquer)
+   - Validations : prix > 0 pour éviter erreurs NaN
+
+**Fichiers modifiés** :
+`apps/live_trading/templates/live_trading/live_trading.html`, `static/css/trading.css`, `apps/live_trading/tests.py`
+
+**Tests** : 42 tests passants (1 test updated : cherche maintenant `id="assetSelect"` au lieu de `trading-asset-btn`)
+
+---
+
+## 2026-09-21 | CLEANUP | Consolidation import dupliqué (audit)
+
+### Correction d'audit
+- Import dupliqué de `healthz` dans `config/urls.py` (lignes 22-23) consolidé en une seule ligne.
+- Aucun impact fonctionnel (nettoyage de lisibilité du code).
+- Tests : 42 tests passants ✓
+
+**Fichiers modifiés** : `config/urls.py`
+
+---
+
+## 2026-09-21 | FEATURE | Page Positions unifiée + refonte exchange-like de la page Trading
+
+> Note process : cette implémentation a été menée sans passer par les étapes Challenge / Gel des
+> décisions / Planification, sur override explicite de l'utilisateur (le Dégrossissage avait déjà
+> abouti à une proposition suffisamment précise). Aucune entrée n'a donc été ajoutée à
+> `decisions.md` ; ce paragraphe fait office de trace de ce qui a réellement été construit.
+
+### Idée 1 — Fusion Spot / Futures dans une page "Positions"
+- Nouvelle app `apps/positions` (lecture seule) : onglets Spot / Futures (Investissements simples
+  volontairement exclus, conserve sa propre page), filtre par mode, KPI recalculées côté serveur via
+  les fonctions existantes `compute_spot_stats` / `compute_futures_stats`.
+- Pas de création ni de clôture de position depuis cette page (conforme à la demande) ; l'édition est
+  remplacée par un panneau de détail en lecture seule (`static/js/positions-detail-panel.js`). La
+  suppression reste déléguée aux vues `spot_trading:delete` / `futures_trading:delete` existantes.
+- **Choix assumé** : les anciennes pages `spot_trading` et `futures_trading` ne sont pas supprimées ni
+  redirigées, seulement retirées du menu, pour limiter le risque de régression sur leurs tests/usages
+  restants.
+- Menu (`components/side-menu.html`) : les liens "Trading Spot" / "Trading Futures" sont remplacés par
+  un unique lien "📂 Positions".
+- Tests : `apps/positions/tests.py` (6 tests, isolation multi-utilisateur, filtres, KPI).
+
+### Idée 2 — Page "Trading" refondue en interface exchange-like
+- `apps/live_trading/templates/live_trading/live_trading.html` réécrite : liste d'actifs, graphique en
+  chandeliers (Lightweight Charts) et ticket d'ordre avec bascules Spot/Futures, Paper/Live, Long/Short,
+  et lignes de prix Entrée/TP/SL déplaçables directement sur le graphique (glissé-déposé), synchronisées
+  avec les champs du formulaire. La checklist IRC de validation des ordres LIVE est conservée à
+  l'identique (2 confirmations sur 3 requises), de même que le rejet des ordres futures en LIVE.
+- Backend : `apps/core/kraken_client.py::fetch_ohlc()` (nouvel appel public Kraken OHLC, caché 30s,
+  retombe sur `[]` si Kraken est indisponible) ; nouvelle route `apps/live_trading/urls.py` →
+  `ohlc.json` servie par `apps/live_trading/views.py::ohlc_json`. Les vues `open_position`,
+  `close_position`, `positions_json` sont inchangées.
+- **Nouvelle dépendance structurante (signalée)** : librairie *Lightweight Charts* v4.1.3 (TradingView,
+  licence Apache-2.0), auto-hébergée dans `static/js/vendor/lightweight-charts.standalone.production.js`
+  plutôt que chargée depuis un CDN, pour rester cohérent avec le déploiement Whitenoise du projet.
+- **Hors périmètre** : l'idée 3 (script de dimensionnement automatique de position) a été explicitement
+  exclue par l'utilisateur ("trop d'info... je n'utilise jamais 'trading live'") et n'a pas été
+  implémentée.
+- **Non couvert par les tests automatisés** : le glissé-déposé des lignes de prix sur le canvas du
+  graphique nécessite une vérification manuelle en navigateur (non testable unitairement).
+- Tests : `apps/core/tests.py::KrakenOhlcTests` (3 tests), `apps/live_trading/tests.py::OhlcJsonViewTests`
+  et `TradingPageRenderingTests` (3 tests). Suite complète du projet : 42 tests, OK.
+
+### Fichiers modifiés/créés
+`apps/positions/**` (nouveau), `static/js/positions-detail-panel.js` (nouveau), `static/css/investment.css`,
+`static/css/trading.css` (nouveau), `static/js/vendor/lightweight-charts.standalone.production.js` (nouveau),
+`apps/core/kraken_client.py`, `apps/core/tests.py`, `apps/live_trading/views.py`, `apps/live_trading/urls.py`,
+`apps/live_trading/templates/live_trading/live_trading.html`, `apps/live_trading/tests.py`,
+`config/settings.py`, `config/urls.py`, `components/side-menu.html`.
 
 ---
 

@@ -18,14 +18,9 @@
             <a href="{% url 'investment:index' %}">💰 Investissements</a>
         </li>
         
-        <!-- Trading Spot -->
+        <!-- Positions (Spot + Futures) -->
         <li>
-            <a href="{% url 'spot_trading:index' %}">🟢 Trading Spot</a>
-        </li>
-        
-        <!-- Trading Futures -->
-        <li>
-            <a href="{% url 'futures_trading:index' %}">📈 Trading Futures</a>
+            <a href="{% url 'positions:index' %}">📂 Positions</a>
         </li>
         
         <!-- Analytics -->
@@ -38,9 +33,9 @@
             <a href="{% url 'journal:index' %}">📝 Journal</a>
         </li>
 
-        <!-- Trading Live -->
+        <!-- Trading -->
         <li>
-            <a href="{% url 'live_trading:index' %}">⚡ Trading Live</a>
+            <a href="{% url 'live_trading:index' %}">⚡ Trading</a>
         </li>
 
         <!-- Coaching -->

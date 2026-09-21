@@ -16,6 +16,7 @@ from .models import (
     UserPreferences,
     WatcherHeartbeat,
 )
+from .kraken_client import fetch_ohlc
 from .portfolio_service import futures_trade_pnl
 from .trading_service import TradingError, check_tp_sl, close_position, open_position
 from .watcher_health import touch_watcher_heartbeat
@@ -433,3 +434,39 @@ class MultiUserIsolationTests(TestCase):
             UserPreferences.objects.get(user=self.bob).strategy,
             'Stratégie Bob',
         )
+
+
+class KrakenOhlcTests(TestCase):
+    """`fetch_ohlc` : parsing des chandeliers publics Kraken et gestion des erreurs."""
+
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    @patch('apps.core.kraken_client.resolve_pair', return_value='XXBTZUSD')
+    @patch('apps.core.kraken_client._public_request')
+    def test_parses_candles_into_chronological_dicts(self, mocked_request, _mocked_pair):
+        mocked_request.return_value = {
+            'XXBTZUSD': [
+                [1700000000, '100', '110', '90', '105', '102', '5.5', 12],
+                [1700000900, '105', '115', '100', '110', '107', '3.2', 8],
+            ],
+            'last': 1700000900,
+        }
+
+        candles = fetch_ohlc('BTC', interval=15)
+
+        self.assertEqual(len(candles), 2)
+        self.assertEqual(candles[0], {
+            'time': 1700000000, 'open': 100.0, 'high': 110.0, 'low': 90.0, 'close': 105.0, 'volume': 5.5,
+        })
+        self.assertEqual(candles[1]['close'], 110.0)
+
+    def test_invalid_interval_raises(self):
+        with self.assertRaises(KrakenAPIError):
+            fetch_ohlc('BTC', interval=7)
+
+    @patch('apps.core.kraken_client.resolve_pair', return_value='XXBTZUSD')
+    @patch('apps.core.kraken_client._public_request', side_effect=KrakenAPIError('boom'))
+    def test_returns_empty_list_when_kraken_unavailable(self, _mocked_request, _mocked_pair):
+        self.assertEqual(fetch_ohlc('BTC', interval=15), [])

@@ -19,7 +19,6 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from pathlib import Path
-from apps.investment.views import healthz
 from apps.investment.views import healthz, watcher_healthz
 from apps.dashboard.views import service_worker, manifest, signup
 
@@ -30,6 +29,7 @@ urlpatterns = [
     path('manifest.webmanifest', manifest, name='manifest'),
     path('', include("apps.dashboard.urls")),
     path('investment/', include("apps.investment.urls")),
+    path('positions/', include("apps.positions.urls")),
     path('spot-trading/', include("apps.spot_trading.urls")),
     path('futures-trading/', include("apps.futures_trading.urls")),
     path('analytics/', include("apps.analytics.urls")),

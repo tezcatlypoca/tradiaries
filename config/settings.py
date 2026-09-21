@@ -121,6 +121,7 @@ INSTALLED_APPS = [
     'apps.core',
     'apps.dashboard',
     'apps.investment',
+    'apps.positions',
     'apps.spot_trading',
     'apps.futures_trading',
     'apps.analytics',

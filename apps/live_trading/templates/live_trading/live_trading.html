@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Trading Live - Tradiaries{% endblock %}</title>
+    <title>{% block title %}Trading - Tradiaries{% endblock %}</title>
 
     <!-- Google Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
     <link rel="stylesheet" href="{% static 'css/investment.css' %}">
+    <link rel="stylesheet" href="{% static 'css/trading.css' %}">
 
     <!-- PWA -->
     <link rel="manifest" href="{% url 'manifest' %}">
@@ -35,12 +36,11 @@
 
             <div class="investments-header">
                 <div>
-                    <h1>⚡ Trading Live</h1>
+                    <h1>⚡ Trading</h1>
                     <p style="color: #6b7280; margin: 0.5rem 0 0;">
-                        Ouverture de positions paper ou live (ordres réels Kraken) — TP/SL surveillés par l'app
+                        Choisissez un actif, ajustez votre position sur le graphique, puis confirmez — paper ou live.
                     </p>
                 </div>
-                <button class="btn-add-investment" onclick="openPositionModal()">+ Ouvrir une position</button>
             </div>
 
             {% if unavailable_symbols %}
@@ -49,6 +49,111 @@
             </div>
             {% endif %}
 
+            <!-- Ticket d'ordre + graphique -->
+            <form id="positionForm" method="POST" action="{% url 'live_trading:open' %}" class="trading-workspace">
+                {% csrf_token %}
+
+                <section class="trading-chart-section">
+                    <div class="trading-chart-toolbar">
+                        <select id="assetSelect" class="trading-chart-asset-select">
+                            {% for s in default_symbols %}
+                            <option value="{{ s }}"{% if forloop.first %} selected{% endif %}>{{ s }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="trading-chart-symbol" id="chartSymbolLabel">{{ default_symbols.0 }}</div>
+                        <div class="trading-interval-buttons">
+                            <button type="button" class="trading-interval-btn" data-interval="15">15m</button>
+                            <button type="button" class="trading-interval-btn active" data-interval="60">1h</button>
+                            <button type="button" class="trading-interval-btn" data-interval="240">4h</button>
+                            <button type="button" class="trading-interval-btn" data-interval="1440">1D</button>
+                        </div>
+                    </div>
+                    <div id="tradingChart" class="trading-chart"></div>
+                    <div id="tradingVolume" class="trading-volume"></div>
+                    <p class="trading-chart-hint">
+                        💡 Glissez les lignes Entrée / Take profit / Stop loss directement sur le graphique, ou saisissez les valeurs dans le panneau.
+                    </p>
+                </section>
+
+                <aside class="trading-ticket">
+                    <div class="trading-ticket-toggle">
+                        <button type="button" class="trading-toggle-btn active" data-category="SPOT">Spot</button>
+                        <button type="button" class="trading-toggle-btn" data-category="FUTURES">Futures</button>
+                    </div>
+                    <input type="hidden" id="category" name="category" value="SPOT">
+
+                    <div class="trading-ticket-toggle" id="directionToggle" style="display:none">
+                        <button type="button" class="trading-toggle-btn trading-toggle-long active" data-direction="LONG">Long</button>
+                        <button type="button" class="trading-toggle-btn trading-toggle-short" data-direction="SHORT">Short</button>
+                    </div>
+                    <input type="hidden" id="direction" name="direction" value="LONG">
+
+                    <div class="trading-ticket-toggle">
+                        <button type="button" class="trading-toggle-btn active" data-mode="PAPER">Paper</button>
+                        <button type="button" class="trading-toggle-btn" data-mode="LIVE">Live</button>
+                    </div>
+                    <input type="hidden" id="trade_mode" name="trade_mode" value="PAPER">
+
+                    <input type="hidden" id="symbol" name="symbol" value="{{ default_symbols.0 }}">
+
+                    <div class="form-group">
+                        <label for="amount">Quantité *</label>
+                        <input type="number" id="amount" name="amount" placeholder="0.00" step="0.00000001" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="entry_price">Prix d'entrée (vide = marché)</label>
+                        <input type="number" id="entry_price" name="entry_price" placeholder="Marché" step="0.00000001">
+                    </div>
+                    <div class="form-group">
+                        <label for="take_profit">Take profit</label>
+                        <input type="number" id="take_profit" name="take_profit" placeholder="Optionnel" step="0.00000001">
+                    </div>
+                    <div class="form-group">
+                        <label for="stop_loss">Stop loss</label>
+                        <input type="number" id="stop_loss" name="stop_loss" placeholder="Optionnel" step="0.00000001">
+                    </div>
+
+                    <div class="trading-risk-preview" id="riskPreview">
+                        <div><span>Risque</span><strong id="previewRisk">-</strong></div>
+                        <div><span>Gain potentiel</span><strong id="previewReward">-</strong></div>
+                        <div><span>Ratio R/R</span><strong id="previewRr">-</strong></div>
+                    </div>
+
+                    <details class="trading-advanced" id="strategySection">
+                        <summary>Stratégie (futures)</summary>
+                        <div class="form-group">
+                            <label for="strategy">Stratégie</label>
+                            <input type="text" id="strategy" name="strategy" maxlength="50" placeholder="IRC 4h, VP 15min...">
+                        </div>
+                        <div class="form-group">
+                            <label for="feeling">Ressenti</label>
+                            <select id="feeling" name="feeling">
+                                <option value="">-</option>
+                                <option value="VERY_BULLISH">Très haussier</option>
+                                <option value="BULLISH">Haussier</option>
+                                <option value="NEUTRAL">Neutre</option>
+                                <option value="BEARISH">Baissier</option>
+                                <option value="VERY_BEARISH">Très baissier</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="why">Raison de la prise de position</label>
+                            <textarea id="why" name="why" rows="2" placeholder="Pourquoi cette position..."></textarea>
+                        </div>
+                    </details>
+
+                    <details class="trading-advanced">
+                        <summary>Notes</summary>
+                        <div class="form-group">
+                            <textarea id="notes" name="notes" rows="2" placeholder="Notes additionnelles..."></textarea>
+                        </div>
+                    </details>
+
+                    <button type="submit" class="btn-submit trading-submit">✓ Ouvrir la position</button>
+                </aside>
+            </form>
+
+            <h2 class="trading-positions-title">Positions ouvertes</h2>
             <div id="positionsWrapper" {% if not positions %}style="display:none"{% endif %}>
                 <table class="investments-table">
                     <thead>
@@ -109,118 +214,7 @@
 
             <div class="empty-state" id="emptyState" {% if positions %}style="display:none"{% endif %}>
                 <p>📭 Aucune position ouverte</p>
-                <button class="btn-add-investment" onclick="openPositionModal()">+ Ouvrir une position</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal : nouvelle position -->
-    <div id="positionModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Ouvrir une position</h2>
-                <button class="modal-close" onclick="closePositionModal()">&times;</button>
-            </div>
-
-            <form id="positionForm" method="POST" action="{% url 'live_trading:open' %}">
-                {% csrf_token %}
-
-                <div class="form-section">
-                    <div class="form-section-title">Paramètres du trade</div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="category">Type *</label>
-                            <select id="category" name="category" required>
-                                <option value="SPOT">Spot</option>
-                                <option value="FUTURES">Futures</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="trade_mode">Mode *</label>
-                            <select id="trade_mode" name="trade_mode" required>
-                                <option value="PAPER">Paper (simulation)</option>
-                                <option value="LIVE">Live (ordre réel Kraken)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="symbol">Symbole *</label>
-                            <input type="text" id="symbol" name="symbol" placeholder="BTC, ETH..." required>
-                        </div>
-                        <div class="form-group" id="directionGroup" style="display:none">
-                            <label for="direction">Direction *</label>
-                            <select id="direction" name="direction">
-                                <option value="LONG">Long</option>
-                                <option value="SHORT">Short</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="amount">Quantité *</label>
-                            <input type="number" id="amount" name="amount" placeholder="0.00" step="0.00000001" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="entry_price">Prix d'entrée (vide = marché)</label>
-                            <input type="number" id="entry_price" name="entry_price" placeholder="Marché" step="0.00000001">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="take_profit">Take profit</label>
-                            <input type="number" id="take_profit" name="take_profit" placeholder="Optionnel" step="0.00000001">
-                        </div>
-                        <div class="form-group">
-                            <label for="stop_loss">Stop loss</label>
-                            <input type="number" id="stop_loss" name="stop_loss" placeholder="Optionnel" step="0.00000001">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-section" id="strategySection" style="display:none">
-                    <div class="form-section-title">Stratégie</div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="strategy">Stratégie</label>
-                            <input type="text" id="strategy" name="strategy" maxlength="50" placeholder="IRC 4h, VP 15min...">
-                        </div>
-                        <div class="form-group">
-                            <label for="feeling">Ressenti</label>
-                            <select id="feeling" name="feeling">
-                                <option value="">-</option>
-                                <option value="VERY_BULLISH">Très haussier</option>
-                                <option value="BULLISH">Haussier</option>
-                                <option value="NEUTRAL">Neutre</option>
-                                <option value="BEARISH">Baissier</option>
-                                <option value="VERY_BEARISH">Très baissier</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="why">Raison de la prise de position</label>
-                        <textarea id="why" name="why" rows="2" placeholder="Pourquoi cette position..."></textarea>
-                    </div>
-                </div>
-
-                <div class="form-section">
-                    <div class="form-group">
-                        <label for="notes">Notes</label>
-                        <textarea id="notes" name="notes" rows="2" placeholder="Notes additionnelles..."></textarea>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn-submit">✓ Ouvrir la position</button>
-                    <button type="button" class="btn-cancel" onclick="closePositionModal()">✕ Annuler</button>
-                </div>
-            </form>
         </div>
     </div>
 
@@ -265,43 +259,307 @@
         </div>
     </div>
 
+<script src="{% static 'js/vendor/lightweight-charts.standalone.production.js' %}"></script>
 <script>
     const positionForm = document.getElementById('positionForm');
     const positionsJsonUrl = "{% url 'live_trading:positions_json' %}";
+    const ohlcJsonUrl = "{% url 'live_trading:ohlc_json' %}";
     const closeUrlTemplate = "{% url 'live_trading:close' 'spot' 0 %}";
     const csrfToken = document.querySelector('#positionForm [name=csrfmiddlewaretoken]').value;
 
-    // ---------- Modal formulaire ----------
+    // ---------- Sélection catégorie / mode / direction (boutons à bascule) ----------
 
-    function openPositionModal() {
-        document.getElementById('positionModal').classList.add('active');
+    function setToggleGroup(groupSelector, hiddenInputId, value) {
+        document.querySelectorAll(groupSelector).forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.category === value || btn.dataset.mode === value || btn.dataset.direction === value);
+        });
+        document.getElementById(hiddenInputId).value = value;
     }
 
-    function closePositionModal() {
-        document.getElementById('positionModal').classList.remove('active');
-        positionForm.reset();
-        toggleCategoryFields();
-    }
+    document.querySelectorAll('.trading-toggle-btn[data-category]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            setToggleGroup('.trading-toggle-btn[data-category]', 'category', btn.dataset.category);
+            const isFutures = btn.dataset.category === 'FUTURES';
+            document.getElementById('directionToggle').style.display = isFutures ? '' : 'none';
+            // Futures LIVE non supporté (API Kraken Futures requise) : on force Paper.
+            const liveBtn = document.querySelector('.trading-toggle-btn[data-mode="LIVE"]');
+            liveBtn.disabled = isFutures;
+            if (isFutures && document.getElementById('trade_mode').value === 'LIVE') {
+                setToggleGroup('.trading-toggle-btn[data-mode]', 'trade_mode', 'PAPER');
+            }
+            updateRiskPreview();
+        });
+    });
+    document.querySelectorAll('.trading-toggle-btn[data-mode]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            if (btn.disabled) return;
+            setToggleGroup('.trading-toggle-btn[data-mode]', 'trade_mode', btn.dataset.mode);
+        });
+    });
+    document.querySelectorAll('.trading-toggle-btn[data-direction]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            setToggleGroup('.trading-toggle-btn[data-direction]', 'direction', btn.dataset.direction);
+            applyDefaultLevelsIfEmpty(true);
+            updateRiskPreview();
+        });
+    });
 
-    function toggleCategoryFields() {
-        const isFutures = document.getElementById('category').value === 'FUTURES';
-        document.getElementById('directionGroup').style.display = isFutures ? '' : 'none';
-        document.getElementById('strategySection').style.display = isFutures ? '' : 'none';
-        // Futures LIVE non supporté (API Kraken Futures requise) : on force Paper
-        const modeSelect = document.getElementById('trade_mode');
-        modeSelect.querySelector('option[value=LIVE]').disabled = isFutures;
-        if (isFutures && modeSelect.value === 'LIVE') {
-            modeSelect.value = 'PAPER';
+    // ---------- Graphique + sélection d'actif ----------
+
+    const chartContainer = document.getElementById('tradingChart');
+    const volumeContainer = document.getElementById('tradingVolume');
+    const chart = LightweightCharts.createChart(chartContainer, {
+        layout: { background: { color: '#0e141b' }, textColor: '#91a3ad' },
+        grid: { vertLines: { color: '#192430' }, horzLines: { color: '#192430' } },
+        rightPriceScale: { borderColor: '#273542' },
+        timeScale: { borderColor: '#273542', timeVisible: true },
+        height: 480,
+    });
+    const volumeChart = LightweightCharts.createChart(volumeContainer, {
+        layout: { background: { color: '#0e141b' }, textColor: '#91a3ad' },
+        grid: { vertLines: { color: '#192430' }, horzLines: { color: '#192430' } },
+        rightPriceScale: { borderColor: '#273542' },
+        timeScale: { borderColor: '#273542', timeVisible: false },
+        height: 120,
+    });
+    const candleSeries = chart.addCandlestickSeries({
+        upColor: '#62e6ad', downColor: '#ff8091', borderVisible: false,
+        wickUpColor: '#62e6ad', wickDownColor: '#ff8091',
+    });
+    const volumeSeries = volumeChart.addHistogramSeries({
+        color: 'rgba(98, 230, 173, 0.4)',
+    });
+    const sarSeries = chart.addLineSeries({
+        color: '#fbbf24', lineWidth: 1, lineStyle: LightweightCharts.LineStyle.Dotted,
+    });
+    new ResizeObserver(() => {
+        chart.applyOptions({ width: chartContainer.clientWidth });
+        volumeChart.applyOptions({ width: volumeContainer.clientWidth });
+    }).observe(chartContainer);
+
+    let currentInterval = 60;
+    let lastClose = null;
+
+    const priceLines = {
+        entry_price: null,
+        take_profit: null,
+        stop_loss: null,
+    };
+    const LINE_STYLE = {
+        entry_price: { color: '#8ec1ff', title: 'Entrée' },
+        take_profit: { color: '#62e6ad', title: 'Take profit' },
+        stop_loss: { color: '#ff8091', title: 'Stop loss' },
+    };
+
+    function updatePriceLine(fieldId, price) {
+        if (price === null || isNaN(price)) {
+            if (priceLines[fieldId]) {
+                candleSeries.removePriceLine(priceLines[fieldId]);
+                priceLines[fieldId] = null;
+            }
+            return;
+        }
+        const style = LINE_STYLE[fieldId];
+        if (priceLines[fieldId]) {
+            priceLines[fieldId].applyOptions({ price });
+        } else {
+            priceLines[fieldId] = candleSeries.createPriceLine({
+                price, color: style.color, lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed,
+                axisLabelVisible: true, title: style.title,
+            });
         }
     }
 
-    document.getElementById('category').addEventListener('change', toggleCategoryFields);
+    function fieldValue(id) {
+        const v = parseFloat(document.getElementById(id).value);
+        return isNaN(v) ? null : v;
+    }
 
-    document.getElementById('positionModal').addEventListener('click', function(e) {
-        if (e.target === this) { closePositionModal(); }
+    ['entry_price', 'take_profit', 'stop_loss'].forEach((fieldId) => {
+        document.getElementById(fieldId).addEventListener('input', () => {
+            updatePriceLine(fieldId, fieldValue(fieldId));
+            updateRiskPreview();
+        });
     });
 
-    // ---------- Modal validation LIVE ----------
+    function applyDefaultLevelsIfEmpty(force) {
+        if (lastClose === null) return;
+        const isShort = document.getElementById('direction').value === 'SHORT';
+        const entryField = document.getElementById('entry_price');
+        const tpField = document.getElementById('take_profit');
+        const slField = document.getElementById('stop_loss');
+        const entry = force || !entryField.value ? lastClose : parseFloat(entryField.value);
+        const sign = isShort ? -1 : 1;
+        if (force || !slField.value) slField.value = (entry - sign * entry * 0.01).toFixed(8);
+        if (force || !tpField.value) tpField.value = (entry + sign * entry * 0.02).toFixed(8);
+        updatePriceLine('entry_price', entry);
+        updatePriceLine('take_profit', fieldValue('take_profit'));
+        updatePriceLine('stop_loss', fieldValue('stop_loss'));
+        updateRiskPreview();
+    }
+
+    function calculateSAR(candles) {
+        if (candles.length < 2) return [];
+        const sar = [];
+        let isUptrend = candles[1].close > candles[0].close;
+        let af = 0.02, ep = isUptrend ? candles[0].high : candles[0].low;
+        let hp = isUptrend ? candles[0].high : Number.NEGATIVE_INFINITY;
+        let lp = isUptrend ? Number.POSITIVE_INFINITY : candles[0].low;
+        let sarValue = isUptrend ? candles[0].low : candles[0].high;
+
+        sar.push({ time: candles[0].time, value: sarValue });
+
+        for (let i = 1; i < candles.length; i++) {
+            const candle = candles[i];
+            sarValue = sarValue + af * (ep - sarValue);
+
+            if (isUptrend) {
+                if (candle.low <= sarValue) {
+                    isUptrend = false;
+                    sarValue = hp;
+                    ep = candle.low;
+                    af = 0.02;
+                    lp = candle.low;
+                } else {
+                    if (candle.high > hp) { hp = candle.high; af = Math.min(af + 0.02, 0.2); }
+                    lp = Math.min(lp, candle.low);
+                    sarValue = Math.min(sarValue, candles[i - 1].low, candle.low);
+                }
+            } else {
+                if (candle.high >= sarValue) {
+                    isUptrend = true;
+                    sarValue = lp;
+                    ep = candle.high;
+                    af = 0.02;
+                    hp = candle.high;
+                } else {
+                    if (candle.low < lp) { lp = candle.low; af = Math.min(af + 0.02, 0.2); }
+                    hp = Math.max(hp, candle.high);
+                    sarValue = Math.max(sarValue, candles[i - 1].high, candle.high);
+                }
+            }
+            sar.push({ time: candle.time, value: sarValue });
+        }
+        return sar;
+    }
+
+    function loadChart(symbol, interval) {
+        fetch(`${ohlcJsonUrl}?symbol=${encodeURIComponent(symbol)}&interval=${interval}`)
+            .then((res) => res.json())
+            .then((data) => {
+                const candles = (data.candles || []).map((c) => ({
+                    time: c.time, open: c.open, high: c.high, low: c.low, close: c.close,
+                }));
+                const volume = (data.candles || []).map((c) => ({
+                    time: c.time, value: c.volume || 0, color: (c.close >= c.open) ? 'rgba(98, 230, 173, 0.5)' : 'rgba(255, 128, 145, 0.5)',
+                }));
+                const sar = calculateSAR(candles);
+
+                candleSeries.setData(candles);
+                volumeSeries.setData(volume);
+                sarSeries.setData(sar);
+
+                if (candles.length) {
+                    lastClose = candles[candles.length - 1].close;
+                    chart.timeScale().fitContent();
+                    volumeChart.timeScale().fitContent();
+                    applyDefaultLevelsIfEmpty(true);
+                } else {
+                    lastClose = null;
+                }
+            })
+            .catch(() => { lastClose = null; });
+    }
+
+    function selectSymbol(symbol) {
+        symbol = symbol.trim().toUpperCase();
+        if (!symbol) return;
+        document.getElementById('symbol').value = symbol;
+        document.getElementById('assetSelect').value = symbol;
+        document.getElementById('chartSymbolLabel').textContent = symbol;
+        loadChart(symbol, currentInterval);
+    }
+
+    document.getElementById('assetSelect').addEventListener('change', (e) => {
+        selectSymbol(e.target.value);
+    });
+    document.querySelectorAll('.trading-interval-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.trading-interval-btn').forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentInterval = parseInt(btn.dataset.interval, 10);
+            loadChart(document.getElementById('symbol').value, currentInterval);
+        });
+    });
+
+    // ---------- Glisser-déposer des lignes Entrée / TP / SL sur le graphique ----------
+
+    let draggingField = null;
+    const DRAG_THRESHOLD_PX = 12;
+
+    chartContainer.addEventListener('mousedown', (event) => {
+        const priceScale = candleSeries.priceScale();
+        const mouseY = event.clientY - chartContainer.getBoundingClientRect().top;
+
+        for (const fieldId of ['entry_price', 'take_profit', 'stop_loss']) {
+            const price = fieldValue(fieldId);
+            if (price === null) continue;
+            const coord = priceScale.priceToCoordinate(price);
+            if (coord !== null && Math.abs(coord - mouseY) <= DRAG_THRESHOLD_PX) {
+                draggingField = fieldId;
+                chartContainer.style.cursor = 'ns-resize';
+                event.preventDefault();
+                break;
+            }
+        }
+    });
+
+    document.addEventListener('mousemove', (event) => {
+        if (!draggingField) return;
+        const priceScale = candleSeries.priceScale();
+        const mouseY = event.clientY - chartContainer.getBoundingClientRect().top;
+        const price = priceScale.coordinateToPrice(mouseY);
+        if (price === null || price <= 0) return;
+        document.getElementById(draggingField).value = price.toFixed(8);
+        updatePriceLine(draggingField, price);
+        updateRiskPreview();
+    });
+
+    document.addEventListener('mouseup', () => {
+        if (draggingField) {
+            draggingField = null;
+            chartContainer.style.cursor = '';
+        }
+    });
+
+    // ---------- Prévisualisation risque / gain (aperçu, aucun sizing automatique) ----------
+
+    function updateRiskPreview() {
+        const entry = fieldValue('entry_price') ?? lastClose;
+        const tp = fieldValue('take_profit');
+        const sl = fieldValue('stop_loss');
+        const amount = fieldValue('amount');
+
+        let riskText = '-', rewardText = '-', rrText = '-';
+        if (entry !== null && sl !== null && amount !== null) {
+            riskText = '$' + (Math.abs(entry - sl) * amount).toFixed(2);
+        }
+        if (entry !== null && tp !== null && amount !== null) {
+            rewardText = '$' + (Math.abs(tp - entry) * amount).toFixed(2);
+        }
+        if (entry !== null && tp !== null && sl !== null && entry !== sl) {
+            rrText = (Math.abs(tp - entry) / Math.abs(entry - sl)).toFixed(2) + ' R';
+        }
+        document.getElementById('previewRisk').textContent = riskText;
+        document.getElementById('previewReward').textContent = rewardText;
+        document.getElementById('previewRr').textContent = rrText;
+    }
+    document.getElementById('amount').addEventListener('input', updateRiskPreview);
+
+    // Chargement initial
+    selectSymbol(document.getElementById('symbol').value);
+
+    // ---------- Modal validation LIVE (inchangé) ----------
 
     function _field(id) { return document.getElementById(id).value.trim(); }
 
@@ -364,7 +622,6 @@
         ).length;
         if (confirmedCriteria < 2) {
             closeValidationModal();
-            closePositionModal();
             showLiveOrderError(
                 'Ordre LIVE refusé : validez au moins 2 des 3 critères de la stratégie IRC.'
             );
