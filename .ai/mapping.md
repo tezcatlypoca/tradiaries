@@ -6,14 +6,14 @@
 ## Apps Django
 
 ### `apps/core/`
-- **models.py** : Modèles principaux (Investment, SpotTrading, FuturesTrading, SimpleInvestment, ApiCredential, KrakenNonceCounter, UserPreferences, WatcherHeartbeat, KrakenOrderAttempt)
+- **models.py** : Modèles principaux (Investment, SpotTrading, FuturesTrading, SimpleInvestment, ApiCredential, ApiCredentialAuditLog, KrakenNonceCounter, UserPreferences, WatcherHeartbeat, KrakenOrderAttempt)
 - **views.py** : Vues Dashboard, Paramètres, endpoints healthz
 - **kraken_client.py** : Client Kraken (fetch_current_price, fetch_ohlc, ordres LIVE/PAPER, sync_kraken_trades)
 - **portfolio_service.py** : Calculs stats (compute_*_stats, build_chart_series)
 - **trading_service.py** : Gestion positions (open_position, close_position, check_tp_sl, live_positions)
 - **forms.py** : Formulaires Investment, Spot/Futures Trading, ApiCredential
 - **crypto.py** : Chiffrement Fernet (encrypt, decrypt)
-- **tests.py** : Tests core (42 tests au total)
+- **tests.py** : Tests core (75+ tests au total ; +33 le 2026-09-22 : watcher, kraken_client, portfolio_service)
 
 ### `apps/dashboard/`
 - **views.py** : Dashboard, Settings, PWA routes (manifest, service_worker), signup
@@ -80,6 +80,9 @@
 
 ### `docs/`
 - `tradiaries-plan-prod.md` : Plan hardening production
+- `audit-production.md` : Audit sécurité/robustesse 2026-09-10 (P0 corrigés depuis, voir `prod-check-2026-09-22.md`)
+- `testing-plan-2026-09-22.md` : Plan d'implémentation renforcement testing
+- `prod-check-2026-09-22.md` : Rapport `/prod-check` — verdict READY WITH WARNINGS (Phase 1) / NOT READY (ouverture non contrôlée)
 - `20MM.txt` : Script Pine Script Volume Confirmation (indicateur TradingView)
 
 ### `migrations/`

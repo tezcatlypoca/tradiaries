@@ -1,7 +1,7 @@
 # Tradiaries — Project Context
 
-**Dernière mise à jour** : 2026-09-21  
-**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI trading refondue (drag & drop TP/SL fiabilisé, SAR corrigé, graphiques synchronisés), page Positions limitée aux positions clôturées, multi-utilisateur opérationnel, 43 tests ✅
+**Dernière mise à jour** : 2026-09-22  
+**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI trading refondue (drag & drop TP/SL fiabilisé, SAR corrigé, graphiques synchronisés), page Positions limitée aux positions clôturées, multi-utilisateur opérationnel, audit trail clés API, suite de tests renforcée (watcher/kraken_client/portfolio_service/dashboard), 85 tests ✅
 
 ## Cadrage
 
@@ -129,6 +129,14 @@
 - ✅ Cause racine #2 (bug intermittent restant) : le clic-glissé simple entrait en concurrence avec le pan/zoom natif de lightweight-charts (`handleScroll`/`handleScale`, actifs par défaut). Résolu par un key binding : clic-glissé simple = navigation native (pan/zoom), **Maj + clic-glissé** = déplacement de ligne Entrée/TP/SL (avec `handleScroll`/`handleScale` désactivés temporairement pendant le geste).
 - ✅ Vérifié manuellement en navigateur (serveur de dev + compte de test temporaire) : pan simple n'altère plus TP/SL, Maj+glissé déplace correctement, aucune erreur console.
 
+#### Testing (2026-09-22)
+- ✅ `WatchTpSlCommandTests` (4 tests) : commande `watch_tp_sl.py` (`--once`, heartbeat, `--interval`)
+- ✅ `KrakenClientTests` (15 tests) : `add_spot_order`, `query_orders`, `fetch_order_fill_price`, `cancel_order`, `_private_request` — mocks haut niveau uniquement
+- ✅ `PortfolioServiceTests` (10 tests) : stats investment/spot/futures/global, analytics, chart series, isolation multi-utilisateur
+- ✅ 8 nouveaux tests `apps/dashboard/tests.py` : dashboard, signup, save_strategy, création/suppression `ApiCredential` (isolation)
+- 🟡 Bug connu découvert (non corrigé, voir `change-log.md` 2026-09-22) : caractère `✓` non encodable en cp1252 dans `watch_tp_sl.py` — cycle réussi mal classé "échec" sur console Windows par défaut (sans impact prod, Railway = Linux/UTF-8)
+- **Hors périmètre (décision gelée)** : ordres futures LIVE via API Kraken Futures — voir `decisions.md`, rejetée le 2026-09-22
+
 ### À faire ⏳
 
 #### Responsive mobile (< 600px)
@@ -144,8 +152,19 @@
 #### Déploiement
 - 🟡 Test complet Render + Railway + Neon
 - 🟡 Vérifications health checks watcher
+- 🔴 Committer/merger le travail de la session (audit trail, migration `0017`, tests renforcés) — rien n'est déployé tant que non mergé sur `prod`
+- 🔴 Trancher l'inscription publique vs invite-only avant toute exposition non contrôlée (voir Problèmes connus / `decisions.md` en suspens)
 
 ---
+
+## Statut de préparation production (2026-09-22)
+
+**Verdict `/prod-check`** : 🟠 READY WITH WARNINGS pour Phase 1 (personnel) — 🔴 NOT READY pour ouverture à des utilisateurs non explicitement invités. Rapport complet : `docs/prod-check-2026-09-22.md`.
+
+- Les 3 P0 de l'audit du 2026-09-10 (`docs/audit-production.md`) sont corrigés (machine d'états ordres, retry désactivé, verrou clôture atomique).
+- Isolation multi-utilisateur vérifiée exhaustivement (grep sur tous les `views.py`) : aucune fuite trouvée.
+- `check --deploy`, `makemigrations --check`, suite complète (85 tests) : tous propres.
+- Bloquants restants : voir "Problèmes connus" ci-dessous (B1 travail non commité, B2 signup public).
 
 ## Problèmes connus
 
@@ -154,6 +173,11 @@
 - ✅ **Menu s'ouvrait après clique tabs** → Fixed avec localStorage initial setup sans animation
 - ✅ **CSS désorganisé** → Refacto : layout global dans `style.css`, menu styling dans `side-menu.css`
 - ✅ **Site blanc** → Fixed : import `style.css` dans tous les templates
+
+### Trouvés cette session (2026-09-22, non corrigés)
+- 🔴 **Inscription publique contredit le modèle "invite-only"** de la décision de sécurité Fernet — voir `decisions.md` en suspens et `docs/prod-check-2026-09-22.md`.
+- 🟡 **`watch_tp_sl.py`** : un cycle réussi peut être mal classé "échec" sur console Windows (cp1252) à cause d'un caractère `✓` — sans impact prod (Railway = Linux/UTF-8). Voir `change-log.md` 2026-09-22 (TESTING).
+- 🟡 Pas de protection anti-brute-force sur login/signup ; pas de monitoring/alerting (Sentry ou équivalent) — requis avant Phase 2, toujours absents.
 
 ### En attente
 - ❓ `position: fixed` menu mobile peut pas scrollable si beaucoup de liens (15+ items)

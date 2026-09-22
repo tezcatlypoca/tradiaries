@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ApiCredential, FuturesTrading, KrakenOrderAttempt, SimpleInvestment, SpotTrading
+from .models import ApiCredential, ApiCredentialAuditLog, FuturesTrading, KrakenOrderAttempt, SimpleInvestment, SpotTrading
 
 
 @admin.register(SimpleInvestment)
@@ -36,6 +36,21 @@ class ApiCredentialAdmin(admin.ModelAdmin):
     list_display = ('platform', 'label', 'created_at', 'updated_at')
     list_filter = ('platform',)
     search_fields = ('label',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ApiCredentialAuditLog)
+class ApiCredentialAuditLogAdmin(admin.ModelAdmin):
+    # Journal d'audit : lecture seule, alimenté uniquement par ApiCredential.log_access().
+    list_display = ('created_at', 'platform', 'action', 'user', 'credential')
+    list_filter = ('action', 'platform', 'user')
+    search_fields = ('platform',)
+    readonly_fields = [f.name for f in ApiCredentialAuditLog._meta.fields]
 
     def has_add_permission(self, request):
         return False

@@ -94,7 +94,9 @@ def _get_kraken_credentials(user) -> tuple[str, str]:
     credential = ApiCredential.objects.filter(platform='KRAKEN', user=user).first()
     if not credential:
         return '', ''
-    return credential.get_api_key(), credential.get_api_secret()
+    api_key, api_secret = credential.get_api_key(), credential.get_api_secret()
+    credential.log_access('READ')
+    return api_key, api_secret
 
 
 def _private_request(endpoint: str, data: dict | None = None, *, user, retryable: bool = True) -> dict:

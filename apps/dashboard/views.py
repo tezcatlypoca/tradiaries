@@ -119,6 +119,7 @@ def create_api_credential(request: HttpRequest) -> HttpResponse:
             passphrase=form.cleaned_data['passphrase'],
         )
         credential.save()
+        credential.log_access('CREATE')
         messages.success(request, f'✓ Clé API {credential.get_platform_display()} enregistrée avec succès !')
     else:
         add_form_errors_to_messages(request, form)
@@ -131,6 +132,7 @@ def create_api_credential(request: HttpRequest) -> HttpResponse:
 def delete_api_credential(request: HttpRequest, pk: int) -> HttpResponse:
     credential = get_object_or_404(ApiCredential, pk=pk, user=request.user)
     platform_label = credential.get_platform_display()
+    credential.log_access('DELETE')
     credential.delete()
     messages.success(request, f'✓ Clé API {platform_label} supprimée avec succès !')
 

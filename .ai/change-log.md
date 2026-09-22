@@ -1,7 +1,69 @@
 # Tradiaries — Change Log
 
 **Format** : ISO 8601 YYYY-MM-DD | Catégorie | Description courte | Fichiers modifiés  
-**Dernière entrée** : 2026-09-21
+**Dernière entrée** : 2026-09-22
+
+---
+
+## 2026-09-22 | AUDIT | Production Readiness Check (branche `dev`)
+
+### Contexte
+Check de préparation prod via `/prod-check` (le `SKILL.md` correspondant est incomplet/tronqué — critères bloquants appliqués au jugement, en s'appuyant sur `/security-review` comme demandé). Rapport complet : `docs/prod-check-2026-09-22.md`.
+
+### Verdict
+🟠 READY WITH WARNINGS pour Phase 1 (personnel) — 🔴 NOT READY pour toute ouverture à des utilisateurs non explicitement invités.
+
+### Points bloquants identifiés
+- **B1** : travail de la session (migration `0017`, audit trail, tests renforcés) non commité au moment du check — rien n'est encore déployable.
+- **B2 (nouveau, non corrigé)** : `accounts/signup/` est un endpoint d'inscription totalement public (aucune invitation/validation), ce qui contredit la prémisse "invite-only" sur laquelle repose la décision de garder une clé Fernet unique pour toute l'instance (`decisions.md`, "Gestion des secrets API", 2026-09-22). Ajouté en décision en suspens.
+
+### Points positifs confirmés
+- Les 3 P0 de l'audit précédent (`docs/audit-production.md`, 2026-09-10) sont corrigés : machine d'états `KrakenOrderAttempt`, retry désactivé sur ordres Kraken non-idempotents, verrou atomique `is_closing`.
+- Isolation multi-utilisateur vérifiée par grep exhaustif sur tous les `views.py` : aucune fuite trouvée.
+- Déchiffrement Fernet invalide désormais loggé ; unicité clé Kraken imposée au niveau formulaire (2 points P1 de l'ancien audit, corrigés depuis).
+- `check --deploy`, `makemigrations --check`, suite complète (85 tests) : tous propres.
+
+**Fichiers modifiés** : `docs/prod-check-2026-09-22.md` (nouveau), `.ai/decisions.md`
+
+---
+
+## 2026-09-22 | TESTING | Renforcement de la suite de tests (watcher, kraken_client, portfolio_service, dashboard)
+
+### Décision implémentée
+Suite au plan `docs/testing-plan-2026-09-22.md` (découlant de `.ai/decisions.md` → "Amélioration du testing" et "Ordres futures LIVE via l'API Kraken Futures" — explicitement écartée de ce chantier) : 4 missions de tests, mocks haut niveau uniquement (aucun mock sur `requests`/`_sign()`).
+
+### Implémentation (tests uniquement, aucun changement de comportement)
+- **Mission 1 — Watcher** : `WatchTpSlCommandTests` (4 tests) sur `watch_tp_sl.py` — `--once`, heartbeat mis à jour après cycle réussi, **non** mis à jour après cycle en échec, `--interval` transmis à `time.sleep`.
+  - ⚠️ Bug réel découvert en écrivant ces tests (non corrigé, hors périmètre de ce chantier — à traiter via `/debogage`) : le message de succès du watcher contient un caractère `✓` non encodable en `cp1252` (console Windows par défaut). Sur un tel environnement, un cycle **réussi** lève une `UnicodeEncodeError` lors du `stdout.write`, tombe dans le `except Exception` générique, et se retrouve donc traité comme un cycle en échec — le heartbeat n'est alors jamais mis à jour malgré un TP/SL correctement clôturé. Sans impact en prod (Railway = Linux/UTF-8) mais à corriger si un environnement Windows sert un jour de watcher.
+- **Mission 2 — `kraken_client.py`** : `KrakenClientTests` (15 tests) — `add_spot_order` (payload construit, validations side/price/txid, `validate`/`userref`), `query_orders`, `fetch_order_fill_price`, `cancel_order`, et `_private_request` (clés absentes, erreur Kraken, JSON invalide), mocké au niveau `_private_request`/`_public_request`/`_get_kraken_credentials`/`_http_session` — jamais `requests` ni `_sign()` directement.
+- **Mission 3 — `portfolio_service.py`** : `PortfolioServiceTests` (10 tests) — stats vides, netting achat/vente, filtre `trade_mode`, PnL réalisé/non réalisé spot et futures (LONG/SHORT), exclusion des positions PAPER dans `compute_global_stats`/`build_chart_series`, isolation multi-utilisateur, ventilation `by_strategy`, `win_rate`/`profit_factor` à `None` sans trade clôturé.
+- **Mission 4 — `apps/dashboard/views.py`** : 8 nouveaux tests — accès dashboard protégé par login, inscription + connexion automatique, sauvegarde de stratégie scopée par utilisateur, création/suppression de `ApiCredential` scopées par utilisateur (404 sur la clé d'un autre utilisateur, pas 403 — cohérent avec le pattern IDOR déjà en place).
+
+### Tests
+- Suite complète du projet : **85 tests, tous verts** (`python manage.py test`).
+
+**Fichiers modifiés** : `apps/core/tests.py`, `apps/dashboard/tests.py`, `docs/testing-plan-2026-09-22.md` (nouveau)
+
+---
+
+## 2026-09-22 | SECURITY | Audit trail des accès aux clés API (`ApiCredential`)
+
+### Décision implémentée
+Suite à la décision gelée "Gestion des secrets API — Chiffrement Fernet + Audit trail renforcée" (2026-09-22, `.ai/decisions.md`) : la clé Fernet unique est conservée (suffisante en invite-only), mais chaque accès à un `ApiCredential` (lecture du secret déchiffré, création, suppression) est désormais tracé pour permettre de détecter une compromission.
+
+### Implémentation
+- `apps/core/models.py` : nouveau modèle `ApiCredentialAuditLog(credential, user, platform, action, created_at)` — `credential` en `SET_NULL` pour que la trace survive à la suppression de la clé (platform/user conservés). Nouvelle méthode `ApiCredential.log_access(action)`.
+- `ApiCredential.masked_api_key()` (affichage page Paramètres) trace un accès `READ` à chaque déchiffrement.
+- `apps/core/kraken_client.py` : `_get_kraken_credentials()` trace un accès `READ` à chaque utilisation des clés pour un appel Kraken.
+- `apps/dashboard/views.py` : `create_api_credential` trace `CREATE`, `delete_api_credential` trace `DELETE` (avant suppression effective).
+- `apps/core/admin.py` : `ApiCredentialAuditLogAdmin` en lecture seule (list_display/filter par date, plateforme, action, utilisateur).
+- Migration `core.0017_apicredentialauditlog`.
+
+### Tests
+- `apps/core/tests.py::ApiCredentialAuditTests` (5 tests) : lecture via `masked_api_key()`, lecture via `kraken_client`, survie de la trace après suppression de la clé, et les deux vues (création/suppression) via le client de test.
+- Suite complète `apps.core apps.live_trading apps.dashboard` : 41 tests, tous verts.
+
+**Fichiers modifiés** : `apps/core/models.py`, `apps/core/kraken_client.py`, `apps/core/admin.py`, `apps/core/tests.py`, `apps/dashboard/views.py`, `apps/core/migrations/0017_apicredentialauditlog.py`
 
 ---
 
