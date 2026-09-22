@@ -49,7 +49,7 @@
   },
   "apps/analytics/views.py": {
     "mtime": 1789742960.6205633,
-    "seen": 1789992473.1104734,
+    "seen": 1790005887.869985,
     "ast_hash": "593e64cc033f64dfdbb148c3f7cc6153",
     "semantic_hash": "593e64cc033f64dfdbb148c3f7cc6153"
   },
@@ -61,7 +61,7 @@
   },
   "apps/core/admin.py": {
     "mtime": 1789742960.6215665,
-    "seen": 1789992473.1104734,
+    "seen": 1790005887.869985,
     "ast_hash": "bc1639bdd7f7257b64b4c8f6a0be4c5f",
     "semantic_hash": "bc1639bdd7f7257b64b4c8f6a0be4c5f"
   },
@@ -91,15 +91,15 @@
   },
   "apps/core/forms.py": {
     "mtime": 1789742960.6215665,
-    "seen": 1789992473.1114743,
+    "seen": 1790005887.869985,
     "ast_hash": "087befd5de8567837a6b7f0f89440c4e",
     "semantic_hash": "087befd5de8567837a6b7f0f89440c4e"
   },
   "apps/core/kraken_client.py": {
-    "mtime": 1789742960.6215665,
-    "seen": 1789992473.1114743,
-    "ast_hash": "1de0c2d4f6a1ad5221b93c9da61562a5",
-    "semantic_hash": "1de0c2d4f6a1ad5221b93c9da61562a5"
+    "mtime": 1790002858.4766476,
+    "seen": 1790005887.869985,
+    "ast_hash": "0b78d3cf8686af8e23aa21da2c2eca6a",
+    "semantic_hash": "0b78d3cf8686af8e23aa21da2c2eca6a"
   },
   "apps/core/management/__init__.py": {
     "mtime": 1788705520.1919248,
@@ -115,7 +115,7 @@
   },
   "apps/core/management/commands/import_kraken_trades.py": {
     "mtime": 1789742960.6225615,
-    "seen": 1789992473.1124735,
+    "seen": 1790005887.8709853,
     "ast_hash": "78559e30e5e292d4882adcef6155c37d",
     "semantic_hash": "78559e30e5e292d4882adcef6155c37d"
   },
@@ -199,7 +199,7 @@
   },
   "apps/core/models.py": {
     "mtime": 1789742960.6245625,
-    "seen": 1789992473.1164753,
+    "seen": 1790005887.8729856,
     "ast_hash": "1a8c7b5af1dcdf231e8f3988fbbe7c7b",
     "semantic_hash": "1a8c7b5af1dcdf231e8f3988fbbe7c7b"
   },
@@ -211,19 +211,19 @@
   },
   "apps/core/portfolio_service.py": {
     "mtime": 1789742960.6245625,
-    "seen": 1789992473.116981,
+    "seen": 1790005887.8729856,
     "ast_hash": "1f06f4c31c78b9ee8b2b904bfa777b2e",
     "semantic_hash": "1f06f4c31c78b9ee8b2b904bfa777b2e"
   },
   "apps/core/tests.py": {
-    "mtime": 1789743026.2322583,
-    "seen": 1789992473.116981,
-    "ast_hash": "5fef0025ff000d41198781fb6f68fcfa",
-    "semantic_hash": "5fef0025ff000d41198781fb6f68fcfa"
+    "mtime": 1790002875.9175968,
+    "seen": 1790005887.8729856,
+    "ast_hash": "a6ee4ea2f17303a6eca2d6299726b46c",
+    "semantic_hash": "a6ee4ea2f17303a6eca2d6299726b46c"
   },
   "apps/core/trading_service.py": {
     "mtime": 1789742960.6255624,
-    "seen": 1789992473.116981,
+    "seen": 1790005887.8729856,
     "ast_hash": "3f85dc5021d3a5652924fdd02d89898e",
     "semantic_hash": "3f85dc5021d3a5652924fdd02d89898e"
   },
@@ -265,27 +265,27 @@
   },
   "apps/dashboard/settings_urls.py": {
     "mtime": 1789739299.8828807,
-    "seen": 1789992473.1179886,
+    "seen": 1790005887.873987,
     "ast_hash": "ba86333dbf913090bbb7fcddccdbe441",
     "semantic_hash": "ba86333dbf913090bbb7fcddccdbe441"
   },
   "apps/dashboard/tests.py": {
     "mtime": 1789307582.6562026,
-    "seen": 1789992473.1179886,
+    "seen": 1790005887.873987,
     "ast_hash": "6805736b219f9bb1652a221914b3b02e",
     "semantic_hash": "6805736b219f9bb1652a221914b3b02e"
   },
   "apps/dashboard/urls.py": {
     "mtime": 1789741677.2233021,
-    "seen": 1789992473.1179886,
+    "seen": 1790005887.873987,
     "ast_hash": "ba76ba355c25922b773da6b0144b56f1",
     "semantic_hash": "ba76ba355c25922b773da6b0144b56f1"
   },
   "apps/dashboard/views.py": {
-    "mtime": 1789743009.7593653,
-    "seen": 1789992473.1179886,
-    "ast_hash": "3a8f817ad091f6492d3c7841d55edb94",
-    "semantic_hash": "3a8f817ad091f6492d3c7841d55edb94"
+    "mtime": 1789998211.1684396,
+    "seen": 1790005887.873987,
+    "ast_hash": "86172ed46ba74972943205de0010d684",
+    "semantic_hash": "86172ed46ba74972943205de0010d684"
   },
   "apps/futures_trading/__init__.py": {
     "mtime": 1788702998.4485288,
@@ -331,7 +331,7 @@
   },
   "apps/futures_trading/views.py": {
     "mtime": 1789742960.627563,
-    "seen": 1789992473.1199887,
+    "seen": 1790005887.8749862,
     "ast_hash": "c5df115b56bf5e05bfafa522b27b807f",
     "semantic_hash": "c5df115b56bf5e05bfafa522b27b807f"
   },
@@ -379,7 +379,7 @@
   },
   "apps/investment/views.py": {
     "mtime": 1789742960.6285634,
-    "seen": 1789992473.1219883,
+    "seen": 1790005887.875986,
     "ast_hash": "aaa7d19e3c227fad2a892b564becc5de",
     "semantic_hash": "aaa7d19e3c227fad2a892b564becc5de"
   },
@@ -427,7 +427,7 @@
   },
   "apps/journal/views.py": {
     "mtime": 1789742960.6285634,
-    "seen": 1789992473.122989,
+    "seen": 1790005887.876985,
     "ast_hash": "119753860f03f24aff2ff326c2728afb",
     "semantic_hash": "119753860f03f24aff2ff326c2728afb"
   },
@@ -450,22 +450,22 @@
     "semantic_hash": "01a7ad664b0d9e080f689d602aeb8d92"
   },
   "apps/live_trading/tests.py": {
-    "mtime": 1788944431.76018,
-    "seen": 1789232830.191246,
-    "ast_hash": "4cff2660a5b48660afe1a8c0dc2cfe1b",
-    "semantic_hash": "4cff2660a5b48660afe1a8c0dc2cfe1b"
+    "mtime": 1790003413.8104665,
+    "seen": 1790005887.876985,
+    "ast_hash": "f6c2c68a9d46a920cae0661913bff06e",
+    "semantic_hash": "f6c2c68a9d46a920cae0661913bff06e"
   },
   "apps/live_trading/urls.py": {
-    "mtime": 1788883647.5483818,
-    "seen": 1789232830.191246,
-    "ast_hash": "2e0628d2acdfa2d0f1318feefad30a69",
-    "semantic_hash": "2e0628d2acdfa2d0f1318feefad30a69"
+    "mtime": 1790002982.1702785,
+    "seen": 1790005887.876985,
+    "ast_hash": "9e1ea2729f0921c26b2f3ca5a02c7826",
+    "semantic_hash": "9e1ea2729f0921c26b2f3ca5a02c7826"
   },
   "apps/live_trading/views.py": {
-    "mtime": 1789742960.6285634,
-    "seen": 1789992473.1249897,
-    "ast_hash": "295b81e2c3c10bb9f8d13f06ed6aa54e",
-    "semantic_hash": "295b81e2c3c10bb9f8d13f06ed6aa54e"
+    "mtime": 1790002978.4927957,
+    "seen": 1790005887.876985,
+    "ast_hash": "148b7882098fe8d87a8af9a08b6a9346",
+    "semantic_hash": "148b7882098fe8d87a8af9a08b6a9346"
   },
   "apps/spot_trading/__init__.py": {
     "mtime": 1788702997.382946,
@@ -511,7 +511,7 @@
   },
   "apps/spot_trading/views.py": {
     "mtime": 1789742960.6295626,
-    "seen": 1789992473.1249897,
+    "seen": 1790005887.877986,
     "ast_hash": "bc19a5c57b4764a8cbc74ab579adee86",
     "semantic_hash": "bc19a5c57b4764a8cbc74ab579adee86"
   },
@@ -528,16 +528,16 @@
     "semantic_hash": "dc1d14b8620f0bbfd17c2192a70c25da"
   },
   "config/settings.py": {
-    "mtime": 1789739280.0311916,
-    "seen": 1789992473.126497,
-    "ast_hash": "7111b34b79e4e72c9240aa872d7c6139",
-    "semantic_hash": "7111b34b79e4e72c9240aa872d7c6139"
+    "mtime": 1790002799.3368306,
+    "seen": 1790005887.8789868,
+    "ast_hash": "3caebed965410e835fe242034582efcf",
+    "semantic_hash": "3caebed965410e835fe242034582efcf"
   },
   "config/urls.py": {
-    "mtime": 1789742960.6305625,
-    "seen": 1789992473.126497,
-    "ast_hash": "0c7498b0d8f40540de08f954296db39b",
-    "semantic_hash": "0c7498b0d8f40540de08f954296db39b"
+    "mtime": 1790002802.968708,
+    "seen": 1790005887.8789868,
+    "ast_hash": "ba69b6f6abec53a71a464d3fb7ab2b82",
+    "semantic_hash": "ba69b6f6abec53a71a464d3fb7ab2b82"
   },
   "config/wsgi.py": {
     "mtime": 1788527485.9818275,
@@ -559,15 +559,15 @@
   },
   "static/js/pwa-register.js": {
     "mtime": 1789307582.6572037,
-    "seen": 1789992473.1275082,
+    "seen": 1790005887.8789868,
     "ast_hash": "98301a77b84906c9cd5e01112c560143",
     "semantic_hash": "98301a77b84906c9cd5e01112c560143"
   },
   "static/js/service-worker.js": {
-    "mtime": 1789739280.0351973,
-    "seen": 1789992473.1275082,
-    "ast_hash": "e150eefc18ee832d6a39243d5184379e",
-    "semantic_hash": "e150eefc18ee832d6a39243d5184379e"
+    "mtime": 1789998211.2377396,
+    "seen": 1790005887.8789868,
+    "ast_hash": "325df4a095f4e33f1cd1f7c6fdaec97d",
+    "semantic_hash": "325df4a095f4e33f1cd1f7c6fdaec97d"
   },
   "utils/csv2bdd.py": {
     "mtime": 1788779681.322738,
@@ -745,55 +745,85 @@
   },
   "apps/core/migrations/0012_add_user_ownership_nullable.py": {
     "mtime": 1789742960.6225615,
-    "seen": 1789992473.1154737,
+    "seen": 1790005887.8729856,
     "ast_hash": "97e9338de04d0063e84c3c2fa239725b",
     "semantic_hash": "97e9338de04d0063e84c3c2fa239725b"
   },
   "apps/core/migrations/0013_backfill_user_ownership.py": {
     "mtime": 1789742960.6225615,
-    "seen": 1789992473.1154737,
+    "seen": 1790005887.8729856,
     "ast_hash": "2ad35334238227fcc311d7f1f688be94",
     "semantic_hash": "2ad35334238227fcc311d7f1f688be94"
   },
   "apps/core/migrations/0014_require_user_ownership.py": {
     "mtime": 1789742960.6235626,
-    "seen": 1789992473.1154737,
+    "seen": 1790005887.8729856,
     "ast_hash": "dfaecd0ce85e8b58cbd06eeb71f11450",
     "semantic_hash": "dfaecd0ce85e8b58cbd06eeb71f11450"
   },
   "apps/core/migrations/0015_futurestrading_timeframe_spottrading_timeframe.py": {
     "mtime": 1789742960.6245625,
-    "seen": 1789992473.1154737,
+    "seen": 1790005887.8729856,
     "ast_hash": "60d7743b7f74f678a0f917cc7f74db58",
     "semantic_hash": "60d7743b7f74f678a0f917cc7f74db58"
   },
   "apps/core/migrations/0016_userpreferences.py": {
     "mtime": 1789739299.8808804,
-    "seen": 1789992473.1154737,
+    "seen": 1790005887.8729856,
     "ast_hash": "baf2440674525440493800da12968e39",
     "semantic_hash": "baf2440674525440493800da12968e39"
   },
   "apps/dashboard/forms.py": {
     "mtime": 1789742992.3819993,
-    "seen": 1789992473.1179886,
+    "seen": 1790005887.873987,
     "ast_hash": "41f49b9589f4cf1180eb65f77f9f4dc0",
     "semantic_hash": "41f49b9589f4cf1180eb65f77f9f4dc0"
   },
-  "check_pwa_manifest.py": {
-    "mtime": 1789739280.0231824,
-    "seen": 1789992473.1249897,
-    "ast_hash": "dfcafad087cc25cfe59a9b72faf61eef",
-    "semantic_hash": "dfcafad087cc25cfe59a9b72faf61eef"
+  "apps/positions/__init__.py": {
+    "mtime": 1790002734.8186426,
+    "seen": 1790005887.876985,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
-  "diagnose_pwa_prod.py": {
-    "mtime": 1789739280.0332003,
-    "seen": 1789992473.126497,
-    "ast_hash": "333627404b27dc9f038fcf609dd91b6c",
-    "semantic_hash": "333627404b27dc9f038fcf609dd91b6c"
+  "apps/positions/apps.py": {
+    "mtime": 1790002737.4305303,
+    "seen": 1790005887.876985,
+    "ast_hash": "8653b1457f808dcb9cbb1bf519bfa1a8",
+    "semantic_hash": "8653b1457f808dcb9cbb1bf519bfa1a8"
+  },
+  "apps/positions/tests.py": {
+    "mtime": 1790002828.0454552,
+    "seen": 1790005887.876985,
+    "ast_hash": "762fb76c1f35b8a3c8396049a5bee226",
+    "semantic_hash": "762fb76c1f35b8a3c8396049a5bee226"
+  },
+  "apps/positions/urls.py": {
+    "mtime": 1790002752.4392383,
+    "seen": 1790005887.876985,
+    "ast_hash": "47113766992029d1b2c1fa24108fcacd",
+    "semantic_hash": "47113766992029d1b2c1fa24108fcacd"
+  },
+  "apps/positions/views.py": {
+    "mtime": 1790002750.5405705,
+    "seen": 1790005887.876985,
+    "ast_hash": "08f27b1a17ee7f082cac8df4e33dc75d",
+    "semantic_hash": "08f27b1a17ee7f082cac8df4e33dc75d"
+  },
+  "static/js/positions-detail-panel.js": {
+    "mtime": 1790002784.5003266,
+    "seen": 1790005887.8789868,
+    "ast_hash": "7a8534b5317fdb3fd06ee144083c0d7e",
+    "semantic_hash": "7a8534b5317fdb3fd06ee144083c0d7e"
+  },
+  "static/js/vendor/lightweight-charts.standalone.production.js": {
+    "mtime": 1790002908.561676,
+    "seen": 1790005887.8789868,
+    "ast_hash": "86b4c6004ce786dbc4acdb7850479f86",
+    "semantic_hash": "86b4c6004ce786dbc4acdb7850479f86"
   },
   "utils/generate_pwa_icons.py": {
     "mtime": 1789240460.423181,
-    "seen": 1789992473.1275082,
+    "seen": 1790005887.8789868,
     "ast_hash": "f3b918a2e96d2e9f4a6a7575482e080c",
     "semantic_hash": "f3b918a2e96d2e9f4a6a7575482e080c"
   }

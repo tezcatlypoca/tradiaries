@@ -1,7 +1,69 @@
 # Tradiaries — Change Log
 
 **Format** : ISO 8601 YYYY-MM-DD | Catégorie | Description courte | Fichiers modifiés  
-**Dernière entrée** : 2026-09-21
+**Dernière entrée** : 2026-09-22
+
+---
+
+## 2026-09-22 | AUDIT | Production Readiness Check (branche `dev`)
+
+### Contexte
+Check de préparation prod via `/prod-check` (le `SKILL.md` correspondant est incomplet/tronqué — critères bloquants appliqués au jugement, en s'appuyant sur `/security-review` comme demandé). Rapport complet : `docs/prod-check-2026-09-22.md`.
+
+### Verdict
+🟠 READY WITH WARNINGS pour Phase 1 (personnel) — 🔴 NOT READY pour toute ouverture à des utilisateurs non explicitement invités.
+
+### Points bloquants identifiés
+- **B1** : travail de la session (migration `0017`, audit trail, tests renforcés) non commité au moment du check — rien n'est encore déployable.
+- **B2 (nouveau, non corrigé)** : `accounts/signup/` est un endpoint d'inscription totalement public (aucune invitation/validation), ce qui contredit la prémisse "invite-only" sur laquelle repose la décision de garder une clé Fernet unique pour toute l'instance (`decisions.md`, "Gestion des secrets API", 2026-09-22). Ajouté en décision en suspens.
+
+### Points positifs confirmés
+- Les 3 P0 de l'audit précédent (`docs/audit-production.md`, 2026-09-10) sont corrigés : machine d'états `KrakenOrderAttempt`, retry désactivé sur ordres Kraken non-idempotents, verrou atomique `is_closing`.
+- Isolation multi-utilisateur vérifiée par grep exhaustif sur tous les `views.py` : aucune fuite trouvée.
+- Déchiffrement Fernet invalide désormais loggé ; unicité clé Kraken imposée au niveau formulaire (2 points P1 de l'ancien audit, corrigés depuis).
+- `check --deploy`, `makemigrations --check`, suite complète (85 tests) : tous propres.
+
+**Fichiers modifiés** : `docs/prod-check-2026-09-22.md` (nouveau), `.ai/decisions.md`
+
+---
+
+## 2026-09-22 | TESTING | Renforcement de la suite de tests (watcher, kraken_client, portfolio_service, dashboard)
+
+### Décision implémentée
+Suite au plan `docs/testing-plan-2026-09-22.md` (découlant de `.ai/decisions.md` → "Amélioration du testing" et "Ordres futures LIVE via l'API Kraken Futures" — explicitement écartée de ce chantier) : 4 missions de tests, mocks haut niveau uniquement (aucun mock sur `requests`/`_sign()`).
+
+### Implémentation (tests uniquement, aucun changement de comportement)
+- **Mission 1 — Watcher** : `WatchTpSlCommandTests` (4 tests) sur `watch_tp_sl.py` — `--once`, heartbeat mis à jour après cycle réussi, **non** mis à jour après cycle en échec, `--interval` transmis à `time.sleep`.
+  - ⚠️ Bug réel découvert en écrivant ces tests (non corrigé, hors périmètre de ce chantier — à traiter via `/debogage`) : le message de succès du watcher contient un caractère `✓` non encodable en `cp1252` (console Windows par défaut). Sur un tel environnement, un cycle **réussi** lève une `UnicodeEncodeError` lors du `stdout.write`, tombe dans le `except Exception` générique, et se retrouve donc traité comme un cycle en échec — le heartbeat n'est alors jamais mis à jour malgré un TP/SL correctement clôturé. Sans impact en prod (Railway = Linux/UTF-8) mais à corriger si un environnement Windows sert un jour de watcher.
+- **Mission 2 — `kraken_client.py`** : `KrakenClientTests` (15 tests) — `add_spot_order` (payload construit, validations side/price/txid, `validate`/`userref`), `query_orders`, `fetch_order_fill_price`, `cancel_order`, et `_private_request` (clés absentes, erreur Kraken, JSON invalide), mocké au niveau `_private_request`/`_public_request`/`_get_kraken_credentials`/`_http_session` — jamais `requests` ni `_sign()` directement.
+- **Mission 3 — `portfolio_service.py`** : `PortfolioServiceTests` (10 tests) — stats vides, netting achat/vente, filtre `trade_mode`, PnL réalisé/non réalisé spot et futures (LONG/SHORT), exclusion des positions PAPER dans `compute_global_stats`/`build_chart_series`, isolation multi-utilisateur, ventilation `by_strategy`, `win_rate`/`profit_factor` à `None` sans trade clôturé.
+- **Mission 4 — `apps/dashboard/views.py`** : 8 nouveaux tests — accès dashboard protégé par login, inscription + connexion automatique, sauvegarde de stratégie scopée par utilisateur, création/suppression de `ApiCredential` scopées par utilisateur (404 sur la clé d'un autre utilisateur, pas 403 — cohérent avec le pattern IDOR déjà en place).
+
+### Tests
+- Suite complète du projet : **85 tests, tous verts** (`python manage.py test`).
+
+**Fichiers modifiés** : `apps/core/tests.py`, `apps/dashboard/tests.py`, `docs/testing-plan-2026-09-22.md` (nouveau)
+
+---
+
+## 2026-09-22 | SECURITY | Audit trail des accès aux clés API (`ApiCredential`)
+
+### Décision implémentée
+Suite à la décision gelée "Gestion des secrets API — Chiffrement Fernet + Audit trail renforcée" (2026-09-22, `.ai/decisions.md`) : la clé Fernet unique est conservée (suffisante en invite-only), mais chaque accès à un `ApiCredential` (lecture du secret déchiffré, création, suppression) est désormais tracé pour permettre de détecter une compromission.
+
+### Implémentation
+- `apps/core/models.py` : nouveau modèle `ApiCredentialAuditLog(credential, user, platform, action, created_at)` — `credential` en `SET_NULL` pour que la trace survive à la suppression de la clé (platform/user conservés). Nouvelle méthode `ApiCredential.log_access(action)`.
+- `ApiCredential.masked_api_key()` (affichage page Paramètres) trace un accès `READ` à chaque déchiffrement.
+- `apps/core/kraken_client.py` : `_get_kraken_credentials()` trace un accès `READ` à chaque utilisation des clés pour un appel Kraken.
+- `apps/dashboard/views.py` : `create_api_credential` trace `CREATE`, `delete_api_credential` trace `DELETE` (avant suppression effective).
+- `apps/core/admin.py` : `ApiCredentialAuditLogAdmin` en lecture seule (list_display/filter par date, plateforme, action, utilisateur).
+- Migration `core.0017_apicredentialauditlog`.
+
+### Tests
+- `apps/core/tests.py::ApiCredentialAuditTests` (5 tests) : lecture via `masked_api_key()`, lecture via `kraken_client`, survie de la trace après suppression de la clé, et les deux vues (création/suppression) via le client de test.
+- Suite complète `apps.core apps.live_trading apps.dashboard` : 41 tests, tous verts.
+
+**Fichiers modifiés** : `apps/core/models.py`, `apps/core/kraken_client.py`, `apps/core/admin.py`, `apps/core/tests.py`, `apps/dashboard/views.py`, `apps/core/migrations/0017_apicredentialauditlog.py`
 
 ---
 
@@ -35,6 +97,225 @@
 - Vérification HTTP : `/` redirige vers la connexion, dont la réponse finale est
   `200`; `/healthz/` répond `{"status": "ok"}`; aucun nouveau log d'erreur après
   le déploiement.
+
+---
+
+## 2026-09-21 | FEATURE | Page Positions limitée aux positions clôturées ; positions ouvertes réservées à la page Trading
+
+### Décision clarifiée avec l'utilisateur
+La page Investissements (`apps/investment`, modèle `SimpleInvestment`) n'a pas de notion d'ouvert/fermé (pas de `exit_price`, chaque ligne est déjà une transaction complète) : laissée inchangée sur demande explicite de l'utilisateur. Seule la page Positions (Spot/Futures) est concernée.
+
+### Implémentation
+- `apps/positions/views.py` : `trades` filtré par `exit_price__isnull=False` pour les deux catégories (SPOT et FUTURES). Les KPI (`compute_spot_stats`/`compute_futures_stats`) restent calculés sur l'ensemble du portefeuille (ouvertes + fermées), seule la liste affichée change.
+- `apps/positions/templates/positions/positions.html` : texte d'intro et état vide mis à jour pour préciser que les positions ouvertes sont désormais sur la page Trading.
+- La page Trading (`apps/live_trading`) affichait déjà les positions ouvertes en temps réel dans la section "Positions ouvertes" sous le graphique (`live_positions()`, filtré `exit_price__isnull=True`) — aucun changement nécessaire de ce côté, l'exigence était déjà satisfaite.
+
+### Tests
+- `apps/positions/tests.py` : tests existants adaptés (les trades de test sont désormais créés avec `exit_price` pour rester visibles) + nouveau test `test_open_positions_are_excluded` couvrant explicitement l'exclusion des positions ouvertes (Spot et Futures) de la page.
+- Suite complète : `python manage.py test` → 43 tests, tous verts.
+
+### Vérification
+- Serveur de dev + compte de test temporaire (supprimé après coup, ainsi que les positions de test créées) : page Positions (onglets Spot/Futures) n'affiche que les positions clôturées ; page Trading affiche bien les positions ouvertes restantes sous le graphique. Aucune erreur console.
+
+**Fichiers modifiés** : `apps/positions/views.py`, `apps/positions/templates/positions/positions.html`, `apps/positions/tests.py`
+
+---
+
+## 2026-09-21 | FEATURE | Synchronisation du déplacement horizontal (pan/zoom) entre le graphique prix et le graphique volume/MM20
+
+### Contexte
+`chart` (prix/SAR) et `volumeChart` (volume/MM20) sont deux instances lightweight-charts indépendantes ; chacune gérait son propre pan/zoom sans lien avec l'autre, rendant la lecture croisée prix/volume malaisée dès qu'on naviguait sur le graphique.
+
+### Implémentation
+- `apps/live_trading/templates/live_trading/live_trading.html` : ajout de `syncTimeScale(source, target)`, qui s'abonne à `source.timeScale().subscribeVisibleLogicalRangeChange` et répercute la plage logique visible sur `target.timeScale().setVisibleLogicalRange(range)`. Abonnement bidirectionnel (`chart` → `volumeChart` et `volumeChart` → `chart`), avec un verrou `isSyncingTimeScale` pour éviter la boucle infinie de rappels croisés.
+- `loadChart()` : suppression de l'appel `volumeChart.timeScale().fitContent()`, devenu redondant — le `fitContent()` sur `chart` déclenche désormais la synchronisation qui aligne `volumeChart` automatiquement.
+
+### Vérification
+- Serveur de dev + compte de test temporaire (supprimé après coup).
+- Glisser-déposer (pan) sur le graphique prix → le graphique volume suit exactement la même plage visible, et inversement (testé dans les deux sens).
+- Molette (zoom) sur le graphique prix → le graphique volume zoome en cohérence.
+- Changement d'intervalle (1h → 4h) : les deux graphiques rechargent et s'alignent correctement après `fitContent()`.
+- Aucune erreur console.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
+## 2026-09-21 | BUGFIX | Calcul du SAR faussé : convergeait vers une asymptote horizontale fixe
+
+### Cause réelle
+Dans `calculateSAR`, la variable `ep` (extreme point — le plus haut/plus bas atteint pendant la tendance en cours, utilisé dans la formule `SAR += AF * (EP - SAR)`) n'était **jamais mise à jour pendant la poursuite d'une tendance**. Le code maintenait bien des variables `hp`/`lp` séparées pour suivre les nouveaux extrêmes, mais celles-ci ne servaient qu'à initialiser le SAR lors d'un retournement de tendance — la formule de récurrence continuait, elle, à utiliser l'`ep` figé à sa valeur initiale (le plus haut/bas de la toute première bougie). Résultat : `SAR += AF * (EP_fixe - SAR)` est une suite contractante qui converge mathématiquement vers `EP_fixe`, d'où l'asymptote horizontale observée à 77530.30 (prix de la première bougie visible).
+
+### Correctif (conforme à l'algorithme Wilder standard, tel qu'utilisé par TradingView `ta.sar`)
+- `apps/live_trading/templates/live_trading/live_trading.html`, fonction `calculateSAR` :
+  - Suppression des variables `hp`/`lp` redondantes ; `ep` est désormais mis à jour à chaque nouveau plus haut (tendance haussière) / plus bas (tendance baissière), avec incrémentation de l'AF à ce moment précis (comportement Wilder standard).
+  - Clamp du SAR calculé par le min/max des deux bougies précédentes (`prev`, `prev2`) au lieu d'inclure à tort la bougie courante dans le clamp.
+  - Lors d'un retournement, le nouveau SAR repart bien de l'`ep` de la tendance qui se termine (comportement inchangé, déjà correct).
+
+### Vérification
+- Serveur de dev + compte de test temporaire (supprimé après coup).
+- `sarSeries.data()` : 193 valeurs distinctes sur 200 points (au lieu de converger vers une valeur quasi constante), min/max cohérents avec la plage de prix affichée, SAR bascule visiblement au-dessus/en-dessous des bougies aux retournements.
+- Aucune erreur console.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
+## 2026-09-21 | FEATURE | Moyenne mobile 20 (ligne) sur le graphique de volume
+
+### Implémentation
+- `apps/live_trading/templates/live_trading/live_trading.html` :
+  - Nouvelle fonction `calculateSMA(points, period)` (moyenne mobile simple générique, fenêtre glissante).
+  - Nouvelle série `volumeMaSeries` (`volumeChart.addLineSeries`, couleur bleu clair `#8ec1ff`) superposée à l'histogramme de volume existant.
+  - `loadChart()` calcule `calculateSMA(volume, 20)` et l'injecte via `volumeMaSeries.setData(...)` à chaque chargement/changement d'actif ou d'intervalle.
+
+### Vérification
+- `volumeMaSeries.data()` : 181 points pour 200 bougies (200 − 19, cohérent avec une SMA20 qui démarre au 20e point).
+- Ligne bleue visible superposée à l'histogramme de volume dans le navigateur, aucune erreur console.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
+## 2026-09-21 | FEATURE | SAR affiché en points (style TradingView) au lieu d'une courbe pointillée
+
+### Implémentation
+- `apps/live_trading/templates/live_trading/live_trading.html` : `sarSeries` (lightweight-charts) passe de `addLineSeries({ lineStyle: Dotted })` (courbe continue en pointillés) à `addLineSeries({ lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: 2 })` — n'affiche que des points ronds disjoints à chaque valeur SAR calculée, sans segment reliant les points.
+- Calcul du SAR (`calculateSAR`) inchangé.
+
+### Vérification
+- Serveur de dev + compte de test temporaire (supprimé après coup) : SAR affiché en points jaunes disjoints sur le graphique BTC, aucune erreur console.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
+## 2026-09-21 | BUGFIX | Drag & drop TP/SL intermittent : clic-glissé simple réservé à la navigation, Maj+glissé pour déplacer TP/SL
+
+### Cause réelle
+Le correctif précédent (voir entrée BUGFIX suivante) rendait le glisser-déposer syntaxiquement correct, mais le clic-glissé simple restait en concurrence avec le comportement natif de lightweight-charts (`handleScroll.pressedMouseMove` / `handleScale`, activés par défaut) : un clic démarré près d'une ligne TP/SL pouvait être capté tantôt par notre handler, tantôt par le pan/zoom natif de la lib selon l'endroit exact du clic et le mouvement de la souris — d'où le comportement intermittent rapporté.
+
+### Correctif
+- `apps/live_trading/templates/live_trading/live_trading.html` :
+  - Le clic-glissé simple sur le graphique n'est plus intercepté : il déclenche uniquement le comportement natif de la lib (pan/zoom).
+  - Ajout d'un key binding **Maj + clic-glissé** : seul un `mousedown` avec `event.shiftKey` déclenche la détection de ligne (Entrée/TP/SL) et le déplacement.
+  - Pendant un déplacement Maj+glissé, `chart.applyOptions({ handleScroll: false, handleScale: false })` désactive temporairement le pan/zoom natif pour éliminer toute concurrence entre les deux gestes ; ré-activé au `mouseup`.
+  - Indice utilisateur sous le graphique mis à jour pour mentionner Maj+glissé.
+
+### Vérification
+- Serveur de dev + utilisateur de test temporaire (supprimé après coup).
+- Clic-glissé simple sur une ligne TP : le graphique navigue (pan), le champ TP ne change pas (régression testée, OK).
+- Maj+clic-glissé (simulé via dispatch d'événements `MouseEvent` avec `shiftKey: true`, le geste synthétique de l'outil de contrôle navigateur ne propageant pas le modificateur) sur la ligne TP : le champ se met à jour avec le nouveau prix.
+- Après relâchement, `chart.options().handleScroll`/`handleScale` repassent à `true` (pan/zoom natif restauré).
+- Aucune erreur console.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
+## 2026-09-21 | BUGFIX | Drag & drop TP/SL sur le graphique Trading toujours inopérant
+
+### Cause réelle
+Le correctif précédent (voir entrée FEATURE ci-dessous) appelait `candleSeries.priceScale().priceToCoordinate()` / `.coordinateToPrice()`. Ces méthodes n'existent que sur l'API série (`ISeriesApi`), pas sur l'API échelle de prix (`IPriceScaleApi`, retournée par `.priceScale()`) — vérifié dans le bundle vendorisé `lightweight-charts.standalone.production.js` (classe `ge` : seulement `applyOptions`/`options`/`width`). L'appel levait une `TypeError` silencieuse à chaque `mousedown`/`mousemove`, empêchant `draggingField` d'être positionné : aucun glisser-déposer ne pouvait jamais démarrer.
+
+### Correctif
+- `apps/live_trading/templates/live_trading/live_trading.html` : remplacement par `candleSeries.priceToCoordinate(price)` et `candleSeries.coordinateToPrice(mouseY)` (méthodes de la série, pas de l'échelle de prix).
+
+### Vérification
+- Serveur de dev lancé localement, page `/live/` testée dans Chrome (utilisateur de test temporaire, supprimé après coup) : glisser-déposer des lignes **Take profit** et **Stop loss** confirmé fonctionnel (le champ associé se met à jour avec le nouveau prix). La ligne **Entrée** reste volontairement non-draggable tant que le champ est vide (placeholder "vide = marché") — comportement voulu, pas un bug.
+
+**Fichiers modifiés** : `apps/live_trading/templates/live_trading/live_trading.html`
+
+---
+
+## 2026-09-21 | FEATURE | Refonte UI page Trading : dropdown actifs, graphique volume/SAR, drag & drop TP/SL
+
+### Améliorations UX
+1. **Sélection d'actifs** : remplacé la liste de boutons par un dropdown placé dans la toolbar du graphique
+   - Moins encombrant, meilleur responsive
+   - Conserve tous les symboles par défaut
+
+2. **Hauteur et largeur du graphique** :
+   - Augmentation hauteur graphique : 420px → 480px
+   - Le graphique comble désormais la largeur entière (grid 2 colonnes au lieu de 3)
+   - Deux graphiques : OHLC (480px) + Volume (120px)
+
+3. **Indicateurs techniques** :
+   - Ajout graphique de **volume** (histogramme coloré : vert si haussier, rouge si baissier)
+   - Ajout **SAR (Stop And Reverse)** : courbe pointillée jaune, calculé via algorithme Wilder
+   - Synchronisation timeScale entre les deux graphiques
+
+4. **Drag & drop TP/SL** :
+   - Correction bug : utilisation cohérente de priceScale.coordinateToPrice()
+   - Augmentation seuil détection : 8px → 12px (plus facile de cliquer)
+   - Validations : prix > 0 pour éviter erreurs NaN
+
+**Fichiers modifiés** :
+`apps/live_trading/templates/live_trading/live_trading.html`, `static/css/trading.css`, `apps/live_trading/tests.py`
+
+**Tests** : 42 tests passants (1 test updated : cherche maintenant `id="assetSelect"` au lieu de `trading-asset-btn`)
+
+---
+
+## 2026-09-21 | CLEANUP | Consolidation import dupliqué (audit)
+
+### Correction d'audit
+- Import dupliqué de `healthz` dans `config/urls.py` (lignes 22-23) consolidé en une seule ligne.
+- Aucun impact fonctionnel (nettoyage de lisibilité du code).
+- Tests : 42 tests passants ✓
+
+**Fichiers modifiés** : `config/urls.py`
+
+---
+
+## 2026-09-21 | FEATURE | Page Positions unifiée + refonte exchange-like de la page Trading
+
+> Note process : cette implémentation a été menée sans passer par les étapes Challenge / Gel des
+> décisions / Planification, sur override explicite de l'utilisateur (le Dégrossissage avait déjà
+> abouti à une proposition suffisamment précise). Aucune entrée n'a donc été ajoutée à
+> `decisions.md` ; ce paragraphe fait office de trace de ce qui a réellement été construit.
+
+### Idée 1 — Fusion Spot / Futures dans une page "Positions"
+- Nouvelle app `apps/positions` (lecture seule) : onglets Spot / Futures (Investissements simples
+  volontairement exclus, conserve sa propre page), filtre par mode, KPI recalculées côté serveur via
+  les fonctions existantes `compute_spot_stats` / `compute_futures_stats`.
+- Pas de création ni de clôture de position depuis cette page (conforme à la demande) ; l'édition est
+  remplacée par un panneau de détail en lecture seule (`static/js/positions-detail-panel.js`). La
+  suppression reste déléguée aux vues `spot_trading:delete` / `futures_trading:delete` existantes.
+- **Choix assumé** : les anciennes pages `spot_trading` et `futures_trading` ne sont pas supprimées ni
+  redirigées, seulement retirées du menu, pour limiter le risque de régression sur leurs tests/usages
+  restants.
+- Menu (`components/side-menu.html`) : les liens "Trading Spot" / "Trading Futures" sont remplacés par
+  un unique lien "📂 Positions".
+- Tests : `apps/positions/tests.py` (6 tests, isolation multi-utilisateur, filtres, KPI).
+
+### Idée 2 — Page "Trading" refondue en interface exchange-like
+- `apps/live_trading/templates/live_trading/live_trading.html` réécrite : liste d'actifs, graphique en
+  chandeliers (Lightweight Charts) et ticket d'ordre avec bascules Spot/Futures, Paper/Live, Long/Short,
+  et lignes de prix Entrée/TP/SL déplaçables directement sur le graphique (glissé-déposé), synchronisées
+  avec les champs du formulaire. La checklist IRC de validation des ordres LIVE est conservée à
+  l'identique (2 confirmations sur 3 requises), de même que le rejet des ordres futures en LIVE.
+- Backend : `apps/core/kraken_client.py::fetch_ohlc()` (nouvel appel public Kraken OHLC, caché 30s,
+  retombe sur `[]` si Kraken est indisponible) ; nouvelle route `apps/live_trading/urls.py` →
+  `ohlc.json` servie par `apps/live_trading/views.py::ohlc_json`. Les vues `open_position`,
+  `close_position`, `positions_json` sont inchangées.
+- **Nouvelle dépendance structurante (signalée)** : librairie *Lightweight Charts* v4.1.3 (TradingView,
+  licence Apache-2.0), auto-hébergée dans `static/js/vendor/lightweight-charts.standalone.production.js`
+  plutôt que chargée depuis un CDN, pour rester cohérent avec le déploiement Whitenoise du projet.
+- **Hors périmètre** : l'idée 3 (script de dimensionnement automatique de position) a été explicitement
+  exclue par l'utilisateur ("trop d'info... je n'utilise jamais 'trading live'") et n'a pas été
+  implémentée.
+- **Non couvert par les tests automatisés** : le glissé-déposé des lignes de prix sur le canvas du
+  graphique nécessite une vérification manuelle en navigateur (non testable unitairement).
+- Tests : `apps/core/tests.py::KrakenOhlcTests` (3 tests), `apps/live_trading/tests.py::OhlcJsonViewTests`
+  et `TradingPageRenderingTests` (3 tests). Suite complète du projet : 42 tests, OK.
+
+### Fichiers modifiés/créés
+`apps/positions/**` (nouveau), `static/js/positions-detail-panel.js` (nouveau), `static/css/investment.css`,
+`static/css/trading.css` (nouveau), `static/js/vendor/lightweight-charts.standalone.production.js` (nouveau),
+`apps/core/kraken_client.py`, `apps/core/tests.py`, `apps/live_trading/views.py`, `apps/live_trading/urls.py`,
+`apps/live_trading/templates/live_trading/live_trading.html`, `apps/live_trading/tests.py`,
+`config/settings.py`, `config/urls.py`, `components/side-menu.html`.
 
 ---
 

@@ -94,7 +94,9 @@ def _get_kraken_credentials(user) -> tuple[str, str]:
     credential = ApiCredential.objects.filter(platform='KRAKEN', user=user).first()
     if not credential:
         return '', ''
-    return credential.get_api_key(), credential.get_api_secret()
+    api_key, api_secret = credential.get_api_key(), credential.get_api_secret()
+    credential.log_access('READ')
+    return api_key, api_secret
 
 
 def _private_request(endpoint: str, data: dict | None = None, *, user, retryable: bool = True) -> dict:
@@ -257,6 +259,53 @@ def resolve_pair(symbol: str) -> str:
             return altname
 
     raise KrakenAPIError(f"Aucune paire Kraken trouvée pour le symbole {symbol}.")
+
+
+_OHLC_CACHE_TTL = 30  # secondes : rafraîchi souvent, mais sans marteler Kraken à chaque requête client
+_VALID_OHLC_INTERVALS = {1, 5, 15, 30, 60, 240, 1440, 10080, 21600}
+
+
+def fetch_ohlc(symbol: str, interval: int = 15, limit: int = 200) -> list[dict]:
+    """Récupère les chandeliers OHLC (endpoint public Kraken) pour un symbole.
+
+    Args:
+        symbol: symbole de base (ex: 'BTC').
+        interval: unité en minutes parmi celles supportées par Kraken (1,5,15,30,60,240,1440,10080,21600).
+        limit: nombre maximal de chandeliers renvoyés (les plus récents).
+
+    Returns:
+        Liste de chandeliers `{'time': int (epoch secondes), 'open': float, 'high': float,
+        'low': float, 'close': float, 'volume': float}`, triée par temps croissant.
+        Liste vide si aucune donnée disponible.
+    """
+    if interval not in _VALID_OHLC_INTERVALS:
+        raise KrakenAPIError(f"Intervalle OHLC invalide : {interval}.")
+
+    pair = resolve_pair(symbol)
+    cache_key = f"kraken_ohlc:{pair}:{interval}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached[-limit:]
+
+    try:
+        result = _public_request('OHLC', {'pair': pair, 'interval': interval})
+    except KrakenAPIError:
+        return []
+
+    raw_candles = next((v for k, v in result.items() if k != 'last'), [])
+    candles = [
+        {
+            'time': int(row[0]),
+            'open': float(row[1]),
+            'high': float(row[2]),
+            'low': float(row[3]),
+            'close': float(row[4]),
+            'volume': float(row[6]),
+        }
+        for row in raw_candles
+    ]
+    cache.set(cache_key, candles, _OHLC_CACHE_TTL)
+    return candles[-limit:]
 
 
 def add_spot_order(

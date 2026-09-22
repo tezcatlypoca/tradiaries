@@ -1,10 +1,6 @@
 # Tradiaries — Décisions
 
-<<<<<<< HEAD
-**Dernière mise à jour** : 2026-09-13
-=======
-**Dernière mise à jour** : 2026-09-14
->>>>>>> dev
+**Dernière mise à jour** : 2026-09-22
 
 ## Décisions retenues ✅
 
@@ -105,50 +101,56 @@
 
 ---
 
+## Décisions retenues ✅
+
+### Gestion des secrets API — Chiffrement Fernet + Audit trail renforcée (2026-09-22)
+- **Décidé** : Garder la solution actuelle (clé Fernet unique dérivée de `SECRET_KEY` pour toute l'instance) ET ajouter un **audit trail renforcé** pour enregistrer tous les accès à `ApiCredential` (lectures/créations/suppressions).
+- **Raison** : La clé unique est suffisante pour un modèle invite-only / petit pool de traders (confiance élevée). L'audit trail donne la visibilité nécessaire pour détecter une compromission (« Qui a accédé à quelle clé Kraken et quand »).
+- **Implémentation audit trail** : Ajouter `accessed_at` / `last_read_at` sur `ApiCredential` ou un modèle séparé `ApiCredentialAuditLog(credential, user, action, timestamp)`.
+- **Conditions de activation** : Reste valide tant que le modèle reste **invite-only** ou **tier restreint**. Basculer vers clé per-user + external vault si ouverture large (voir en suspens ci-dessous).
+
+### Amélioration du testing — nouveaux tests + intégration BDD/API (2026-09-22)
+- **Décidé** : Ajouter de nouveaux tests unitaires et d'intégration en gardant l'approche déjà en place : `TestCase` Django (BDD réelle SQLite en transaction) + mocks **haut niveau** sur les fonctions `kraken_client`/`trading_service` (ex. `@patch('...fetch_current_price')`, `@patch('...add_spot_order')`), sans introduire de mocks bas niveau sur `requests`/`_sign()`/`_private_request()`.
+- **Raison** : Cohérent avec la suite existante (35 tests `apps/core`, 2 `apps/dashboard`), pas de changement d'approche à justifier. Le mock bas niveau proposé en Challenge (vérifier le payload réellement envoyé à Kraken via `_sign`/`_private_request`) est explicitement écarté pour l'instant — voir rejetée ci-dessous.
+- **Zones prioritaires identifiées en Challenge, à couvrir en premier** :
+  - `apps/core/management/commands/watch_tp_sl.py` (la boucle watcher elle-même — actuellement seule `check_tp_sl()` est testée, pas la commande/heartbeat/isolation d'erreurs)
+  - `kraken_client.py` : `add_spot_order`, `query_orders`, `cancel_order`, `fetch_order_fill_price` (pas de test direct trouvé, seulement via mock dans `trading_service`)
+  - `portfolio_service.py` (pas de classe de test dédiée trouvée hors `futures_trade_pnl`)
+  - `apps/dashboard/views.py` (2 tests seulement, module modifié dans le diff en cours)
+- **Impact** : Pas de changement d'architecture de test. Extension de `apps/core/tests.py` et `apps/dashboard/tests.py` avec de nouvelles classes ciblant ces zones.
+
+## Décisions rejetées ❌
+
+### Ordres futures LIVE via l'API Kraken Futures (2026-09-22)
+- **Rejeté (pour l'instant)** : Ne pas implémenter/valider de passage d'ordres futures LIVE via l'API Kraken Futures dans cette session. Rester exclusivement sur l'API Kraken **spot/classic** déjà en place.
+- **Raison** : L'API Kraken Futures (`futures.kraken.com`) est un système distinct de l'API spot déjà implémentée (`api.kraken.com`) — authentification différente, compte séparé (marge/levier), symboles différents (`PF_XBTUSD`), et aucune réutilisation directe de `_sign()`/`_private_request()`/`ApiCredential(platform='KRAKEN')` en l'état. Ce n'est pas une extension de `kraken_client.py`, c'est un nouveau client à construire. `trading_service.py` refuse déjà explicitement le LIVE futures (`TradeMode.LIVE` + `category='FUTURES'` → `TradingError`), ce qui est cohérent avec la décision "Modèle de déploiement progressif" (2026-09-22) : le LIVE réel n'est un critère que de Phase 2, et l'app est actuellement en Phase 1 (perso, un seul utilisateur).
+- **Où revisiter** : Si besoin de valider la faisabilité technique de l'API Kraken Futures, le faire via un spike isolé hors de l'app Django (script séparé, clés Futures dédiées) sans toucher `trading_service.py`/`open_position()` — voir décision "Modèle de déploiement progressif".
+
 ## Décisions en suspens ⏳
 
-<<<<<<< HEAD
-### PWA Installation en Production
-- **Question** : Pourquoi l'install prompt n'apparaît pas en production ?
-- **Current** : Manifest locally valid, PNG icons should be collected by Render buildpack
-- **Investigation** : Created `diagnose_pwa_prod.py` to check icon URLs (timed out due to Render/CDN)
-- **Next step** : After Render deployment, verify PNG icons return 200 status; if 404 → run `python manage.py collectstatic` on dyno
-- **Checklist** :
-  - [ ] Push code changes to Render
-  - [ ] Check `/manifest.webmanifest` returns 200 + correct JSON
-  - [ ] Check `/static/icons/candlestick-icon-192.png` returns 200
-  - [ ] Check `/static/icons/candlestick-icon-512.png` returns 200
-  - [ ] Visit https://tradiaries.onrender.com in Chrome/Brave → install prompt should appear
-
-### Afficher `strategy` dans la table futures_trading.html
-- **Question** : Afficher le champ `strategy` dans la table ?
-- **Current** : Champ exists en DB, importé de Notion, affiché en journal/analytics, hidden en futures table
-=======
-### Clé de chiffrement Fernet par utilisateur
-- **Question** : dériver une clé de chiffrement distincte par utilisateur pour `ApiCredential` (au lieu d'une clé unique dérivée de `SECRET_KEY` pour toute l'instance) ?
-- **Contexte** : signalé par `docs/tradiaries-plan-prod.md` (Niveau 2) comme durcissement recommandé en multi-utilisateur ; non traité lors de la session du 2026-09-14 (isolation des données ≠ dérivation de clé, jugé hors périmètre de cette passe).
-- **Risque si non traité** : une fuite de `SECRET_KEY` (ou de la BDD + `SECRET_KEY`) expose les secrets de TOUS les utilisateurs, pas un seul.
-- **Décision** : à trancher avant une ouverture publique large (plusieurs comptes avec clés Kraken LIVE actives).
-- **Question** : Afficher `strategy` dans la table futures_trading.html ?
-- **Current** : Champ exists en DB, importé de Notion, affiché en journal/analytics
->>>>>>> dev
+### Inscription publique (`accounts/signup/`) vs modèle "invite-only" (2026-09-22, trouvé en `/prod-check`)
+- **Question** : Faut-il fermer l'inscription publique (`SignupForm` n'exige aujourd'hui aucune invitation/validation), ou ajouter un vrai mécanisme d'invitation (code à usage unique, approbation admin) ?
+- **Contexte** : La décision "Gestion des secrets API" (2026-09-22, ci-dessus) justifie la clé Fernet **unique pour toute l'instance** par un modèle "invite-only / petit pool de traders (confiance élevée)". Or le code actuel contredit déjà cette prémisse : n'importe qui peut créer un compte sur `accounts/signup/` sans invitation et y attacher de vraies clés Kraken LIVE. Une fuite de `SECRET_KEY` compromettrait donc les clés de tous les comptes, y compris ceux créés librement par des inconnus — pas seulement celles d'un petit cercle de confiance.
 - **Options** :
-  - A) Ajouter colonne dans table futures (encombre l'affichage)
-  - B) Garder en détail modal seulement (vue dégradée)
-  - C) Responsive : masquer en mobile, afficher en desktop
-- **Décision** : À valider par utilisation
+  - A) Fermer `accounts/signup/` (redirect/403) tant que le modèle reste invite-only de fait.
+  - B) Ajouter un vrai mécanisme d'invitation (code à usage unique généré par l'utilisateur/admin, ou approbation manuelle des nouveaux comptes).
+  - C) Assumer l'ouverture publique dès maintenant et anticiper la décision "Clé Fernet par utilisateur + External Key Vault" ci-dessous.
+- **Décision** : À trancher avant toute exposition non contrôlée de l'app (voir `docs/prod-check-2026-09-22.md`).
 
-### Messages Django pages analytics/journal
-- **Question** : Afficher les messages (`{% if messages %}`) ?
-- **Current** : Seulement investment.html les affiche
-- **Options** :
-  - A) Ajouter sur toutes les pages (consistency)
-  - B) Garder seulement investment (messages peu pertinents ailleurs)
-- **Décision** : À valider
+### Clé de chiffrement Fernet par utilisateur + External Key Vault
+- **Question** : Quand migrer de la clé unique vers une clé dérivée par utilisateur (ou external vault) pour `ApiCredential` ?
+- **Contexte** : Pré-requis futur pour une **ouverture publique large** (landing page, inscription libre, base utilisateurs à 3+ chiffres en LIVE) pour isoler complètement les secrets d'un utilisateur des autres en cas de fuite `SECRET_KEY`.
+- **Options évaluées** :
+  - A) Clé per-user dérivée (PBKDF2/Argon2 de password ou user.id) : complexité moyenne, pas vraiment plus sûr si `SECRET_KEY` compromise.
+  - B) External Key Vault (HashiCorp Vault / AWS KMS / Google Cloud Secret Manager) : vraie séparation, audit natif, but overkill pour MVP.
+  - C) Status quo (clé unique) + audit trail : suffisant pour invite-only.
+- **Critère de basculement** : Si tu atteins 50+ utilisateurs LIVE avec vrais secrets Kraken, ou si tu reçois une demande de conformité (GDPR, SOC2, etc.), re-trancher vers option A ou B.
+- **Décision** : À revisiter avant ouverture grand public.
 
 ### Déploiement production LIVE trading
 - **Question** : Quand basculer en production LIVE ?
-- **Blocages** :
+- **Statut** : Question reformulée et remplacée par la décision "Modèle de déploiement progressif" ci-dessous (phases 1/2/3 avec critères de passage explicites) — conservé ici pour l'historique des blocages déjà levés.
+- **Blocages (état au 2026-09-13)** :
   - Logo/icônes généré ✅ (candlestick)
   - PWA tested iOS/Android (pending post-deploy verification)
   - Service worker Chrome installability ✅ (fixed this session)
@@ -159,7 +161,21 @@
   - Nonce counter DB critique ✅ (implemented 2026-09-10)
   - Railway worker availability ✅ (heartbeat in DB)
 - **Blockers levés** : CSS geometry + SW navigation handling (session 2026-09-13)
-- **Décision** : Après test complet PWA en prod + validation icons + test Kraken LIVE limité
+
+### Affichage `strategy` dans la table futures_trading.html — REJETÉE (2026-09-22)
+- **Décidé** : NE PAS afficher `strategy` en colonne dans la table futures_trading.html
+- **Raison** : Le modal détail donne accès instantané à la stratégie pour les trades qui en ont besoin. Scanner la stratégie dans la liste n'est pas un cas d'usage réel — consulter un trade spécifique via le détail modal suffit.
+- **Où afficher `strategy`** : Conservé en journal.html et analytics.html (où il aide à filtrer/analyser les historiques)
+- **Impact** : Pas de changement de code nécessaire. La table futures_trading reste comme elle est.
+
+### Modèle de déploiement progressif (2026-09-22)
+- **Décidé** : Trois phases de déploiement, chacune avec exigences de sécurité/test alignées au scope :
+  1. **Phase 1 (actuellement)** : Déploiement personnel (Render public, une seule personne). Scope : développement du concept et fonctionnalités. Exigences : tests unitaires/intégration + vérifications manuelles basiques.
+  2. **Phase 2 (futur)** : Bêta invite-only (autres utilisateurs). Scope : validation UX/sécurité avant ouverture publique. Avant phase 2 : /code-review ultra + /security-review (branche `prod`), PWA test iOS/Android, 1 ordre Kraken LIVE réel testé.
+  3. **Phase 3 (futur)** : Grand public abonnement. Scope : produit commercial. Exigences : SOC2, compliance, monitoring/alerting complets, clé Fernet per-user + external vault, rate limiting Kraken.
+- **Gating vers phase 2** : Code review + security review obligatoires avant merge `dev` → `prod`
+- **Gating vers phase 3** : Durcissement sécurité (voir décision "Clé Fernet par utilisateur + External Key Vault")
+- **Implication immédiate** : Phase 1 est validée. PWA, Kraken LIVE test détaillé, monitoring avancé = Phase 2+. Pas de blocage pour continuer dev en phase 1.
 
 ---
 

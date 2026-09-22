@@ -1,4 +1,4 @@
-"""Vues de la page Trading Live : ouverture de positions (paper/live) et suivi temps réel."""
+"""Vues de la page Trading : interface exchange-like (graphique + ticket d'ordre) et suivi temps réel."""
 import json
 from decimal import Decimal
 
@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
+from apps.core.kraken_client import KrakenAPIError, fetch_ohlc
 from apps.core.models import FuturesTrading, SpotTrading
 from apps.core.trading_service import (
     TradingError,
@@ -17,6 +18,11 @@ from apps.core.trading_service import (
 from apps.core.trading_service import open_position as service_open_position
 
 from .forms import OpenPositionForm
+
+# Symboles proposés par défaut dans le sélecteur d'actif (liste courte, l'utilisateur
+# peut saisir n'importe quel autre symbole coté sur Kraken via le champ texte).
+DEFAULT_TRADING_SYMBOLS = ['BTC', 'ETH', 'SOL', 'XRP', 'ADA', 'DOGE', 'AVAX', 'LINK', 'DOT', 'LTC']
+VALID_OHLC_INTERVALS = (15, 60, 240, 1440)
 
 
 def _serialize_decimal(value):
@@ -32,12 +38,13 @@ def _position_to_json(position: dict) -> dict:
 
 @login_required
 def live_trading(request):
-    """Page Trading Live : positions ouvertes avec prix et PnL en temps réel."""
+    """Page Trading : ticket d'ordre + graphique par actif, positions ouvertes en temps réel."""
     positions, unavailable_symbols = live_positions(request.user)
     context = {
         'positions': positions,
         'unavailable_symbols': sorted(unavailable_symbols),
         'watcher_interval': _watcher_interval(),
+        'default_symbols': DEFAULT_TRADING_SYMBOLS,
     }
     return render(request, 'live_trading/live_trading.html', context)
 
@@ -45,6 +52,24 @@ def live_trading(request):
 def _watcher_interval() -> int:
     from django.conf import settings
     return settings.TRADING_WATCHER_INTERVAL_SECONDS
+
+
+@login_required
+def ohlc_json(request):
+    """Chandeliers OHLC (Kraken, endpoint public) pour le graphique de la page Trading."""
+    symbol = request.GET.get('symbol', 'BTC').strip().upper()
+    try:
+        interval = int(request.GET.get('interval', 60))
+    except ValueError:
+        interval = 60
+    if interval not in VALID_OHLC_INTERVALS:
+        interval = 60
+
+    try:
+        candles = fetch_ohlc(symbol, interval=interval)
+    except KrakenAPIError as exc:
+        return JsonResponse({'candles': [], 'error': str(exc)})
+    return JsonResponse({'candles': candles})
 
 
 @require_http_methods(["POST"])

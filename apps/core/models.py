@@ -251,9 +251,44 @@ class ApiCredential(models.Model):
     def masked_api_key(self) -> str:
         """Affiche uniquement les 4 derniers caractères de la clé, pour vérification visuelle sans exposer le secret."""
         plain = self.get_api_key()
+        self.log_access('READ')
         if len(plain) <= 4:
             return '••••'
         return f"{'•' * (len(plain) - 4)}{plain[-4:]}"
+
+    def log_access(self, action: str) -> None:
+        """Trace un accès (lecture/création/suppression) à ce secret pour l'audit trail sécurité."""
+        ApiCredentialAuditLog.objects.create(credential=self, user=self.user, platform=self.platform, action=action)
+
+
+class ApiCredentialAuditLog(models.Model):
+    """Trace de chaque accès à un `ApiCredential` (lecture/création/suppression), pour détecter une compromission.
+
+    `credential` est en SET_NULL : la ligne d'audit doit survivre à la suppression de la
+    clé (via `platform`/`user` conservés) pour garder un historique complet.
+    """
+    ACTIONS = [
+        ('CREATE', 'Création'),
+        ('READ', 'Lecture (déchiffrement)'),
+        ('DELETE', 'Suppression'),
+    ]
+
+    credential = models.ForeignKey(
+        ApiCredential, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs',
+    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='api_credential_audit_logs')
+    platform = models.CharField(max_length=20)
+    action = models.CharField(max_length=10, choices=ACTIONS)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_api_credential_audit_log'
+        verbose_name = "Journal d'accès clé API"
+        verbose_name_plural = "Journal d'accès clés API"
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return f"{self.get_action_display()} {self.platform} par {self.user} ({self.created_at:%Y-%m-%d %H:%M})"
 
 
 class UserPreferences(models.Model):

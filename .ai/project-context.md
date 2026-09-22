@@ -1,12 +1,7 @@
 # Tradiaries — Project Context
 
-<<<<<<< HEAD
-**Dernière mise à jour** : 2026-09-13  
-**État générale** : Fonctionnel en dev, CSS menu fix + PWA hardened for Chrome installability, prêt pour prod
-=======
-**Dernière mise à jour** : 2026-09-14  
-**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI bugs corrigés, multi-utilisateur opérationnel
->>>>>>> dev
+**Dernière mise à jour** : 2026-09-22  
+**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI trading refondue (drag & drop TP/SL fiabilisé, SAR corrigé, graphiques synchronisés), page Positions limitée aux positions clôturées, multi-utilisateur opérationnel, audit trail clés API, suite de tests renforcée (watcher/kraken_client/portfolio_service/dashboard), 85 tests ✅
 
 ## Cadrage
 
@@ -101,7 +96,6 @@
 - ✅ Menu replié n'occulte pas le contenu (margin-left)
 - ✅ Refacto CSS : style.css (layout global) + side-menu.css (styling menu)
 
-<<<<<<< HEAD
 #### PWA Chrome Installability (2026-09-13)
 - ✅ Service worker handles navigations (network-first for HTML pages)
 - ✅ Service worker deployed at root scope (/) with Service-Worker-Allowed header
@@ -109,7 +103,7 @@
 - ✅ PWA registration uses updateViaCache: 'none' for immediate updates
 - ✅ All endpoints decorated with @never_cache for service worker freshness
 - ✅ PWA tests added to integration suite (2/2 passing)
-=======
+
 #### Multi-utilisateur (2026-09-14)
 - ✅ Chaque modèle métier (SimpleInvestment, SpotTrading, FuturesTrading, ApiCredential, KrakenOrderAttempt, KrakenNonceCounter) a un propriétaire (`user`)
 - ✅ Toutes les vues filtrent/rattachent par `request.user` ; `get_object_or_404` scopé par utilisateur (faille IDOR corrigée)
@@ -122,7 +116,34 @@
 - ✅ Champ `timeframe` (texte libre, ex: 15min/4h/1D) ajouté au modèle mère `Investment` — hérité par `SpotTrading`/`FuturesTrading` (pas `SimpleInvestment`)
 - ✅ Migration `core.0015` appliquée en local, formulaires + modals Spot/Futures mis à jour
 - 🟡 Migration production (Neon) : PAS encore appliquée — se fait automatiquement au prochain déploiement Render (build command inclut `migrate`), ou manuellement si besoin (voir marche à suivre transmise à l'utilisateur)
->>>>>>> dev
+
+#### Positions (2026-09-21, mise à jour même session)
+- ✅ Nouvelle app `apps/positions` : fusion Spot/Futures en page unique, lecture seule (aucune création/clôture ici)
+- ✅ Onglets Spot/Futures, filtres par mode (LIVE/PAPER), KPI recalculées côté serveur
+- ✅ Panneau détail JS en lecture seule, suppression déléguée aux endpoints existants
+- ✅ Menu mis à jour : lien "📂 Positions" unique
+- ✅ N'affiche plus que les positions **clôturées** (`exit_price__isnull=False`) ; les positions ouvertes ne s'affichent plus que sur la page Trading (décision explicite : la page Investissements/`SimpleInvestment` reste inchangée, pas de notion d'ouvert/fermé pour ce modèle)
+
+#### Trading UI (2026-09-21, plusieurs passes)
+- ✅ Refonte page Trading (exchange-like) : dropdown d'actifs (au lieu de liste de boutons)
+- ✅ Graphique OHLC : hauteur 420px → 480px, comble largeur entière (grid 3col → 2col)
+- ✅ Graphique Volume : histogramme coloré (vert haussier, rouge baissier) + ligne Moyenne Mobile 20 superposée
+- ✅ Indicateur SAR (Stop And Reverse) : affiché en points disjoints (style TradingView, `pointMarkersVisible`) ; algorithme Wilder corrigé (l'extreme point `ep` était figé pendant la poursuite de tendance, causant une convergence vers une asymptote horizontale fixe — voir `change-log.md`)
+- ✅ Graphique prix et graphique volume/MM20 synchronisés horizontalement (pan/zoom bidirectionnel via `subscribeVisibleLogicalRangeChange`)
+- ✅ Tests : 1 test mis à jour pour nouveau sélecteur d'actif
+
+#### Drag & drop TP/SL (2026-09-21, 2 correctifs successifs)
+- ✅ Cause racine #1 : `priceScale().priceToCoordinate()/coordinateToPrice()` n'existent pas sur `IPriceScaleApi` (seulement sur `ISeriesApi`) → `TypeError` silencieuse bloquant tout drag. Corrigé via `candleSeries.priceToCoordinate()/coordinateToPrice()` directement.
+- ✅ Cause racine #2 (bug intermittent restant) : le clic-glissé simple entrait en concurrence avec le pan/zoom natif de lightweight-charts (`handleScroll`/`handleScale`, actifs par défaut). Résolu par un key binding : clic-glissé simple = navigation native (pan/zoom), **Maj + clic-glissé** = déplacement de ligne Entrée/TP/SL (avec `handleScroll`/`handleScale` désactivés temporairement pendant le geste).
+- ✅ Vérifié manuellement en navigateur (serveur de dev + compte de test temporaire) : pan simple n'altère plus TP/SL, Maj+glissé déplace correctement, aucune erreur console.
+
+#### Testing (2026-09-22)
+- ✅ `WatchTpSlCommandTests` (4 tests) : commande `watch_tp_sl.py` (`--once`, heartbeat, `--interval`)
+- ✅ `KrakenClientTests` (15 tests) : `add_spot_order`, `query_orders`, `fetch_order_fill_price`, `cancel_order`, `_private_request` — mocks haut niveau uniquement
+- ✅ `PortfolioServiceTests` (10 tests) : stats investment/spot/futures/global, analytics, chart series, isolation multi-utilisateur
+- ✅ 8 nouveaux tests `apps/dashboard/tests.py` : dashboard, signup, save_strategy, création/suppression `ApiCredential` (isolation)
+- 🟡 Bug connu découvert (non corrigé, voir `change-log.md` 2026-09-22) : caractère `✓` non encodable en cp1252 dans `watch_tp_sl.py` — cycle réussi mal classé "échec" sur console Windows par défaut (sans impact prod, Railway = Linux/UTF-8)
+- **Hors périmètre (décision gelée)** : ordres futures LIVE via API Kraken Futures — voir `decisions.md`, rejetée le 2026-09-22
 
 ### À faire ⏳
 
@@ -139,8 +160,19 @@
 #### Déploiement
 - 🟡 Test complet Render + Railway + Neon
 - 🟡 Vérifications health checks watcher
+- 🔴 Committer/merger le travail de la session (audit trail, migration `0017`, tests renforcés) — rien n'est déployé tant que non mergé sur `prod`
+- 🔴 Trancher l'inscription publique vs invite-only avant toute exposition non contrôlée (voir Problèmes connus / `decisions.md` en suspens)
 
 ---
+
+## Statut de préparation production (2026-09-22)
+
+**Verdict `/prod-check`** : 🟠 READY WITH WARNINGS pour Phase 1 (personnel) — 🔴 NOT READY pour ouverture à des utilisateurs non explicitement invités. Rapport complet : `docs/prod-check-2026-09-22.md`.
+
+- Les 3 P0 de l'audit du 2026-09-10 (`docs/audit-production.md`) sont corrigés (machine d'états ordres, retry désactivé, verrou clôture atomique).
+- Isolation multi-utilisateur vérifiée exhaustivement (grep sur tous les `views.py`) : aucune fuite trouvée.
+- `check --deploy`, `makemigrations --check`, suite complète (85 tests) : tous propres.
+- Bloquants restants : voir "Problèmes connus" ci-dessous (B1 travail non commité, B2 signup public).
 
 ## Problèmes connus
 
@@ -154,6 +186,11 @@
 - ✅ **Menu s'ouvrait après clique tabs** → Fixed avec localStorage initial setup sans animation
 - ✅ **CSS désorganisé** → Refacto : layout global dans `style.css`, menu styling dans `side-menu.css`
 - ✅ **Site blanc** → Fixed : import `style.css` dans tous les templates
+
+### Trouvés cette session (2026-09-22, non corrigés)
+- 🔴 **Inscription publique contredit le modèle "invite-only"** de la décision de sécurité Fernet — voir `decisions.md` en suspens et `docs/prod-check-2026-09-22.md`.
+- 🟡 **`watch_tp_sl.py`** : un cycle réussi peut être mal classé "échec" sur console Windows (cp1252) à cause d'un caractère `✓` — sans impact prod (Railway = Linux/UTF-8). Voir `change-log.md` 2026-09-22 (TESTING).
+- 🟡 Pas de protection anti-brute-force sur login/signup ; pas de monitoring/alerting (Sentry ou équivalent) — requis avant Phase 2, toujours absents.
 
 ### En attente
 - ❓ PWA install prompt en production : Vérifier que PNG icons sont accessibles via manifest URLs (à tester après push Render)
