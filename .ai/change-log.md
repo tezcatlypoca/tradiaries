@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-09-22 | DEBUG | Merge `dev` → `prod` bloqué par conflits non résolus
+
+### Cause réelle
+Le merge de `dev` vers `prod` (commit `08f8b8d` et son historique) s'était arrêté en conflit sur `.ai/change-log.md`, `.ai/decisions.md`, `.ai/project-context.md`, `apps/core/tests.py` (contenu réel divergent entre branches) et une dizaine de fichiers de cache Graphify (`graphify-out/cache/ast/...`, artefacts régénérables). Le merge n'avait jamais été finalisé (`git status` en `UU`/`AA`/`DU`/`UD`), empêchant tout commit.
+
+### Correctif
+- Fichiers `.ai/*.md` et `apps/core/tests.py` : contenu déjà fusionné manuellement dans l'arbre de travail (aucun marqueur de conflit résiduel) — vérifié puis simplement stagé (`git add`).
+- Cache Graphify : résolu mécaniquement en gardant la version entrante (`--theirs`) pour les fichiers modifiés/renommés, artefacts régénérables sans impact fonctionnel.
+- Commit de merge `d695438` créé et poussé sur `origin/prod`.
+
+### Vérifications
+- `python manage.py test` : 88 tests, tous verts.
+- `python manage.py makemigrations --check --dry-run` : aucun changement détecté.
+- `python manage.py check --deploy` : seuls les warnings HTTPS/DEBUG attendus en environnement local (gérés par variables d'env en prod).
+
+**Fichiers modifiés** : résolution de conflits uniquement, aucun changement de code au-delà du merge (voir `d695438`).
+
+---
+
 ## 2026-09-22 | AUDIT | Production Readiness Check (branche `dev`)
 
 ### Contexte
