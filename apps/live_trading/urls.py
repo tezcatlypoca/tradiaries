@@ -7,6 +7,7 @@ urlpatterns = [
     path('', views.live_trading, name='index'),
     path('open/', views.open_position, name='open'),
     path('ohlc.json', views.ohlc_json, name='ohlc_json'),
+    path('vigil-signals.json', views.vigil_signals_json, name='vigil_signals_json'),
     path('<str:kind>/<int:pk>/close/', views.close_position, name='close'),
     path('positions.json', views.positions_json, name='positions_json'),
 ]

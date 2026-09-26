@@ -2,6 +2,7 @@ from decimal import Decimal
 from io import StringIO
 from unittest.mock import patch
 
+import requests
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase, override_settings
@@ -27,6 +28,7 @@ from .kraken_client import (
     fetch_order_fill_price,
     query_orders,
 )
+from .vigil_client import fetch_signals as fetch_vigil_signals
 from .portfolio_service import (
     build_chart_series,
     compute_futures_analytics,
@@ -877,3 +879,52 @@ class PortfolioServiceTests(TestCase):
         self.assertEqual(len(series['investment']), 1)
         self.assertEqual(series['spot'], [])
         self.assertEqual(len(series['all']), 1)
+
+
+class VigilClientTests(TestCase):
+    """`vigil_client.fetch_signals` : jamais d'exception, toujours une liste (même vide)."""
+
+    def test_returns_empty_list_when_url_not_configured(self):
+        with override_settings(VIGIL_API_URL=''):
+            self.assertEqual(fetch_vigil_signals(), [])
+
+    @override_settings(VIGIL_API_URL='https://vigil.example.com/api', VIGIL_BEARER_TOKEN='secret-token')
+    @patch('apps.core.vigil_client.requests.get')
+    def test_sends_bearer_token_and_returns_signals(self, mocked_get):
+        mocked_get.return_value.json.return_value = {
+            'signals': [{'ticker': 'BTC', 'summary': 'ETF Bitcoin inflows'}],
+            'count': 1,
+            'errors': {},
+        }
+        mocked_get.return_value.raise_for_status.return_value = None
+
+        result = fetch_vigil_signals()
+
+        self.assertEqual(result, [{'ticker': 'BTC', 'summary': 'ETF Bitcoin inflows'}])
+        _, kwargs = mocked_get.call_args
+        self.assertEqual(kwargs['headers']['Authorization'], 'Bearer secret-token')
+        self.assertEqual(kwargs['timeout'], 5)
+
+    @override_settings(VIGIL_API_URL='https://vigil.example.com/api', VIGIL_BEARER_TOKEN='')
+    @patch('apps.core.vigil_client.requests.get', side_effect=requests.RequestException('boom'))
+    def test_returns_empty_list_on_network_error(self, _mocked_get):
+        self.assertEqual(fetch_vigil_signals(), [])
+
+    @override_settings(VIGIL_API_URL='https://vigil.example.com/api', VIGIL_BEARER_TOKEN='')
+    @patch('apps.core.vigil_client.requests.get')
+    def test_returns_empty_list_on_invalid_json(self, mocked_get):
+        mocked_get.return_value.raise_for_status.return_value = None
+        mocked_get.return_value.json.side_effect = ValueError('not json')
+
+        self.assertEqual(fetch_vigil_signals(), [])
+
+    @override_settings(VIGIL_API_URL='https://vigil.example.com/api', VIGIL_BEARER_TOKEN='')
+    @patch('apps.core.vigil_client.requests.get')
+    def test_no_authorization_header_when_token_not_configured(self, mocked_get):
+        mocked_get.return_value.json.return_value = {'signals': [], 'count': 0, 'errors': {}}
+        mocked_get.return_value.raise_for_status.return_value = None
+
+        fetch_vigil_signals()
+
+        _, kwargs = mocked_get.call_args
+        self.assertNotIn('Authorization', kwargs['headers'])

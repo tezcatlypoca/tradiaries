@@ -98,6 +98,13 @@ KRAKEN_API_PRIVATE = config('KRAKEN_API_PRIVATE', default='')
 KRAKEN_TIMEOUT_SECONDS = config('KRAKEN_TIMEOUT_SECONDS', default=10, cast=int)
 KRAKEN_MAX_RETRIES = config('KRAKEN_MAX_RETRIES', default=2, cast=int)
 
+# API Vigil (signaux de marché scorés, optionnel) — voir docs/API_DOCUMENTATION.md.
+# Pas de RuntimeError si absent : Vigil est une donnée d'agrément (bandeau de contexte
+# sur la page Trading), pas un prérequis de fonctionnement du cœur de l'app.
+VIGIL_API_URL = config('VIGIL_API_URL', default='').rstrip('/')
+VIGIL_BEARER_TOKEN = config('VIGIL_BEARER_TOKEN', default='')
+VIGIL_TIMEOUT_SECONDS = config('VIGIL_TIMEOUT_SECONDS', default=5, cast=int)
+
 # Observateur TP/SL (commande watch_tp_sl) : intervalle entre deux vérifications
 TRADING_WATCHER_INTERVAL_SECONDS = config('TRADING_WATCHER_INTERVAL_SECONDS', default=60, cast=int)
 # Heartbeat stocké en BDD (voir apps/core/watcher_health.py) : le watcher et le

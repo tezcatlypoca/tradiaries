@@ -1,0 +1,48 @@
+<!-- Barre de navigation basse (mobile uniquement, ≤599px) : accès direct aux 4 sections
+     les plus consultées au quotidien + un 5e item "Menu" qui ouvre le drawer existant
+     pour le reste (Analytics, Investissements, Coaching, Paramètres). Voir
+     docs/plan-responsive-smartphone-2026-09-25.md (M3). -->
+<nav class="bottom-tab-bar" id="bottomTabBar">
+    <a href="{% url 'dashboard:index' %}" class="bottom-tab-item" data-path="/">
+        <span class="material-icons">bar_chart</span>
+        <span>Dashboard</span>
+    </a>
+    <a href="{% url 'positions:index' %}" class="bottom-tab-item" data-path="/positions/">
+        <span class="material-icons">folder</span>
+        <span>Positions</span>
+    </a>
+    <a href="{% url 'live_trading:index' %}" class="bottom-tab-item" data-path="/live/">
+        <span class="material-icons">bolt</span>
+        <span>Trading</span>
+    </a>
+    <a href="{% url 'journal:index' %}" class="bottom-tab-item" data-path="/journal/">
+        <span class="material-icons">description</span>
+        <span>Journal</span>
+    </a>
+    <button type="button" class="bottom-tab-item" id="bottomTabMenuBtn">
+        <span class="material-icons">menu</span>
+        <span>Menu</span>
+    </button>
+</nav>
+
+<script>
+(function () {
+    const bar = document.getElementById('bottomTabBar');
+    const menuBtn = document.getElementById('bottomTabMenuBtn');
+    if (!bar) return;
+
+    const path = window.location.pathname;
+    bar.querySelectorAll('.bottom-tab-item[data-path]').forEach((item) => {
+        const target = item.dataset.path;
+        const isActive = target === '/' ? path === '/' : path.startsWith(target);
+        item.classList.toggle('active', isActive);
+    });
+
+    if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+            const menuHeader = document.getElementById('menuHeader');
+            if (menuHeader) menuHeader.click();
+        });
+    }
+})();
+</script>

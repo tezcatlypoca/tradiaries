@@ -238,125 +238,132 @@ body {
     direction: ltr;
 }
 
-/* ============ TABLET RESPONSIVE (769px - 1024px) ============ */
-@media (min-width: 769px) and (max-width: 1024px) {
-    :root {
-        --sidebar-width: 240px;
-    }
-    
-    .main-content {
-        padding: 24px;
-    }
-    
-    .dashboard-container h1 {
-        font-size: 24px;
-    }
-    
-    .kpi-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 12px;
-    }
-    
-    .portfolio-chart-card {
-        grid-column: 1 / -1;
-    }
-}
-
-/* ============ MOBILE RESPONSIVE (max-width: 768px) ============ */
-@media (max-width: 768px) {
+/* ============ CALQUE PARTAGÉ TABLETTE + MOBILE (≤1024px) ============
+   Le menu est TOUJOURS un calque superposé sur cette plage (jamais un push de
+   contenu) : body passe en grille à une seule colonne, .side-menu et
+   .main-content occupent la même cellule et se superposent via z-index/transform
+   (voir static/css/side-menu.css). .main-content ne reçoit donc plus jamais de
+   margin-left réservée pour le menu — voir docs/plan-responsive-tablette-2026-09-25.md
+   (M2) et docs/plan-responsive-smartphone-2026-09-25.md (M1, bug de marge corrigé). */
+@media (max-width: 1024px) {
     body {
         grid-template-columns: 1fr;
         grid-template-rows: 1fr;
     }
-    
+
     .main-content {
         grid-column: 1;
         grid-row: 1;
         width: 100%;
         height: 100vh;
-        padding-top: 56px;
-        padding-left: 16px;
-        padding-right: 16px;
-        padding-bottom: 24px;
         overflow-y: auto;
-        transform: translateX(0);
-        /* Toujours repousser le contenu quand le menu est visible */
-        margin-left: var(--sidebar-width);
-        transition: margin-left 0.3s ease;
+        margin-left: 0;
     }
-    
+
     .side-menu.hidden ~ .main-content,
     .main-content.expanded {
         grid-column: 1;
-        width: calc(100% - var(--sidebar-collapsed-width));
-        margin-left: var(--sidebar-collapsed-width);
-        transform: translateX(0);
+        width: 100%;
+        margin-left: 0;
     }
-    
-    /* Overlay semi-transparent when menu is visible on mobile */
-    body::before {
+
+    /* Overlay semi-transparent affiché quand le menu est ouvert (calque, jamais de push) */
+    .main-content::before {
         content: '';
         position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        inset: 0;
         background: rgba(0, 0, 0, 0.5);
         opacity: 0;
         pointer-events: none;
         z-index: 998;
         transition: opacity 0.3s ease;
     }
-    
-    /* Show overlay when menu is open */
+
     .side-menu:not(.hidden) ~ .main-content::before {
         opacity: 1;
         pointer-events: auto;
     }
-    
+}
+
+/* ============ TABLETTE (600px - 1024px) : rail à icônes replié par défaut ============ */
+@media (min-width: 600px) and (max-width: 1024px) {
+    :root {
+        --sidebar-width: 240px;
+    }
+
+    .main-content {
+        padding: 24px;
+        /* Dégagement pour le rail replié (64px) + respiration, afin que le rail ne
+           recouvre jamais le contenu réel (cf. docs/plan-responsive-tablette-2026-09-25.md, 2.1) */
+        padding-left: calc(var(--sidebar-collapsed-width) + 24px);
+    }
+
+    .dashboard-container h1 {
+        font-size: 24px;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .portfolio-chart-card {
+        grid-column: 1 / -1;
+    }
+}
+
+/* ============ MOBILE (max-width: 599px) : drawer plein écran, replié = 0 largeur ============ */
+@media (max-width: 599px) {
+    .main-content {
+        padding-top: 56px;
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-bottom: 24px;
+    }
+
     /* KPI Grid: single column on mobile */
     .kpi-grid {
         grid-template-columns: 1fr;
         gap: 10px;
     }
-    
+
     .kpi-card {
         padding: 12px;
     }
-    
+
     .kpi-card h3 {
         font-size: 12px;
     }
-    
+
     .kpi-card .kpi-value {
         font-size: 18px;
     }
-    
+
     /* Main content adjustments */
     .dashboard-container {
         max-width: 100%;
     }
-    
+
     .dashboard-container h1 {
         font-size: 20px;
     }
-    
+
     .dashboard-container > p {
         font-size: 12px;
     }
-    
+
     /* Quick access buttons */
     .quick-access {
         flex-direction: column;
         gap: 8px;
     }
-    
+
     .btn {
         width: 100%;
         padding: 8px 12px;
         font-size: 12px;
     }
-    
+
     /* Portfolio chart adjustments */
     .portfolio-chart-card {
         grid-column: 1 / -1;

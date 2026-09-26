@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
     <link rel="stylesheet" href="{% static 'css/investment.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bottom-tab-bar.css' %}">
 
     <!-- PWA -->
     <link rel="manifest" href="{% url 'manifest' %}">
@@ -21,6 +22,7 @@
 </head>
 <body>
     {% include 'components/side-menu.html' %}
+    {% include 'components/bottom-tab-bar.html' %}
 
     <div class="main-content">
         <div class="investments-container">
@@ -55,16 +57,16 @@
                 <tbody>
                     {% for investment in investments %}
                     <tr>
-                        <td>
+                        <td data-label="Symbole">
                             <span class="investment-symbol">{{ investment.symbol }}</span>
                         </td>
-                        <td>{{ investment.entry_date|date:"d/m/Y" }}</td>
-                        <td>{{ investment.amount }}</td>
-                        <td>${{ investment.price }}</td>
-                        <td>
+                        <td data-label="Date">{{ investment.entry_date|date:"d/m/Y" }}</td>
+                        <td data-label="Quantité">{{ investment.amount }}</td>
+                        <td data-label="Prix">${{ investment.price }}</td>
+                        <td data-label="Type">
                             <span class="investment-action investment-action-{{ investment.action|lower }}">{{ investment.get_action_display }}</span>
                         </td>
-                        <td class="investments-table-actions">
+                        <td class="investments-table-actions" data-label="Actions">
                             <button type="button" class="icon-btn icon-edit" title="Modifier"
                                 data-id="{{ investment.pk }}"
                                 data-symbol="{{ investment.symbol }}"

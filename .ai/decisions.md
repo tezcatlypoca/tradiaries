@@ -1,6 +1,6 @@
 # Tradiaries — Décisions
 
-**Dernière mise à jour** : 2026-09-22
+**Dernière mise à jour** : 2026-09-25
 
 ## Décisions retenues ✅
 
@@ -101,7 +101,19 @@
   - `apps/dashboard/views.py` (2 tests seulement, module modifié dans le diff en cours)
 - **Impact** : Pas de changement d'architecture de test. Extension de `apps/core/tests.py` et `apps/dashboard/tests.py` avec de nouvelles classes ciblant ces zones.
 
+### Intégration des news Vigil — Bandeau contextuel sur la page Trading (2026-09-25)
+- **Décidé** : Afficher les signaux Vigil sous forme de **bandeau de cards à défilement horizontal manuel** (pas d'auto-scroll) sur la page Trading (`apps/live_trading`). Pas de page/table séparée pour parcourir le flux Vigil en v1.
+- **Filtrage** : liste d'actifs suivis déclarée par l'utilisateur dans Paramètres (nouveau champ structuré, aux côtés du champ `strategy` déjà présent sur `UserPreferences`) + signaux macro/géopolitiques généraux (`ticker=null`) toujours affichés, indépendamment de cette liste.
+- **Raison** : le seul besoin identifié en Challenge est de contextualiser une prise de trade en cours, pas de parcourir un flux de news général. L'auto-scroll a été explicitement écarté pour ne pas distraire l'utilisateur pendant la validation d'un ordre LIVE (cohérent avec la checklist IRC déjà en place).
+- **Affichage neutre obligatoire** (issu du Challenge, pour limiter le risque de lecture comme conseil financier déguisé) : pas de code couleur directionnel (vert/rouge façon signal bull/bear), pas de CTA orienté action, `reliability_tier` Vigil toujours visible pour distinguer fait (GROUND_TRUTH/QUANTITATIVE) d'opinion (EDITORIAL).
+- **Impact** : nouveau champ structuré sur `UserPreferences` (liste d'actifs suivis — format à préciser en Planification), nouveau composant JS sur `live_trading.html`, mapping requis entre `symbol` Tradiaries (format paire exchange, ex. `XBTUSD`) et `ticker` Vigil (actif nu, ex. `BTC`). Client HTTP Vigil : bearer token partagé (`VIGIL_BEARER_TOKEN`), pas de cache Tradiaries nécessaire pour protéger Vigil (ingestion 100% cron côté Vigil, lecture instantanée) — un cache reste à envisager plus tard uniquement si le rate limit partagé (30/min, un seul token pour tous les utilisateurs Tradiaries) devient limitant en Phase 2.
+
 ## Décisions rejetées ❌
+
+### Table/page dédiée aux news Vigil en v1 (2026-09-25)
+- **Rejeté** : Pas de vue table séparée pour parcourir l'ensemble des signaux Vigil en v1 — seul le bandeau contextuel sur la page Trading est construit.
+- **Raison** : aucun besoin distinct de la contextualisation sur la page Trading n'a été identifié ; construire les deux composants (bandeau + table) pour un seul besoin réel aurait été de la sur-ingénierie.
+- **Où revisiter** : si un besoin de consultation libre du flux Vigil (hors contexte d'une prise de trade) émerge après usage du bandeau.
 
 ### Ordres futures LIVE via l'API Kraken Futures (2026-09-22)
 - **Rejeté (pour l'instant)** : Ne pas implémenter/valider de passage d'ordres futures LIVE via l'API Kraken Futures dans cette session. Rester exclusivement sur l'API Kraken **spot/classic** déjà en place.
@@ -109,6 +121,23 @@
 - **Où revisiter** : Si besoin de valider la faisabilité technique de l'API Kraken Futures, le faire via un spike isolé hors de l'app Django (script séparé, clés Futures dédiées) sans toucher `trading_service.py`/`open_position()` — voir décision "Modèle de déploiement progressif".
 
 ## Décisions en suspens ⏳
+
+### Geste tactile pour déplacer TP/SL sur le graphique Trading (2026-09-25, découvert en `/implementation` responsive)
+- **Question** : Le déplacement des lignes Entrée/TP/SL sur le graphique de la page Trading utilise `Maj + clic-glissé` sur desktop (`live_trading.html`, `event.shiftKey`) — il n'existe pas d'équivalent tactile (pas de touche Maj sur un écran tactile), donc impossible de déplacer TP/SL directement sur le graphique en mobile/tablette. Faut-il ajouter un geste alternatif (ex. appui long) ou assumer que cette interaction reste desktop uniquement ?
+- **Contexte** : identifié lors de la refonte responsive tablette/smartphone du 2026-09-25 (`docs/plan-responsive-smartphone-2026-09-25.md`). La saisie manuelle des valeurs TP/SL via les champs du formulaire reste possible sur tous les appareils — ce n'est pas un blocage fonctionnel, juste une perte de confort sur mobile/tablette.
+- **Impact si retenu** : chantier d'interaction distinct (détection appui long, éventuellement rebalayage du geste desktop existant), hors périmètre visuel de la refonte responsive déjà livrée.
+- **Décision** : non tranchée — à trancher séparément, pas bloquant.
+
+### Champ `timeframe` : texte libre vs liste prédéfinie (2026-09-25)
+- **Question** : Faut-il convertir `Investment.timeframe` (actuellement `CharField` texte libre, hérité par `SpotTrading`/`FuturesTrading`) en liste de choix fermée ?
+- **Contexte** : nécessaire pour mapper fiablement le timeframe d'un trade vers les buckets `news_score.importance` de Vigil (`intraday`/`swing`/`position`) et affiner la pertinence des news affichées dans le bandeau Trading. Texte libre = valeurs hétérogènes, mapping non fiable en l'état. Évoqué comme possible par l'utilisateur, non tranché.
+- **Impact si retenu** : nouvelle migration sur `SpotTrading`/`FuturesTrading` (le champ existe déjà via migration `0015`), mise à jour des formulaires/modals Spot et Futures.
+- **Décision** : à trancher en Planification ou dans une session dédiée, pas bloquant pour démarrer le bandeau Vigil (le filtrage par liste d'actifs suivis ne dépend pas de ce champ).
+
+### Commercialisation potentielle de Tradiaries (2026-09-25)
+- **Question** : L'utilisateur envisage de commercialiser Tradiaries pour d'autres traders retail si l'usage personnel s'avère concluant — à quel moment et sous quelle forme ?
+- **Contexte** : ne change rien à trancher immédiatement sur l'intégration Vigil, mais recoupe directement la décision existante "Modèle de déploiement progressif" (Phase 3 = grand public/abonnement, ci-dessous) et le critère de bascule de "Clé Fernet par utilisateur + External Key Vault" (déjà conditionné à une "ouverture grand public"). Le Cadrage du projet (`project-context.md`) décrit toujours Tradiaries comme "application Django personnelle" — à mettre à jour explicitement le jour où cette intention se précise.
+- **Décision** : aucune action requise maintenant. À re-challenger avec une grille concurrentielle (TraderSync/Cypher, TradesViz — déjà identifiés dans `docs/coach-ia-vers-tradiaries-2026-09-25.md` comme concurrents sur la détection de violation de règle) le jour où l'intention de commercialisation se précise.
 
 ### Inscription publique (`accounts/signup/`) vs modèle "invite-only" (2026-09-22, trouvé en `/prod-check`)
 - **Question** : Faut-il fermer l'inscription publique (`SignupForm` n'exige aujourd'hui aucune invitation/validation), ou ajouter un vrai mécanisme d'invitation (code à usage unique, approbation admin) ?

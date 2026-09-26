@@ -300,6 +300,11 @@ class UserPreferences(models.Model):
         related_name='tradiaries_preferences',
     )
     strategy = models.TextField(blank=True)
+    tracked_assets = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Liste des symboles (ex: BTC, ETH) utilisés pour filtrer les news Vigil sur la page Trading.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

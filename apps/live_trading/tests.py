@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from decimal import Decimal
 from unittest.mock import patch
@@ -6,7 +7,9 @@ from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 
-from .views import ohlc_json, positions_json
+from apps.core.models import UserPreferences
+
+from .views import ohlc_json, positions_json, vigil_signals_json
 
 
 class LiveTradingViewTests(TestCase):
@@ -104,3 +107,61 @@ class TradingPageRenderingTests(TestCase):
         self.assertContains(response, 'id="riskPreview"')
         self.assertContains(response, reverse('live_trading:ohlc_json'))
         self.assertContains(response, 'lightweight-charts.standalone.production.js')
+
+
+class VigilSignalsJsonViewTests(TestCase):
+    """`vigil_signals_json` : filtrage par actifs suivis + signaux macro toujours inclus, affichage neutre."""
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(username='trader4', password='strong-test-password')
+
+    @patch('apps.live_trading.views.fetch_vigil_signals')
+    def test_filters_by_tracked_assets_and_keeps_macro_signals(self, mocked_fetch):
+        UserPreferences.objects.create(user=self.user, tracked_assets=['BTC'])
+        mocked_fetch.return_value = [
+            {
+                'ticker': 'BTC', 'summary': 'ETF Bitcoin inflows', 'source': 'etf_flow',
+                'timestamp': 't1', 'reliability_tier': 2, 'raw_payload': {'flow_usd': 1},
+            },
+            {
+                'ticker': 'ETH', 'summary': 'Ethereum upgrade', 'source': 'news_editorial',
+                'timestamp': 't2', 'reliability_tier': 3,
+            },
+            {
+                'ticker': None, 'summary': 'Fed rate decision', 'source': 'news_aggregator',
+                'timestamp': 't3', 'reliability_tier': 3,
+            },
+        ]
+        request = RequestFactory().get('/live/vigil-signals.json')
+        request.user = self.user
+
+        response = vigil_signals_json(request)
+
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual([s['ticker'] for s in data['signals']], ['BTC', None])
+        # Affichage neutre : jamais de raw_payload/news_score bruts exposés au front.
+        self.assertNotIn('raw_payload', data['signals'][0])
+
+    @patch('apps.live_trading.views.fetch_vigil_signals', return_value=[])
+    def test_returns_empty_list_when_vigil_unavailable(self, _mocked_fetch):
+        request = RequestFactory().get('/live/vigil-signals.json')
+        request.user = self.user
+
+        response = vigil_signals_json(request)
+
+        self.assertJSONEqual(response.content, {'signals': []})
+
+    @patch('apps.live_trading.views.fetch_vigil_signals')
+    def test_no_preferences_only_macro_signals_shown(self, mocked_fetch):
+        mocked_fetch.return_value = [
+            {'ticker': 'BTC', 'summary': 'ETF Bitcoin inflows', 'source': 'etf_flow', 'timestamp': 't1', 'reliability_tier': 2},
+            {'ticker': None, 'summary': 'Fed rate decision', 'source': 'news_aggregator', 'timestamp': 't3', 'reliability_tier': 3},
+        ]
+        request = RequestFactory().get('/live/vigil-signals.json')
+        request.user = self.user
+
+        response = vigil_signals_json(request)
+
+        data = json.loads(response.content)
+        self.assertEqual([s['ticker'] for s in data['signals']], [None])

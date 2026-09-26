@@ -38,6 +38,13 @@
                     <label for="{{ strategy_form.strategy.id_for_label }}">Stratégie</label>
                     {{ strategy_form.strategy }}
                 </div>
+                <div class="form-group">
+                    <label>{{ strategy_form.tracked_assets.label }}</label>
+                    <p style="color: var(--text-secondary, #91a3ad); margin: 0 0 0.5rem; font-size: 0.85rem;">{{ strategy_form.tracked_assets.help_text }}</p>
+                    <div class="tracked-assets-checkboxes">
+                        {{ strategy_form.tracked_assets }}
+                    </div>
+                </div>
                 <div class="form-actions" style="border-top: none; margin-top: 1rem; padding-top: 0;">
                     <button type="submit" class="btn-primary">Enregistrer la stratégie</button>
                 </div>

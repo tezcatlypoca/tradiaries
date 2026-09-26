@@ -10,6 +10,7 @@
     overflow-y: auto;
     z-index: 1000;
     border-right: 1px solid var(--border-subtle);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.35);
     transition: transform 0.3s ease;
 }
 
@@ -18,15 +19,76 @@
     transition: none;
 }
 
+/* État replié par défaut : sur desktop et tablette, un rail de 64px reste visible
+   (icônes seules, cf. .menu-icon/.menu-label ci-dessous) ; sur mobile, ce même
+   formulaire de transform est écrasé en `transform: translateX(-100%)` (voir la
+   media query plus bas) pour ne réserver aucune largeur. */
 .side-menu.hidden {
     transform: translateX(calc(-1 * (var(--sidebar-width) - var(--sidebar-collapsed-width))));
     overflow: hidden;
 }
 
-.side-menu.hidden .menu-header,
-.side-menu.hidden .menu-list {
+/* display:none (pas juste opacity:0) : un label invisible mais toujours dans le
+   flux flex décentrerait l'icône (le groupe icône+label, plus large que le rail,
+   se centre alors sur son propre encombrement et déborde hors du rail). */
+.side-menu.hidden .menu-label,
+.side-menu.hidden .menu-brand-label {
+    display: none;
+}
+
+.side-menu.hidden .collapse-arrow {
     opacity: 0;
     pointer-events: none;
+}
+
+.side-menu.hidden .menu-list > li > a {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.side-menu.hidden .menu-header {
+    padding-left: 0;
+    padding-right: 0;
+    text-align: center;
+}
+
+.side-menu.hidden .menu-brand-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: rgba(103, 232, 193, 0.12);
+    border: 1px solid rgba(103, 232, 193, 0.24);
+}
+
+.side-menu.hidden .submenu-toggle {
+    display: none;
+}
+
+/* Mobile (≤599px) : le menu replié est un drawer hors-écran, pas un rail —
+   voir docs/plan-responsive-smartphone-2026-09-25.md, bug de marge du menu (M1). */
+@media (max-width: 599px) {
+    .side-menu.hidden {
+        transform: translateX(-100%);
+    }
+}
+
+/* Tablette (600-1024px) : rail réellement rétréci à 64px (pas un calque tronqué
+   d'une sidebar pleine largeur — le contenu centré resterait hors-champ). Voir
+   docs/plan-responsive-tablette-2026-09-25.md (M2). */
+@media (min-width: 600px) and (max-width: 1024px) {
+    .side-menu.hidden {
+        width: var(--sidebar-collapsed-width);
+        transform: none;
+    }
+
+    .side-menu.hidden .menu-list {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
 }
 
 /* Menu Toggle Button */
@@ -56,6 +118,15 @@
 
 .menu-toggle:hover { background: var(--surface-3); }
 
+/* Sur tablette/desktop, le rail à icônes est toujours visible et cliquable
+   (menu-header bascule l'état) : le bouton flottant est redondant et créerait
+   un chevauchement visuel avec l'icône de marque du rail. */
+@media (min-width: 600px) {
+    .menu-toggle.visible {
+        display: none;
+    }
+}
+
 /* Menu Header */
 .menu-header {
     padding: 27px 24px 24px;
@@ -71,6 +142,14 @@
     font-weight: 800;
     color: var(--primary-color);
     letter-spacing: 0;
+}
+
+.menu-brand-icon {
+    display: none;
+}
+
+.menu-brand-label {
+    transition: opacity 0.2s ease;
 }
 
 .menu-header .collapse-arrow {
@@ -116,6 +195,18 @@
 .menu-list > li > a:hover {
     background: var(--sidebar-hover);
     color: var(--primary-color);
+}
+
+.menu-icon {
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+}
+
+.menu-label {
+    margin-left: 10px;
+    white-space: nowrap;
+    transition: opacity 0.2s ease;
 }
 
 .menu-list > li > a.active {

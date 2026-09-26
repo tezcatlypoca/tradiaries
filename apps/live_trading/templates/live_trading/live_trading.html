@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
     <link rel="stylesheet" href="{% static 'css/investment.css' %}">
     <link rel="stylesheet" href="{% static 'css/trading.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bottom-tab-bar.css' %}">
 
     <!-- PWA -->
     <link rel="manifest" href="{% url 'manifest' %}">
@@ -22,6 +23,7 @@
 </head>
 <body>
     {% include 'components/side-menu.html' %}
+    {% include 'components/bottom-tab-bar.html' %}
 
     <div class="main-content">
         <div class="investments-container">
@@ -48,6 +50,11 @@
                 ⚠️ Prix indisponible sur Kraken pour : {{ unavailable_symbols|join:", " }}
             </div>
             {% endif %}
+
+            <!-- Bandeau de contexte (news Vigil) : actifs suivis + signaux macro/géopolitiques -->
+            <div id="vigilSignalsBanner" class="vigil-signals-banner" hidden>
+                <div class="vigil-signals-track" id="vigilSignalsTrack"></div>
+            </div>
 
             <!-- Ticket d'ordre + graphique -->
             <form id="positionForm" method="POST" action="{% url 'live_trading:open' %}" class="trading-workspace">
@@ -166,33 +173,46 @@
                             <th>Entrée</th>
                             <th>Prix actuel</th>
                             <th>PnL latent</th>
-                            <th>TP</th>
-                            <th>SL</th>
+                            <th class="col-tablet-hide">TP</th>
+                            <th class="col-tablet-hide">SL</th>
                             <th class="investments-table-actions">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="positionsBody">
                         {% for p in positions %}
-                        <tr>
-                            <td><span class="investment-symbol">{{ p.symbol }}</span></td>
-                            <td><span class="investment-action investment-action-{{ p.kind }}">{{ p.kind|capfirst }}</span></td>
-                            <td><span class="investment-action investment-action-{{ p.trade_mode|lower }}">{{ p.trade_mode|capfirst }}</span></td>
-                            <td><span class="investment-action investment-action-{{ p.direction|lower }}">{{ p.direction|capfirst }}</span></td>
-                            <td>{{ p.amount }}</td>
-                            <td>${{ p.entry_price }}</td>
-                            <td>{% if p.current_price %}${{ p.current_price }}{% else %}-{% endif %}</td>
-                            <td>{% if p.pnl is not None %}<span class="{% if p.pnl >= 0 %}text-positive{% else %}text-negative{% endif %}">${{ p.pnl }}</span>{% else %}-{% endif %}</td>
-                            <td>
+                        <tr class="detail-row" tabindex="0"
+                            data-symbol="{{ p.symbol }}"
+                            data-amount="{{ p.amount }}"
+                            data-entry-price="{{ p.entry_price }}"
+                            data-current-price="{{ p.current_price|default_if_none:'' }}"
+                            data-pnl="{{ p.pnl|default_if_none:'' }}"
+                            data-take-profit="{{ p.take_profit|default_if_none:'' }}"
+                            data-stop-loss="{{ p.stop_loss|default_if_none:'' }}"
+                            data-direction="{{ p.direction|capfirst }}"
+                            data-trade-mode="{{ p.trade_mode|capfirst }}"
+                        >
+                            <td data-label="Symbole"><span class="investment-symbol">{{ p.symbol }}</span></td>
+                            <td data-label="Type"><span class="investment-action investment-action-{{ p.kind }}">{{ p.kind|capfirst }}</span></td>
+                            <td data-label="Mode"><span class="investment-action investment-action-{{ p.trade_mode|lower }}">{{ p.trade_mode|capfirst }}</span></td>
+                            <td data-label="Sens"><span class="investment-action investment-action-{{ p.direction|lower }}">{{ p.direction|capfirst }}</span></td>
+                            <td data-label="Quantité">{{ p.amount }}</td>
+                            <td data-label="Entrée">${{ p.entry_price }}</td>
+                            <td data-label="Prix actuel">{% if p.current_price %}${{ p.current_price }}{% else %}-{% endif %}</td>
+                            <td data-label="PnL latent">{% if p.pnl is not None %}<span class="{% if p.pnl >= 0 %}text-positive{% else %}text-negative{% endif %}">${{ p.pnl }}</span>{% else %}-{% endif %}</td>
+                            <td data-label="TP" class="col-tablet-hide">
                                 {% if p.take_profit %}${{ p.take_profit }}
                                     {% if p.tp_distance_pct is not None %}<span class="tpsl-distance">({{ p.tp_distance_pct|floatformat:2 }}%)</span>{% endif %}
                                 {% else %}-{% endif %}
                             </td>
-                            <td>
+                            <td data-label="SL" class="col-tablet-hide">
                                 {% if p.stop_loss %}${{ p.stop_loss }}
                                     {% if p.sl_distance_pct is not None %}<span class="tpsl-distance">({{ p.sl_distance_pct|floatformat:2 }}%)</span>{% endif %}
                                 {% else %}-{% endif %}
                             </td>
-                            <td class="investments-table-actions">
+                            <td class="investments-table-actions" data-label="Actions">
+                                <button type="button" class="icon-btn icon-details" title="Détails">
+                                    <span class="material-icons">visibility</span>
+                                </button>
                                 <form method="POST" action="{% url 'live_trading:close' p.kind p.pk %}"
                                     class="inline-delete-form"
                                     onsubmit="return confirm('Clôturer la position {{ p.symbol }} ?{% if p.trade_mode == 'LIVE' %} Un ordre de vente réel sera envoyé à Kraken.{% endif %}');">
@@ -215,6 +235,17 @@
             <div class="empty-state" id="emptyState" {% if positions %}style="display:none"{% endif %}>
                 <p>📭 Aucune position ouverte</p>
             </div>
+        </div>
+    </div>
+
+    <!-- Panneau de détail (lecture seule) pour les positions ouvertes -->
+    <div class="detail-panel-overlay" id="detailPanelOverlay">
+        <div class="detail-panel" id="detailPanel">
+            <div class="detail-panel-header">
+                <h2 id="detailPanelTitle">Détails</h2>
+                <button type="button" class="modal-close" id="detailPanelClose">&times;</button>
+            </div>
+            <dl class="detail-panel-body" id="detailPanelBody"></dl>
         </div>
     </div>
 
@@ -264,6 +295,7 @@
     const positionForm = document.getElementById('positionForm');
     const positionsJsonUrl = "{% url 'live_trading:positions_json' %}";
     const ohlcJsonUrl = "{% url 'live_trading:ohlc_json' %}";
+    const vigilSignalsJsonUrl = "{% url 'live_trading:vigil_signals_json' %}";
     const closeUrlTemplate = "{% url 'live_trading:close' 'spot' 0 %}";
     const csrfToken = document.querySelector('#positionForm [name=csrfmiddlewaretoken]').value;
 
@@ -306,6 +338,20 @@
 
     // ---------- Graphique + sélection d'actif ----------
 
+    // Hauteurs de graphique adaptatives : les valeurs desktop (480/120) restent
+    // pertinentes quand le workspace est en 2 colonnes (chart | ticket, ≥768px),
+    // mais forcent un scroll vertical excessif une fois le ticket empilé sous le
+    // graphique (mesuré : 1938px de contenu pour 758px visibles en 1024×768 avec
+    // les anciennes valeurs fixes) — voir docs/plan-responsive-tablette-2026-09-25.md
+    // (M4) et docs/plan-responsive-smartphone-2026-09-25.md (M4).
+    function computeChartHeights() {
+        const w = window.innerWidth;
+        if (w <= 599) return { chart: 240, volume: 70 };
+        if (w <= 767) return { chart: 320, volume: 90 };
+        return { chart: 480, volume: 120 };
+    }
+    const initialHeights = computeChartHeights();
+
     const chartContainer = document.getElementById('tradingChart');
     const volumeContainer = document.getElementById('tradingVolume');
     const chart = LightweightCharts.createChart(chartContainer, {
@@ -313,14 +359,14 @@
         grid: { vertLines: { color: '#192430' }, horzLines: { color: '#192430' } },
         rightPriceScale: { borderColor: '#273542' },
         timeScale: { borderColor: '#273542', timeVisible: true },
-        height: 480,
+        height: initialHeights.chart,
     });
     const volumeChart = LightweightCharts.createChart(volumeContainer, {
         layout: { background: { color: '#0e141b' }, textColor: '#91a3ad' },
         grid: { vertLines: { color: '#192430' }, horzLines: { color: '#192430' } },
         rightPriceScale: { borderColor: '#273542' },
         timeScale: { borderColor: '#273542', timeVisible: false },
-        height: 120,
+        height: initialHeights.volume,
     });
     const candleSeries = chart.addCandlestickSeries({
         upColor: '#62e6ad', downColor: '#ff8091', borderVisible: false,
@@ -335,9 +381,16 @@
     const sarSeries = chart.addLineSeries({
         color: '#fbbf24', lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: 2,
     });
+    let lastChartHeights = initialHeights;
     new ResizeObserver(() => {
         chart.applyOptions({ width: chartContainer.clientWidth });
         volumeChart.applyOptions({ width: volumeContainer.clientWidth });
+        const heights = computeChartHeights();
+        if (heights.chart !== lastChartHeights.chart) {
+            chart.applyOptions({ height: heights.chart });
+            volumeChart.applyOptions({ height: heights.volume });
+            lastChartHeights = heights;
+        }
     }).observe(chartContainer);
 
     // ---------- Synchronisation du déplacement horizontal (pan/zoom) entre les deux graphiques ----------
@@ -707,22 +760,41 @@
         return `<span class="investment-action investment-action-${cssClass}">${label}</span>`;
     }
 
+    function esc(value) {
+        return String(value === null || value === undefined ? '' : value).replace(/"/g, '&quot;');
+    }
+
     function renderRow(p) {
         const kindLabel = p.kind === 'futures' ? 'Futures' : 'Spot';
         const closeUrl = closeUrlTemplate.replace('/spot/0/', `/${p.kind}/${p.pk}/`);
         const liveWarning = p.trade_mode === 'LIVE' ? ' Un ordre de vente réel sera envoyé à Kraken.' : '';
-        return `<tr>
-            <td><span class="investment-symbol">${p.symbol}</span></td>
-            <td>${badge(p.kind, kindLabel)}</td>
-            <td>${badge(p.trade_mode.toLowerCase(), p.trade_mode === 'LIVE' ? 'Live' : 'Paper')}</td>
-            <td>${badge(p.direction.toLowerCase(), p.direction === 'SHORT' ? 'Short' : 'Long')}</td>
-            <td>${fmt(p.amount)}</td>
-            <td>${fmtPrice(p.entry_price)}</td>
-            <td>${fmtPrice(p.current_price)}</td>
-            <td>${pnlCell(p.pnl)}</td>
-            <td>${levelCell(p.take_profit, p.tp_distance_pct)}</td>
-            <td>${levelCell(p.stop_loss, p.sl_distance_pct)}</td>
-            <td class="investments-table-actions">
+        const directionLabel = p.direction === 'SHORT' ? 'Short' : 'Long';
+        const tradeModeLabel = p.trade_mode === 'LIVE' ? 'Live' : 'Paper';
+        return `<tr class="detail-row" tabindex="0"
+            data-symbol="${esc(p.symbol)}"
+            data-amount="${esc(p.amount)}"
+            data-entry-price="${esc(p.entry_price)}"
+            data-current-price="${esc(p.current_price)}"
+            data-pnl="${esc(p.pnl)}"
+            data-take-profit="${esc(p.take_profit)}"
+            data-stop-loss="${esc(p.stop_loss)}"
+            data-direction="${esc(directionLabel)}"
+            data-trade-mode="${esc(tradeModeLabel)}"
+        >
+            <td data-label="Symbole"><span class="investment-symbol">${p.symbol}</span></td>
+            <td data-label="Type">${badge(p.kind, kindLabel)}</td>
+            <td data-label="Mode">${badge(p.trade_mode.toLowerCase(), tradeModeLabel)}</td>
+            <td data-label="Sens">${badge(p.direction.toLowerCase(), directionLabel)}</td>
+            <td data-label="Quantité">${fmt(p.amount)}</td>
+            <td data-label="Entrée">${fmtPrice(p.entry_price)}</td>
+            <td data-label="Prix actuel">${fmtPrice(p.current_price)}</td>
+            <td data-label="PnL latent">${pnlCell(p.pnl)}</td>
+            <td data-label="TP" class="col-tablet-hide">${levelCell(p.take_profit, p.tp_distance_pct)}</td>
+            <td data-label="SL" class="col-tablet-hide">${levelCell(p.stop_loss, p.sl_distance_pct)}</td>
+            <td class="investments-table-actions" data-label="Actions">
+                <button type="button" class="icon-btn icon-details" title="Détails">
+                    <span class="material-icons">visibility</span>
+                </button>
                 <form method="POST" action="${closeUrl}" class="inline-delete-form"
                     onsubmit="return confirm('Clôturer la position ${p.symbol} ?${liveWarning}');">
                     <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
@@ -745,7 +817,11 @@
                 wrapper.style.display = 'none';
                 empty.style.display = '';
             } else {
-                document.getElementById('positionsBody').innerHTML = data.positions.map(renderRow).join('');
+                const tbody = document.getElementById('positionsBody');
+                tbody.innerHTML = data.positions.map(renderRow).join('');
+                if (window.wireDetailRow) {
+                    tbody.querySelectorAll('.detail-row').forEach(window.wireDetailRow);
+                }
                 wrapper.style.display = '';
                 empty.style.display = 'none';
             }
@@ -755,7 +831,58 @@
     }
 
     setInterval(refreshPositions, 30000);
+
+    // ---------- Bandeau de contexte (news Vigil) ----------
+    // Un seul appel au chargement de la page (pas de setInterval) : les signaux Vigil
+    // sont rafraîchis côté serveur toutes les 2-10 min selon la source, pas besoin de
+    // repoller côté client, et ça ménage le rate limit Vigil partagé entre utilisateurs.
+
+    const VIGIL_TIER_LABELS = { 1: 'Fait vérifié', 2: 'Donnée quantitative', 3: 'Analyse' };
+
+    function renderVigilCard(signal) {
+        const card = document.createElement('div');
+        card.className = 'vigil-signal-card';
+
+        const tier = document.createElement('span');
+        tier.className = 'vigil-signal-tier';
+        tier.textContent = VIGIL_TIER_LABELS[signal.reliability_tier] || 'Signal';
+        card.appendChild(tier);
+
+        const summary = document.createElement('p');
+        summary.className = 'vigil-signal-summary';
+        summary.textContent = signal.summary || '';
+        card.appendChild(summary);
+
+        const meta = document.createElement('span');
+        meta.className = 'vigil-signal-meta';
+        meta.textContent = (signal.ticker ? `${signal.ticker} · ` : '') + (signal.source || '');
+        card.appendChild(meta);
+
+        return card;
+    }
+
+    async function loadVigilSignals() {
+        try {
+            const response = await fetch(vigilSignalsJsonUrl);
+            if (!response.ok) { return; }
+            const data = await response.json();
+            const banner = document.getElementById('vigilSignalsBanner');
+            const track = document.getElementById('vigilSignalsTrack');
+            if (!data.signals || data.signals.length === 0) {
+                banner.hidden = true;
+                return;
+            }
+            track.innerHTML = '';
+            data.signals.forEach((signal) => track.appendChild(renderVigilCard(signal)));
+            banner.hidden = false;
+        } catch (err) {
+            // Vigil indisponible : le bandeau reste masqué (hidden par défaut)
+        }
+    }
+
+    loadVigilSignals();
 </script>
 <script src="{% static 'js/pwa-register.js' %}"></script>
+<script src="{% static 'js/row-detail-panel.js' %}"></script>
 </body>
 </html>

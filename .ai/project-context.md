@@ -1,7 +1,7 @@
 # Tradiaries — Project Context
 
-**Dernière mise à jour** : 2026-09-22  
-**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI trading refondue (drag & drop TP/SL fiabilisé, SAR corrigé, graphiques synchronisés), page Positions limitée aux positions clôturées, multi-utilisateur opérationnel, audit trail clés API, suite de tests renforcée (watcher/kraken_client/portfolio_service/dashboard), 85 tests ✅
+**Dernière mise à jour** : 2026-09-25  
+**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI trading refondue (drag & drop TP/SL fiabilisé, SAR corrigé, graphiques synchronisés), page Positions limitée aux positions clôturées, multi-utilisateur opérationnel, audit trail clés API, suite de tests renforcée (watcher/kraken_client/portfolio_service/dashboard), bandeau de news Vigil sur la page Trading, refonte responsive tablette + smartphone (menu, tableaux, page Trading), 95 tests ✅. **Coach IA** : relocalisé de Vigil vers Tradiaries (voir `docs/coach-ia-vers-tradiaries-2026-09-25.md`), cadrage repris tel quel (v1 = rule-checker déterministe), pas encore démarré.
 
 ## Cadrage
 
@@ -137,11 +137,31 @@
 - 🟡 Bug connu découvert (non corrigé, voir `change-log.md` 2026-09-22) : caractère `✓` non encodable en cp1252 dans `watch_tp_sl.py` — cycle réussi mal classé "échec" sur console Windows par défaut (sans impact prod, Railway = Linux/UTF-8)
 - **Hors périmètre (décision gelée)** : ordres futures LIVE via API Kraken Futures — voir `decisions.md`, rejetée le 2026-09-22
 
+#### Bandeau news Vigil sur la page Trading (2026-09-25)
+- ✅ `apps/core/vigil_client.py` : client HTTP Vigil (bearer token, dégradation gracieuse — `[]` si Vigil indisponible/mal configuré, jamais d'exception)
+- ✅ `UserPreferences.tracked_assets` (JSONField) : liste d'actifs suivis, réglable dans Paramètres (checkboxes, réutilise `DEFAULT_TRADING_SYMBOLS`)
+- ✅ Endpoint `vigil-signals.json` : un seul appel Vigil par chargement de page, filtré (actifs suivis + signaux macro/géopolitiques `ticker=null` toujours inclus), n'expose que les champs nécessaires à un affichage neutre (jamais `raw_payload`/`news_score` bruts)
+- ✅ Bandeau sur la page Trading : scroll horizontal **manuel** (pas d'auto-scroll), cards neutres (badge de fiabilité textuel, pas de code couleur directionnel, pas de CTA d'action) — voir Challenge/`decisions.md` du 2026-09-25 pour le raisonnement complet
+- ✅ Tests : `VigilClientTests` (5), `VigilSignalsJsonViewTests` (3), 2 tests `SaveStrategyViewTests` — suite complète 95 tests, tous verts
+- 🟡 Non couvert par les tests automatisés : rendu visuel réel du scroll horizontal — vérifié par `curl` + utilisateur de test cette session (extension navigateur Claude in Chrome non connectée), vérification visuelle en navigateur encore à faire
+- **Hors périmètre de ce chantier** : Coach IA (aucune dépendance de code, seule l'API Vigil est partagée)
+
+#### Refonte responsive tablette + smartphone (2026-09-25)
+- ✅ Planification avec vérification visuelle live (Claude in Chrome, viewport simulé via harnais iframe) : `docs/plan-responsive-tablette-2026-09-25.md` / `docs/plan-responsive-smartphone-2026-09-25.md`
+- ✅ Breakpoints unifiés (`≤599` mobile / `600–1024` tablette / `>1024` desktop) dans `style.css`, remplaçant 3 systèmes divergents
+- ✅ Menu latéral : calque à 3 états (drawer plein écran hors-champ sur mobile, rail à icônes 64px replié par défaut sur tablette, ouvert sur desktop) — corrige le bug de marge morte mobile (64px réservés même menu fermé) et le bug d'overlay jamais affiché (sélecteur CSS cassé, préexistant)
+- ✅ Tableaux larges (Positions, Investissements, positions ouvertes Trading) : `data-label` ajoutés (cartes mobiles lisibles), colonnes secondaires masquées sur tablette, panneau de détail généralisé (`static/js/row-detail-panel.js`, remplace `positions-detail-panel.js`)
+- ✅ Page Trading : seuil de bascule colonne unique abaissé (1024→768px), hauteurs de graphique adaptatives, toolbar avec `flex-wrap` mobile, bouton de soumission collant
+- ✅ Nouveau composant : barre de navigation basse mobile (`components/bottom-tab-bar.html`, Dashboard/Positions/Trading/Journal/Menu)
+- 🟡 Non testé : orientation paysage téléphone (600-900px), appareil physique réel (harnais iframe fidèle aux media queries CSS mais pas à un vrai navigateur mobile)
+- 🟡 Hors périmètre (pages non liées au menu depuis le 2026-09-21) : `spot_trading`/`futures_trading` débordent encore en tablette (~90-96px)
+- ⏳ Geste tactile pour déplacer TP/SL sur le graphique Trading (Maj+glissé desktop, pas d'équivalent mobile) — décision produit en suspens, voir `decisions.md`
+
 ### À faire ⏳
 
-#### Responsive mobile (< 600px)
-- 🟡 Portfolio chart responsive (ajuster hauteur/polices)
-- 🟡 Test complet sur vrais appareils (tablette/téléphone)
+#### Responsive (suite)
+- 🟡 Portfolio chart du Dashboard : hauteur fixe (400px), pas revue dans le chantier du 2026-09-25 (pas identifiée comme cassée)
+- 🟡 Débordement résiduel mineur (~23px) sur le tableau des positions ouvertes de Trading en tablette, même après masquage TP/SL
 
 #### Futures Trading
 - 🟡 Affichage du champ `strategy` dans la table futures_trading.html
@@ -149,11 +169,25 @@
 #### Analytics/Journal
 - 🟡 Django messages sur ces pages (actuellement seule investment l'affiche)
 
+#### Vigil Integration (Phase 2 préparation)
+- ✅ Bearer token / rate limiting Vigil / ingestion cron : répondus par la doc Vigil mise à jour le 2026-09-24, plus de question ouverte (les anciennes questions "monolithe vs granulaire" et "cache TTL" sont résolues de facto par l'implémentation du 2026-09-25 : un seul appel `/api/signals` par page, pas de cache Tradiaries nécessaire — voir `docs/plan-integration-vigil-2026-09-25.md`)
+- 🔴 Vérifier chiffrement secrets API Vigil (crypto.cv, Binance, Etherscan) en base côté Vigil (hors périmètre Tradiaries, à confirmer avec l'équipe Vigil)
+- 🟡 Cache Tradiaries à réenvisager en Phase 2 uniquement si le rate limit Vigil partagé (30/min, un seul token pour tous les utilisateurs Tradiaries) devient limitant avec plusieurs comptes actifs
+- 🟡 Benchmark latency Render free : non prioritaire (Vigil lit désormais toujours en base, plus de fetch live à la requête)
+
+#### Coach IA (relocalisé de Vigil, 2026-09-25)
+- 🔴 Pas démarré — voir `docs/coach-ia-vers-tradiaries-2026-09-25.md` pour le cadrage repris (v1 = rule-checker déterministe, TDD sur le prompt, coaching conversationnel différé en v1.1/v2)
+- ⏳ Questions à redébattre avant tout démarrage : choix du LLM de production, source de données prix/indicateurs historiques, accès direct BDD vs couche de service dédiée, pistes de différenciation non challengées (voir doc pour le détail)
+
+#### `timeframe` texte libre vs liste prédéfinie (en suspens, 2026-09-25)
+- ⏳ Décision non tranchée — voir `decisions.md`. Non bloquant pour le bandeau Vigil (filtrage v1 par ticker suivi + macro uniquement, pas par bucket temporel)
+
 #### Déploiement
 - 🟡 Test complet Render + Railway + Neon
 - 🟡 Vérifications health checks watcher
-- 🔴 Committer/merger le travail de la session (audit trail, migration `0017`, tests renforcés) — rien n'est déployé tant que non mergé sur `prod`
+- 🔴 Committer/merger le travail de la session (audit trail, migration `0017`/`0018`, tests renforcés, bandeau news Vigil) — rien n'est déployé tant que non mergé sur `prod`
 - 🔴 Trancher l'inscription publique vs invite-only avant toute exposition non contrôlée (voir Problèmes connus / `decisions.md` en suspens)
+- 🔴 Configurer `VIGIL_API_URL`/`VIGIL_BEARER_TOKEN` sur Render/Railway avant déploiement (absents en local, le bandeau reste simplement masqué sans ces variables — dégradation gracieuse déjà en place, pas bloquant mais la fonctionnalité restera invisible tant que non configurée)
 
 ---
 
@@ -179,10 +213,22 @@
 - 🟡 **`watch_tp_sl.py`** : un cycle réussi peut être mal classé "échec" sur console Windows (cp1252) à cause d'un caractère `✓` — sans impact prod (Railway = Linux/UTF-8). Voir `change-log.md` 2026-09-22 (TESTING).
 - 🟡 Pas de protection anti-brute-force sur login/signup ; pas de monitoring/alerting (Sentry ou équivalent) — requis avant Phase 2, toujours absents.
 
+### Résolus cette session (2026-09-25, refonte responsive)
+- ✅ **Bande morte du menu mobile fermé** (64px réservés en permanence) → menu désormais un calque (jamais de push de contenu)
+- ✅ **Zone grise 768px** (mode mobile appliqué au lieu de tablette) → breakpoints unifiés
+- ✅ **Overlay du menu mobile jamais affiché** (bug préexistant, sélecteur CSS `body::before`/`.main-content::before` incohérent) → fusionné en une règle cohérente
+- ✅ **Tableaux larges illisibles/débordants sur mobile et tablette** → `data-label` + colonnes masquées + panneau de détail
+- ✅ **`position: fixed` menu mobile peut pas scrollable si beaucoup de liens** → non reproductible : `.side-menu` a déjà `overflow-y: auto`, vérifié suffisant pour les 8 liens actuels
+- 🟡 **Graphique chart pas responsive en très petit (< 300px hauteur)** → partiellement adressé (hauteurs désormais adaptatives à la **largeur**, pas encore testé spécifiquement pour une hauteur d'écran très courte)
+
+### Trouvés cette session (2026-09-25, non corrigés)
+- 🟡 **Environnement dev local** : le process `runserver` a servi du contenu de template périmé à plusieurs reprises malgré `DEBUG=True` et des fichiers à jour sur disque (confirmé via un process séparé à chaque fois) — cause exacte non identifiée, mitigé en redémarrant le process. À surveiller lors de la prochaine session si ça persiste.
+- 🟡 `apps/spot_trading`/`apps/futures_trading` (pages orphelines, plus liées depuis le menu) débordent encore en tablette (~90-96px) — hors périmètre du diagnostic initial (parcours utilisateur réel).
+
 ### En attente
-- ❓ `position: fixed` menu mobile peut pas scrollable si beaucoup de liens (15+ items)
-- ❓ Graphique chart pas responsive en très petit (< 300px hauteur)
 - ❓ iOS Safari PWA install : valider sur appareil réel (PNG 192/512 en place, test requis)
+- ❓ Refonte responsive : validation sur appareil physique/émulateur réel (le harnais de test utilisé le 2026-09-25 simule fidèlement les media queries CSS mais pas un vrai navigateur mobile — barre d'adresse, clavier virtuel, gestes tactiles)
+- ❓ Refonte responsive : orientation paysage téléphone (600-900px) non testée
 
 ---
 

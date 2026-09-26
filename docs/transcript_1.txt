@@ -1,0 +1,178 @@
+[00:00:00] Déjà là, on ne voit pas en bas, dans le dashboard, on ne voit pas le bas du graphique.
+[00:00:10] Ensuite, je trouve que la lisibilité de l'ensemble du fond de page est trop foncée.
+[00:00:20] Tu le verrais plutôt en clair ?
+[00:00:21] Oui, peut-être plutôt clair.
+[00:00:23] Est-ce que tu vois des couleurs ?
+[00:00:26] Je trouve que c'est trop neon, trop flashy.
+[00:00:31] C'est des couleurs plus pastels.
+[00:00:36] Je ne sais pas.
+[00:00:40] Ce graphique-là, tu vois qu'il est à la même couleur que le graphique dans le dashboard.
+[00:00:42] Il est à la même couleur que tout le reste des boutons.
+[00:00:44] Après, c'était dans quoi ?
+[00:00:48] C'était dans position.
+[00:00:50] Il faut que tu cliques sur futur, c'est parce que là, tu n'as pas de position.
+[00:00:54] Tu vois, même ça, du coup, ce n'est pas fluide.
+[00:00:58] C'est-à-dire ?
+[00:01:00] Tu as presque envie, je ne sais pas, en tant qu'investisseur, peut-être, d'avoir pas besoin de faire et position,
+[00:01:07] de descendre et d'avoir un tout petit icône, tout petit, ici, écrit futur.
+[00:01:12] Donc, dans position, tu devrais arriver et tu devrais avoir...
+[00:01:16] Ça devrait être plus rapide.
+[00:01:18] Tu devrais peut-être avoir un filtre applicable après, pas un filtre de base.
+[00:01:20] Parce que là, du coup, de base, il affiche que les spots et pas les futures.
+[00:01:23] Je voudrais que tu devrais arriver...
+[00:01:25] Attends, parce qu'attends.
+[00:01:25] Déjà, il faut que je comprenne comment ça marche.
+[00:01:27] Les spots...
+[00:01:28] Spots et futures, c'est deux types de positions que tu peux avoir.
+[00:01:31] Oui, mais alors pourquoi là, ton spot, tu as des chiffres et dans ton futur, tu as le graphisme ?
+[00:01:35] Parce qu'il filtre...
+[00:01:36] Ah si, mais tu as les mêmes...
+[00:01:38] Tu as les mêmes données, mais tu n'as pas les mêmes résultats de données parce qu'il calcule en fonction du filtre.
+[00:01:45] Alors, spots, je vais t'expliquer rapidement.
+[00:01:46] Et tu ne peux pas avoir plutôt, tu vois, d'avoir un peu les deux à côte à côte ?
+[00:01:53] Ok.
+[00:01:54] Ça pourrait s'expliquer dans position d'avoir et futures et spots affichés en même temps sur deux colonnes ?
+[00:01:59] Je ne sais pas si ça t'intéresse là.
+[00:02:01] Plutôt que de...
+[00:02:03] Parce que le problème, c'est que par exemple, tu as envie de voir ton PNL réalisé.
+[00:02:06] Là, tu vois ton futur et du coup, tu es obligé de revenir sur ton spot pour revoir.
+[00:02:14] Ouais, le passage des deux n'est pas propre.
+[00:02:17] Ouais.
+[00:02:17] Ou alors, on va arrêter d'afficher les deux ?
+[00:02:19] Ouais.
+[00:02:20] Non, je ne sais pas.
+[00:02:22] Est-ce que ce n'est pas plus clair d'avoir, même complètement différemment, d'avoir...
+[00:02:28] En fait, c'est même le tableau comme ça qui ne va pas.
+[00:02:30] Enfin, je pense, en fait, c'est d'avoir vraiment...
+[00:02:33] Ce n'est même pas d'avoir un côté à gauche spot et un côté à futur,
+[00:02:38] mais d'avoir carrément une sorte de texte PLN réalisé et tu as spot, futur.
+[00:02:46] Oui, c'est ça.
+[00:02:46] C'est dans le tableau là, tu as genre deux lignes où c'est écrit spot, tu as tel capital.
+[00:02:51] Après, tu peux garder peut-être une sorte d'encadrement,
+[00:02:53] mais d'avoir les deux, d'avoir capital engagé et ensuite spot et futur.
+[00:02:58] Donc, chaque carte est divisée en deux, où tu as le spot et le futur d'un côté.
+[00:03:02] Après, je ne sais pas si ça va être intéressant,
+[00:03:04] plutôt que de faire des allers-retours de l'investissement,
+[00:03:08] je ne sais pas, après moi, tout ce que c'est, ces chiffres,
+[00:03:10] mais est-ce qu'au final...
+[00:03:12] Est-ce que toi, ça t'intéresserait d'avoir les deux ?
+[00:03:15] Oui, oui, oui.
+[00:03:16] Et d'avoir un graphisme, du coup, où j'en sais rien, qui fait les deux ?
+[00:03:21] Oui.
+[00:03:22] De ton futur et de ton...
+[00:03:24] Tu vois, graphiquement, d'avoir...
+[00:03:27] Graphiquement, c'est dans dashboard.
+[00:03:28] Graphiquement, c'est là, dans dashboard, que tu vois tout.
+[00:03:31] Tu vois, tu peux choisir spot.
+[00:03:32] Mais ça, du coup, pardon, ça, c'est les mêmes chiffres ?
+[00:03:35] Non, là, ce n'est pas les mêmes données.
+[00:03:39] Là, c'est les valeurs générales.
+[00:03:40] C'est-à-dire que ça comporte toutes mes positions et tous mes investissements.
+[00:03:43] Oui, là, c'est ton portefeuille.
+[00:03:44] Global.
+[00:03:45] Et après, dans chaque sous-page, investissement, ça ne concerne que les investissements.
+[00:03:50] Du coup, portfolio, ça, c'est ton total.
+[00:03:53] C'est la valeur actuelle totale de mon portefeuille.
+[00:03:54] Que tu as mis, tout ton argent que tu as mis et que tu as gagné.
+[00:03:56] Non, c'est la valeur actuelle.
+[00:03:58] La valeur totale que j'ai investi, c'est ça.
+[00:04:02] Capital Invested et Portfolio Valued.
+[00:04:03] Et ça, c'est ce que tu as gagné.
+[00:04:04] Et du coup, tu fais ça, moins ça, et ça donne ça.
+[00:04:08] Le PNL, c'est ton Profit.
+[00:04:12] Après, ça, ce n'est pas si mal.
+[00:04:13] Profit and Lost.
+[00:04:14] Tu vois ce que je veux dire ?
+[00:04:15] C'est ça, PNL. Profit and Lost.
+[00:04:18] Oui, mais même ça, au final, je pourrais peut-être le...
+[00:04:22] Après, ça, ce n'est pas trop mal, en fait.
+[00:04:25] D'un coup d'œil, tu vois très vite...
+[00:04:26] Tu as un côté graphique où tu dis, dans l'ensemble, peut-être à retravailler un peu,
+[00:04:31] mais finalement, c'est quand même assez clair.
+[00:04:36] Mais pareil, ce graphique que tu disais...
+[00:04:42] En haut, tu vois, tu as Investissement, Spot et Futures.
+[00:04:44] Là, pour l'instant, je suis sur All.
+[00:04:46] Regarde le filtre.
+[00:04:47] Et en fonction du truc que tu prends...
+[00:04:49] Mais là, tu n'aimerais pas avoir tout sur les mêmes...
+[00:04:54] Tu vois, Investissement, par exemple, c'est écrit en vert pastel,
+[00:04:59] Spot en jaune mur, et tu as juste des courbes...
+[00:05:07] De différentes couleurs.
+[00:05:08] Tu as tout le temps tout affiché, mais tu as différentes couleurs.
+[00:05:10] Oui, et puis après, des fois, tu as juste à cliquer, je ne sais pas...
+[00:05:14] Ou au final, si, tu pourrais avoir de garder ça,
+[00:05:17] mais de pouvoir mettre, si tu as envie, de cliquer sur les quatre.
+[00:05:20] Ah, ça les sélectionne, ça les coche et les décoche.
+[00:05:22] OK, avec des couleurs différentes pour chaque courbe.
+[00:05:24] Ça pourrait être intéressant.
+[00:05:26] Ou d'intensités différentes de couleurs.
+[00:05:28] Un rouge très flash, pour ce qui te paraît le plus important.
+[00:05:32] All, c'est très rouge.
+[00:05:34] Et puis ensuite, tu as peut-être Futur, qui vient en rose.
+[00:05:37] Et je ne sais pas, tu vois, Spot en pointillé.
+[00:05:40] Tu vois, qui vient plutôt en pointillé.
+[00:05:42] Il y a un truc qui permet de les reconnaître quand même.
+[00:05:43] Tu pourrais se les reconnaître.
+[00:05:44] Tu peux cliquer sur les quatre, si tu veux afficher les quatre.
+[00:05:47] Et ton avis sur les filtres, là ?
+[00:05:49] Ça, c'est assez classique.
+[00:05:50] Ça, c'est le graphique sur une journée.
+[00:05:54] Ça, c'est le graphique sur une semaine.
+[00:05:56] Ça, c'est le graphique sur un mois.
+[00:06:05] Tu penses que ça a une plus-value ou pas ?
+[00:06:08] Ils le font sur TrainRepublic.
+[00:06:10] Après moi je le clique dessus quand même.
+[00:06:12] Sur un jour, un mois...
+[00:06:14] Attends ça c'est un jour, une semaine, un mois, un an et all ?
+[00:06:16] Oui.
+[00:06:18] Bah TrainRepublic ils font pareil.
+[00:06:19] C'est vrai que des fois j'aime bien regarder.
+[00:06:21] Après tu dis un jour...
+[00:06:22] C'est vrai que c'est intéressant.
+[00:06:23] Des fois tu vois que ça montre directement le pouvoir.
+[00:06:25] Non je pense que ça c'est cool.
+[00:06:27] En tout cas TrainRepublic je vois que je l'utilise.
+[00:06:29] Sans être une grande experte, j'aime bien de temps en temps regarder tout.
+[00:06:34] Mais ton all, c'est depuis ton investissement aussi.
+[00:06:36] Depuis le début de l'investissement.
+[00:06:37] Depuis le début de date.
+[00:06:38] Bah TrainRepublic ils font pareil.
+[00:06:39] Mais au final c'est pas mal.
+[00:06:42] Après moi ce que je reproche à TrainRepublic,
+[00:06:44] c'est qu'ils ont deux graphismes.
+[00:06:52] Tu peux regarder le graphisme général depuis le début que le Gold par exemple existe.
+[00:07:00] Et du coup depuis 1990, je ne sais rien.
+[00:07:03] Mais pour ton investissement à toi, c'est un autre graphisme.
+[00:07:10] Il faut que tu quittes autre part.
+[00:07:11] Pareil, il faut l'impression revasculer.
+[00:07:14] Toi t'aimerais bien voir les deux ?
+[00:07:17] Bah ouais, je me dis que j'aimerais bien voir un peu.
+[00:07:19] Parce que tu dis que t'investis peut-être sur 15 ans ou 20 ans.
+[00:07:24] Je ne sais pas après, ça dépend peut-être.
+[00:07:25] Le truc c'est que sur ça...
+[00:07:29] Et tu dois être cliqué sur l'option All.
+[00:07:32] Enfin All personnel, je n'en sais rien.
+[00:07:35] En fait ce que je veux dire c'est que c'est dû à un graphique,
+[00:07:39] c'est des échelles de valeur.
+[00:07:41] Par exemple le Gold aujourd'hui il vaut 4000 je crois, un truc comme ça.
+[00:07:44] Toi ton ordre de vendeur c'est 700.
+[00:07:46] Du coup ta courbe c'est toute petite en échelle par rapport à la grosse courbe du Gold.
+[00:07:50] Donc c'est dur de lire les deux.
+[00:07:51] C'est pour ça qu'il faut deux graphismes différents.
+[00:07:54] C'est comme si tu mets le Bitcoin qui vaut 60000 et le Gold qui vaut 4000,
+[00:07:58] l'échelle de vendeur va être trop grande pour les deux,
+[00:07:59] tu ne pourras pas lire correctement les deux.
+[00:08:12] Et après...
+[00:08:13] Déjà avec ça, je refermerai tout au niveau des lectures.
+[00:08:21] Tu vois d'avoir vraiment le...
+[00:08:23] Quand tu vas sur le dashboard, mon investissement.
+[00:08:27] Je ne sais pas, d'avoir le gros titre d'investissement, un chapitre,
+[00:08:32] avec à chaque fois une sorte de visibilité de...
+[00:08:37] Non, je ne sais pas trop en fait.
+[00:08:45] En fait il y a toutes les informations qui sont intéressantes mais...
+[00:08:48] Mal affichées.
+[00:08:49] Ouais.
+[00:08:52] Ou qu'il y a, entre dashboard, investissement, position,
+[00:08:55] il y a toujours la même logique.
+
+Transcribed with Speech-to-Text.cloud

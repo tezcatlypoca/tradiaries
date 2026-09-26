@@ -4,48 +4,48 @@
 <!-- Side Menu -->
 <div class="side-menu" id="sideMenu">
     <div class="menu-header" id="menuHeader" title="Fermer le menu">
-        <h2>Tradiaries <span class="collapse-arrow">&#8592;</span></h2>
+        <h2><span class="menu-brand-icon">T</span><span class="menu-brand-label">Tradiaries</span> <span class="collapse-arrow">&#8592;</span></h2>
     </div>
-    
+
     <ul class="menu-list">
         <!-- Dashboard -->
         <li>
-            <a href="{% url 'dashboard:index' %}">📊 Dashboard</a>
+            <a href="{% url 'dashboard:index' %}"><span class="menu-icon">📊</span><span class="menu-label">Dashboard</span></a>
         </li>
-        
+
         <!-- Investissements -->
         <li>
-            <a href="{% url 'investment:index' %}">💰 Investissements</a>
+            <a href="{% url 'investment:index' %}"><span class="menu-icon">💰</span><span class="menu-label">Investissements</span></a>
         </li>
-        
+
         <!-- Positions (Spot + Futures) -->
         <li>
-            <a href="{% url 'positions:index' %}">📂 Positions</a>
+            <a href="{% url 'positions:index' %}"><span class="menu-icon">📂</span><span class="menu-label">Positions</span></a>
         </li>
-        
+
         <!-- Analytics -->
         <li>
-            <a href="{% url 'analytics:index' %}">📉 Analytics</a>
+            <a href="{% url 'analytics:index' %}"><span class="menu-icon">📉</span><span class="menu-label">Analytics</span></a>
         </li>
-        
+
         <!-- Journal -->
         <li>
-            <a href="{% url 'journal:index' %}">📝 Journal</a>
+            <a href="{% url 'journal:index' %}"><span class="menu-icon">📝</span><span class="menu-label">Journal</span></a>
         </li>
 
         <!-- Trading -->
         <li>
-            <a href="{% url 'live_trading:index' %}">⚡ Trading</a>
+            <a href="{% url 'live_trading:index' %}"><span class="menu-icon">⚡</span><span class="menu-label">Trading</span></a>
         </li>
 
         <!-- Coaching -->
         <li>
-            <a href="{% url 'dashboard:coaching' %}">🧭 Coaching</a>
+            <a href="{% url 'dashboard:coaching' %}"><span class="menu-icon">🧭</span><span class="menu-label">Coaching</span></a>
         </li>
-        
+
         <!-- Paramètres -->
         <li>
-            <a href="{% url 'settings:index' %}">⚙️ Paramètres</a>
+            <a href="{% url 'settings:index' %}"><span class="menu-icon">⚙️</span><span class="menu-label">Paramètres</span></a>
         </li>
     </ul>
 </div>
@@ -56,13 +56,16 @@
     const MENU_STATE_KEY = 'tradiaries-menu-state';
     const sideMenu = document.getElementById('sideMenu');
     const menuToggle = document.getElementById('menuToggle');
-    const isMobile = window.innerWidth <= 768;
-    
+    // Mobile ET tablette (≤1024px) démarrent replié (drawer plein écran sur mobile,
+    // rail à icônes sur tablette — voir static/css/side-menu.css) ; seul le desktop
+    // reste ouvert par défaut.
+    const isCompact = window.innerWidth <= 1024;
+
     // Lire l'état sauvegardé
     const savedState = localStorage.getItem(MENU_STATE_KEY);
-    
+
     // Déterminer si le menu doit être fermé
-    // Logique : en mobile, fermé par défaut; en desktop, ouvert par défaut
+    // Logique : en mobile/tablette, replié par défaut; en desktop, ouvert par défaut
     // Mais RESPECTER le localStorage s'il existe
     let shouldBeClosed;
     if (savedState !== null) {
@@ -70,7 +73,7 @@
         shouldBeClosed = savedState === 'closed';
     } else {
         // Pas d'état sauvegardé, utiliser la logique par défaut
-        shouldBeClosed = isMobile;
+        shouldBeClosed = isCompact;
     }
     
     // Appliquer l'état SANS animation (ajouter classe temporaire)
@@ -113,8 +116,19 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.setItem(MENU_STATE_KEY, 'open');
     }
 
+    function toggleMenu() {
+        if (sideMenu.classList.contains('hidden')) {
+            openMenu();
+        } else {
+            closeMenu();
+        }
+    }
+
+    // Sur mobile, le header est hors-écran quand le menu est replié : seul le
+    // bouton flottant peut l'ouvrir. Sur tablette/desktop, le header reste visible
+    // (rail à icônes) et doit basculer l'état dans les deux sens au clic.
     menuToggle.addEventListener('click', openMenu);
-    menuHeader.addEventListener('click', closeMenu);
+    menuHeader.addEventListener('click', toggleMenu);
 
     // Handle submenu clicks
     const submenuTriggers = document.querySelectorAll('.submenu-trigger');
@@ -126,9 +140,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Fermer menu en mobile uniquement quand cliquant sur un lien du SIDEBAR (pas les tabs)
-    // Les tabs sont dans .main-content, pas dans .side-menu
-    if (window.innerWidth <= 768) {
+    // Fermer menu en mobile/tablette uniquement quand cliquant sur un lien du SIDEBAR (pas les tabs)
+    // Les tabs sont dans .main-content, pas dans .side-menu — le menu y est toujours
+    // un calque (overlay), jamais un push de contenu, donc on le referme après navigation.
+    if (window.innerWidth <= 1024) {
         const sidebarLinks = sideMenu.querySelectorAll('a:not(.submenu-trigger)');
         sidebarLinks.forEach(link => {
             link.addEventListener('click', function() {

@@ -88,6 +88,26 @@ class SaveStrategyViewTests(TestCase):
 		)
 		self.assertFalse(UserPreferences.objects.filter(user=self.other_user).exists())
 
+	def test_save_strategy_persists_tracked_assets_for_current_user_only(self):
+		self.client.force_login(self.user)
+
+		self.client.post(
+			reverse('settings:strategy_save'),
+			{'strategy': 'Breakout 4h', 'tracked_assets': ['BTC', 'ETH']},
+		)
+
+		self.assertEqual(
+			UserPreferences.objects.get(user=self.user).tracked_assets, ['BTC', 'ETH']
+		)
+		self.assertFalse(UserPreferences.objects.filter(user=self.other_user).exists())
+
+	def test_save_strategy_with_no_tracked_assets_selected_stores_empty_list(self):
+		self.client.force_login(self.user)
+
+		self.client.post(reverse('settings:strategy_save'), {'strategy': 'Breakout 4h'})
+
+		self.assertEqual(UserPreferences.objects.get(user=self.user).tracked_assets, [])
+
 
 class ApiCredentialViewTests(TestCase):
 	def setUp(self):

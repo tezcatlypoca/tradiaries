@@ -1,0 +1,66 @@
+/* ============ BOTTOM TAB BAR (mobile uniquement, ≤599px) ============
+   Voir docs/plan-responsive-smartphone-2026-09-25.md (M3). Masquée par défaut ;
+   réapparaît uniquement sous 599px pour ne pas dupliquer la navigation desktop/tablette. */
+.bottom-tab-bar {
+    display: none;
+}
+
+@media (max-width: 599px) {
+    .bottom-tab-bar {
+        display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 999;
+        background: var(--sidebar-bg, #0a0f14);
+        border-top: 1px solid var(--border-subtle, #1b2731);
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+        padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    .bottom-tab-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        padding: 8px 4px 6px;
+        background: none;
+        border: none;
+        color: var(--sidebar-text, #b4c3c9);
+        text-decoration: none;
+        font-family: inherit;
+        font-size: 10px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .bottom-tab-item .material-icons {
+        font-size: 22px;
+    }
+
+    .bottom-tab-item.active {
+        color: var(--primary-color, #67e8c1);
+    }
+
+    /* Masquée pendant que le drawer complet est ouvert (redondant, et le drawer
+       ne recouvre pas toujours visuellement toute la hauteur selon le contenu). */
+    .side-menu:not(.hidden) ~ .bottom-tab-bar {
+        display: none;
+    }
+
+    /* Le bouton hamburger flottant devient redondant avec l'item "Menu" de la
+       tab bar (même action : ouvrir le drawer). */
+    .menu-toggle.visible {
+        display: none;
+    }
+
+    /* Dégagement pour ne jamais faire chevaucher la tab bar avec le contenu
+       (notamment le bouton de soumission du ticket Trading, ou les actions de
+       formulaire en bas de modale). */
+    .main-content {
+        padding-bottom: calc(24px + 56px + env(safe-area-inset-bottom, 0));
+    }
+}

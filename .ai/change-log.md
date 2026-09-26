@@ -1,7 +1,147 @@
 # Tradiaries — Change Log
 
 **Format** : ISO 8601 YYYY-MM-DD | Catégorie | Description courte | Fichiers modifiés  
-**Dernière entrée** : 2026-09-22
+**Dernière entrée** : 2026-09-25
+
+---
+
+## 2026-09-25 | FEATURE | Refonte responsive tablette + smartphone (en cours)
+
+### Décision implémentée
+Suite à `/planification` (2026-09-25, vérifié visuellement via Claude in Chrome — voir `docs/plan-responsive-tablette-2026-09-25.md` et `docs/plan-responsive-smartphone-2026-09-25.md`) : implémentation des missions des deux plans, dans l'ordre de priorité.
+
+### Unification des breakpoints (M1 tablette)
+`static/css/style.css` : seuils unifiés sur `≤599px` (mobile) / `600–1024px` (tablette) / `>1024px` (desktop), remplaçant les 3 systèmes divergents (768/769 dans `style.css`, 599/600 dans `investment.css`, 1024 seul dans `trading.css`).
+
+### Menu latéral : calque à 3 états au lieu de 2 (M2 tablette, M1 smartphone)
+- **Bug corrigé (M1 smartphone)** : sur mobile, `.main-content` recevait `margin-left: 64px` même quand le menu était fermé (`.side-menu.hidden`), alors que le menu est censé être entièrement hors-écran — 17% de la largeur d'écran perdue en permanence. Le menu est désormais un calque superposé (même cellule de grille que `.main-content`, jamais de push) sur toute la plage `≤1024px` : `.main-content` ne reçoit plus jamais de `margin-left` réservée.
+- **Nouveau comportement tablette (M2)** : rail à icônes replié par défaut (64px de large réel, pas un calque tronqué d'une sidebar pleine largeur — première tentative ratée : centrer le contenu dans une sidebar de 240px décalée en `transform` place le contenu centré hors du champ visible de 64px ; corrigé en rétrécissant réellement la largeur du menu à 64px sur cette plage). Icônes des liens + icône de marque "T" séparées du texte via `<span class="menu-icon">`/`<span class="menu-label">` (`components/side-menu.html`) pour pouvoir masquer le texte (`display:none`, pas seulement `opacity:0` — un label invisible mais toujours dans le flux flex décentre l'icône) tout en gardant l'icône visible.
+- Clic sur le rail/header bascule désormais dans les deux sens (`toggleMenu()`), pas seulement fermeture — nécessaire car le header reste visible en permanence sur tablette (contrairement au mobile où il est hors-écran).
+- Bouton hamburger flottant (`.menu-toggle`) masqué à partir de 600px (redondant avec le rail toujours visible et cliquable).
+- **Bug préexistant découvert et corrigé au passage** : l'overlay semi-transparent affiché quand le menu mobile est ouvert ne s'affichait jamais — la règle de base définissait `body::before` mais la règle d'activation ciblait `.main-content::before` (deux pseudo-éléments différents, celui réellement stylé n'était jamais activé). Fusionné en une seule paire de règles cohérente sur `.main-content::before`.
+- `isMobile` (seuil 768px) renommé `isCompact` (seuil 1024px) dans `components/side-menu.html` : mobile ET tablette démarrent repliés par défaut (au premier chargement, sans état `localStorage` préexistant) ; seul le desktop reste ouvert.
+
+### Bug d'environnement découvert en cours de route (sans lien avec le code applicatif)
+Le processus `runserver` lancé en tout début de session servait des templates/CSS périmés malgré des édits ultérieurs sur disque (confirmé : un process Django frais relit le fichier à jour immédiatement) — cause exacte non identifiée, corrigé en redémarrant le process. Un service worker PWA actif (`tradiaries-cache-v1`) et le cache HTTP normal du navigateur ont également servi du CSS périmé dans le harnais de vérification visuelle (iframe same-origin, voir session `/planification`) malgré `cache: 'no-store'` sur les `fetch()` explicites — les `<link>` de l'iframe, eux, suivent le cache HTTP standard. Corrigé en désenregistrant le service worker, vidant les caches, et ajoutant un paramètre `?_cb=<timestamp>` aux URLs `/static/...` dans le harnais de test.
+
+### Vérification manuelle (via harnais iframe same-origin, voir note méthodologique dans les plans)
+- Tablette (900×1024) : rail 64px avec icônes visibles confirmé par capture, clic sur le rail ouvre le drawer complet (240px) avec overlay assombri sur le contenu, reclic referme.
+- Mobile (390×844) : `margin-left` confirmé à `0px` (`mainContentClientWidth` passé de 316px à 380px sur 390px de large), drawer plein écran fonctionnel avec overlay, bouton hamburger visible.
+
+### Page Trading : seuil colonne unique abaissé + hauteurs de graphique adaptatives (M4 tablette + smartphone)
+- `static/css/trading.css` : seuil de bascule `.trading-workspace` (chart | ticket → empilé) abaissé de `1024px` à `767px` — propre à ce composant (un ticket fixe de 320px ne laisse plus assez de large pour un graphique lisible en-dessous de ~768px), pas aligné sur les seuils globaux 600/1024 de M1. `.trading-chart-toolbar` passe en `flex-wrap` sous 599px (symbole sur sa propre ligne via `order:-1`).
+- `apps/live_trading/templates/live_trading/live_trading.html` : hauteurs de graphique (`computeChartHeights()`) désormais fonction de `window.innerWidth` (240/70 ≤599px, 320/90 ≤767px, 480/120 au-delà) au lieu de valeurs JS fixes ; réappliquées automatiquement via le `ResizeObserver` déjà en place (pas de nouveau listener).
+- **Vérifié à 1024×768** (tablette paysage, cas mesuré comme problématique en Planification) : workspace repasse en 2 colonnes (534px + 320px), hauteur totale de contenu réduite de 1938px à 1221px, bouton de soumission à 854px du haut au lieu de 1567px.
+- **Vérifié à 390×844** : toolbar ne déborde plus (`containerScrollWidth === containerClientWidth`, confirmé par capture — les 4 boutons d'intervalle tiennent sur leur propre ligne).
+
+### Tableaux larges : colonnes secondaires masquées sur tablette + panneau de détail généralisé (M3 tablette, M2 smartphone)
+- **`data-label` ajoutés** (mobile, conversion carte) sur les 3 pages qui en manquaient : `apps/investment/templates/investment/investment.html`, `apps/positions/templates/positions/positions.html`, `apps/live_trading/templates/live_trading/live_trading.html` (template **et** fonction JS `renderRow()`, pour rester synchronisé après chaque cycle de polling).
+- **Nouvelle classe utilitaire `.col-tablet-hide`** (`static/css/investment.css`) : masque une colonne sur la plage 600-1024px quand sa donnée reste accessible via le panneau de détail. Appliquée aux colonnes Exchange/Mode (Positions) et TP/SL (Trading — positions ouvertes).
+- **Panneau de détail généralisé** : `static/js/positions-detail-panel.js` renommé `static/js/row-detail-panel.js`, sélecteur `.position-row` renommé `.detail-row` (CSS + template Positions), `FIELD_LABELS` complété (`price`, `action`, `currentPrice`, `pnl`) pour couvrir les nouveaux consommateurs. Réutilisé tel quel sur la page Trading (positions ouvertes, nouveau panneau — n'existait pas avant) ; `window.wireDetailRow` exposé pour re-câbler les lignes régénérées par le polling. Page Investissements : `data-label` ajouté mais **pas** de nouveau panneau de détail (redondant avec la modale d'édition déjà existante) ni de colonne masquée (6 colonnes seulement, aucun débordement mesuré à 900px après le fix du rail de menu).
+- **Vérifié à 900×1024** (Positions) : `.main-content` scrollWidth === clientWidth (890px, contre 851px/650px avant, débordement complètement résorbé), capture d'écran confirmant `Exchange`/`Mode` masqués. Panneau de détail testé au clic sur Positions et sur Trading (mobile 390px) : fonctionnel dans les deux cas.
+- **Débordement résiduel mineur constaté** (non corrigé) : le tableau des positions ouvertes de Trading déborde encore de ~23px à 900px même après masquage TP/SL (9 colonnes visibles restantes) — largement inférieur au débordement initial (161px) mais pas totalement nul. À revisiter si signalé comme gênant en usage réel.
+
+### Barre de navigation basse mobile (M3 smartphone, nouveau composant)
+- `components/bottom-tab-bar.html` (nouveau) + `static/css/bottom-tab-bar.css` (nouveau) : 5 entrées (Dashboard/Positions/Trading/Journal/Menu — sélection confirmée avec l'utilisateur avant implémentation), visible uniquement `≤599px`, état actif calculé côté client (`window.location.pathname`). Le 5e item délègue au `menuHeader` existant pour ouvrir le drawer complet (Analytics/Investissements/Coaching/Paramètres).
+- Bouton hamburger flottant (`.menu-toggle`) masqué sur mobile (redondant avec l'item "Menu") ; tab bar elle-même masquée pendant que le drawer complet est ouvert.
+- `.main-content` : `padding-bottom` étendu sur mobile pour ne jamais faire chevaucher le contenu (notamment le bouton de soumission du ticket Trading).
+- Inclus dans les 8 templates qui chargent `components/side-menu.html` (`dashboard.html` — hérité par `settings.html` via `extends` —, `investment.html`, `positions.html`, `spot_trading.html`, `futures_trading.html`, `journal.html`, `analytics.html`, `live_trading.html`).
+
+### Bouton de soumission collant sur la page Trading (M6 smartphone, nouveau — confirmé nécessaire par la mesure M4)
+`static/css/trading.css` : `.trading-submit` en `position: sticky` (borné à `.trading-ticket`, donc actif seulement tant que le ticket est à l'écran) sur mobile et tablette-colonne-unique (≤767px), avec dégagement pour la bottom-tab-bar mobile. Contrairement au sélecteur d'actif plein écran (également proposé en option dans le plan), pas construit : aucun besoin confirmé, resterait de la sur-ingénierie.
+
+### `credential-item` (Paramètres) : wrap sur tablette (M5 tablette)
+`static/css/investment.css` : `flex-wrap` sur `.credential-item` et `.credential-info` pour éviter un débordement avec une clé API longue + libellé sur largeur réduite.
+
+### Découvertes hors périmètre des deux plans (non corrigées, signalées)
+- 🟡 `apps/spot_trading/templates/spot_trading/spot_trading.html` et `apps/futures_trading/templates/futures_trading/futures_trading.html` débordent encore à 900px (~90-96px) — ces deux pages ne sont **plus liées depuis le menu** (remplacées par la page Positions unifiée du 2026-09-21) et n'étaient pas couvertes par le diagnostic initial. Laissées telles quelles : corriger nécessiterait de ré-auditer des pages orphelines hors du parcours utilisateur réel.
+- 🟡 Bug d'environnement local persistant : le processus `runserver` a servi du contenu de template périmé à plusieurs reprises pendant cette session malgré `DEBUG=True` et des fichiers à jour sur disque (confirmé via un process `manage.py shell` séparé à chaque fois) — cause exacte non identifiée (pas de cache middleware, pas de `cached.Loader` configuré). Mitigé en redémarrant le process avant chaque vérification critique ; à surveiller si ça persiste lors de la prochaine session de dev.
+
+### Suite de tests
+`python manage.py test apps.core apps.live_trading apps.dashboard apps.positions` : 95 tests, tous verts après l'ensemble des changements ci-dessus (aucun test de rendu cassé par les changements de markup).
+
+### Vérification manuelle finale (harnais iframe same-origin, toutes les pages)
+Passe automatisée sur les 9 routes principales × 2 largeurs (390/900px) : 0px de débordement partout sauf les 2 pages orphelines signalées ci-dessus. Zone grise 768px re-testée : sidebar 240px + KPI 2 colonnes + tab bar masquée, comportement tablette correct (contre mode mobile par erreur avant M1).
+
+### À faire (hors périmètre de ce chantier, ou dépendant d'un test sur appareil réel)
+- M5 smartphone (vérification paysage téléphone 600-900px) : non testée dans le harnais iframe cette session, à faire sur appareil réel ou émulateur.
+- Geste tactile pour déplacer TP/SL sur le graphique Trading (point en suspens signalé dans le plan smartphone, décision produit à trancher séparément).
+- Vérification sur appareil physique/Chrome DevTools classique recommandée avant prod (le harnais iframe reproduit fidèlement les media queries CSS mais pas le clavier virtuel, la barre d'adresse rétractable, ni les gestes tactiles natifs).
+
+**Fichiers modifiés/créés** : `static/css/style.css`, `static/css/side-menu.css`, `components/side-menu.html`, `static/css/trading.css`, `apps/live_trading/templates/live_trading/live_trading.html`, `static/js/row-detail-panel.js` (nouveau, remplace `static/js/positions-detail-panel.js` supprimé), `static/css/investment.css`, `apps/positions/templates/positions/positions.html`, `apps/investment/templates/investment/investment.html`, `components/bottom-tab-bar.html` (nouveau), `static/css/bottom-tab-bar.css` (nouveau), `apps/dashboard/templates/dashboard/dashboard.html`, `apps/spot_trading/templates/spot_trading/spot_trading.html`, `apps/futures_trading/templates/futures_trading/futures_trading.html`, `apps/journal/templates/journal/journal.html`, `apps/analytics/templates/analytics/analytics.html`.
+
+---
+
+## 2026-09-25 | FEATURE | Bandeau de news Vigil sur la page Trading
+
+### Décision implémentée
+Suite au Challenge + `/gel-decision` du 2026-09-25 (`.ai/decisions.md` → "Intégration des news Vigil — Bandeau contextuel sur la page Trading") et au plan `docs/plan-integration-vigil-2026-09-25.md` : bandeau de cards à défilement horizontal manuel sur la page Trading, filtré par une liste d'actifs suivis déclarée dans Paramètres + signaux macro/géopolitiques toujours affichés.
+
+### Découverte en vérifiant le code (corrige une hypothèse du Challenge)
+Le mapping supposé nécessaire entre `symbol` Tradiaries (paire exchange) et `ticker` Vigil (actif nu) n'existe pas : `DEFAULT_TRADING_SYMBOLS` et le champ `symbol` des trades stockent déjà des actifs nus (`'BTC'`, `'ETH'`...), identiques au format `ticker` de Vigil. Aucune couche de conversion ajoutée.
+
+### Implémentation
+- `apps/core/vigil_client.py` (nouveau) : `fetch_signals()` — GET `/api/signals` avec bearer token (`VIGIL_BEARER_TOKEN`), retombe toujours sur `[]` (jamais d'exception) si Vigil est mal configuré, indisponible, ou renvoie une réponse invalide — Vigil est une donnée d'agrément, pas un prérequis de fonctionnement.
+- `config/settings.py` : `VIGIL_API_URL`, `VIGIL_BEARER_TOKEN`, `VIGIL_TIMEOUT_SECONDS` (défaut 5s), pas de `RuntimeError` si absents (contrairement à `API_CREDENTIAL_ENCRYPTION_KEY`).
+- `apps/core/models.py` : `UserPreferences.tracked_assets` (JSONField, liste de strings, `default=list`). Migration `core.0018_userpreferences_tracked_assets`.
+- `apps/dashboard/forms.py::UserStrategyForm` : champ `tracked_assets` (`MultipleChoiceField` + `CheckboxSelectMultiple`, options = `DEFAULT_TRADING_SYMBOLS` réutilisé depuis `apps.live_trading.views`, pas dupliqué) ; `save()` surchargé pour assigner la liste au `JSONField` (hors `ModelForm.Meta.fields` pour éviter la génération automatique de widget sur un `JSONField`).
+- `apps/dashboard/templates/dashboard/settings.html` + `static/css/investment.css` : section "Actifs suivis" (checkboxes) dans le formulaire Stratégie existant.
+- `apps/live_trading/views.py::vigil_signals_json` (+ route `vigil-signals.json`) : **un seul appel** `fetch_signals()` par chargement de page (jamais un appel par actif suivi, pour ménager le rate limit Vigil partagé entre utilisateurs Tradiaries) ; filtre `ticker in tracked_assets or ticker is None` ; n'expose que `source`/`ticker`/`summary`/`timestamp`/`reliability_tier` au JSON — jamais `raw_payload`/`news_score` bruts.
+- `apps/live_trading/templates/live_trading/live_trading.html` + `static/css/trading.css` : bandeau (`#vigilSignalsBanner`), un seul `fetch()` au chargement (pas de polling), rendu de cards neutres (résumé + source + badge de fiabilité textuel "Fait vérifié"/"Donnée quantitative"/"Analyse" selon `reliability_tier` — jamais de code couleur directionnel ni de CTA d'action, conformément au Challenge), scroll horizontal manuel (`overflow-x: auto` + `scroll-snap`, pas d'auto-scroll JS), construction DOM via `textContent` (jamais `innerHTML` sur du contenu Vigil, pour éviter tout risque d'injection depuis une source tierce).
+
+### Tests
+- `apps/core/tests.py::VigilClientTests` (5 tests) : URL non configurée, bearer token envoyé, erreur réseau, JSON invalide, absence d'en-tête `Authorization` si token non configuré — tous mockés au niveau `requests.get` (haut niveau, cohérent avec `KrakenClientTests`).
+- `apps/live_trading/tests.py::VigilSignalsJsonViewTests` (3 tests) : filtrage actifs suivis + signaux macro toujours inclus, `raw_payload` jamais exposé, réponse vide si Vigil indisponible, comportement sans préférences enregistrées.
+- `apps/dashboard/tests.py::SaveStrategyViewTests` (+2 tests) : persistance de `tracked_assets`, liste vide si aucune case cochée.
+- Suite complète : 95 tests, tous verts (`python manage.py test`).
+
+### Vérification manuelle
+- Serveur de dev + utilisateur de test temporaire (`vigil_manual_check`, supprimé après coup) : page Trading (200, bandeau masqué par défaut car `VIGIL_API_URL` non configuré en local), page Paramètres (200, 10 checkboxes d'actifs affichées), sauvegarde de la stratégie + 2 actifs suivis via le formulaire réel (persistance vérifiée en base), endpoint `vigil-signals.json` répond `{"signals": []}` sans erreur.
+- ⚠️ Bug préexistant découvert au passage (sans lien avec ce chantier) : la migration `core.0017_apicredentialauditlog` (session du 2026-09-22) n'était pas appliquée sur `db.sqlite3` local — corrigé en lançant `python manage.py migrate` (routine, aucune perte de données). Le extension navigateur Claude in Chrome n'était pas connectée cette session : vérification faite via `curl` + utilisateur de test plutôt qu'en navigateur graphique.
+- Non couvert par les tests automatisés (comme le drag & drop TP/SL) : rendu visuel réel du scroll horizontal du bandeau — à valider en navigateur dès que possible.
+
+**Fichiers modifiés/créés** : `apps/core/vigil_client.py` (nouveau), `apps/core/models.py`, `apps/core/migrations/0018_userpreferences_tracked_assets.py` (nouveau), `apps/core/tests.py`, `config/settings.py`, `apps/dashboard/forms.py`, `apps/dashboard/templates/dashboard/settings.html`, `apps/dashboard/tests.py`, `apps/live_trading/views.py`, `apps/live_trading/urls.py`, `apps/live_trading/templates/live_trading/live_trading.html`, `apps/live_trading/tests.py`, `static/css/investment.css`, `static/css/trading.css`, `docs/plan-integration-vigil-2026-09-25.md` (nouveau).
+
+---
+
+## 2026-09-24 | PLANNING | Analyse critique d'intégration Vigil (API marché crypto)
+
+### Contexte
+Évaluation complète de l'intégration de Vigil (API Flask surveillance marché) dans Tradiaries (Django trading multi-user). Vigil agrège signaux de 7 sources (news, ETF, on-chain, prix, DeFi). Objectif : identifier points critiques, risques, et décisions requises avant Phase 2 (invite-only).
+
+### Livrables
+1. **Artifact** `vigil-integration-analysis.md` : analyse complète 9 domaines, matrice risques P0-P3, 20+ questions pour Vigil
+2. **Challenge** (skill `/challenge`) : 6 points challengés activement
+   - Auth via `login_required` suffisante? (Bearer token recommandé)
+   - Secrets API Vigil chiffrés? (audit code requis)
+   - Routes par source déjà existantes (clarification besoin)
+   - Rate limiting où? (server-side recommandé)
+   - Cache par user ou global? (Tradiaries propriétaire recommandé)
+   - Render free performance? (benchmark requis)
+3. **Summary .md** `vigil-tradiaries-challenge-summary.md` : résumé challenge partageable avec IA Vigil dédiée
+
+### Décisions sorties du Challenge
+**À trancher via `/gel-decision`** :
+- Bearer token Vigil obligatoire ou optionnel?
+- Rate limit par source ou global?
+- Cache TTL Tradiaries (5 min ok pour news/prix?)?
+- Appel monolithe `/api/signals` vs granulaire `/api/signals/<source>`?
+
+### Blocages avant Phase 2
+- 🔴 P0 : Vérifier chiffrement secrets API Vigil (crypto.cv, Binance, Etherscan) en base
+- 🔴 P0 : Bearer token Vigil oui/non?
+- 🟡 P1 : Rate limiting Vigil-side implementation
+- 🟡 P1 : Benchmark latency Render free (sources parallèles)
+
+### Non implémenté (hors périmètre session)
+- Code client Vigil dans Tradiaries (prochaine étape)
+- Route per-source dans Vigil (déjà existante)
+- Cache Tradiaries (prochaine étape)
+
+**Fichiers modifiés/créés** : 
+- `docs/API_DOCUMENTATION.md` (lu, analyse)
+- `/artifact/vigil-integration-analysis.md` (artifact public, 2ZWmtuDS4JeCzYw7pnrTEU)
+- `F:\ToutPleinDeTrucs\Dev\Python\Vigil\docs\vigil-tradiaries-challenge-summary.md` (nouveau, pour IA Vigil)
 
 ---
 

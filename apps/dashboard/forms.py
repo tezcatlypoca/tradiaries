@@ -3,6 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django import forms
 
 from apps.core.models import UserPreferences
+from apps.live_trading.views import DEFAULT_TRADING_SYMBOLS
 
 
 class SignupForm(UserCreationForm):
@@ -14,7 +15,15 @@ class SignupForm(UserCreationForm):
 
 
 class UserStrategyForm(forms.ModelForm):
-    """Formulaire de la stratégie générale définie par l'utilisateur."""
+    """Formulaire de la stratégie générale + des actifs suivis (filtrage du bandeau news Vigil)."""
+
+    tracked_assets = forms.MultipleChoiceField(
+        choices=[(symbol, symbol) for symbol in DEFAULT_TRADING_SYMBOLS],
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label='Actifs suivis',
+        help_text="Utilisés pour filtrer les news affichées sur la page Trading (les news macro/géopolitiques générales restent toujours visibles).",
+    )
 
     class Meta:
         model = UserPreferences
@@ -27,3 +36,15 @@ class UserStrategyForm(forms.ModelForm):
                 },
             ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['tracked_assets'].initial = self.instance.tracked_assets
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.tracked_assets = self.cleaned_data.get('tracked_assets', [])
+        if commit:
+            instance.save()
+        return instance

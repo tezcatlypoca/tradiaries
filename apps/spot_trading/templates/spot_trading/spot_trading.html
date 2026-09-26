@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css/side-menu.css' %}">
     <link rel="stylesheet" href="{% static 'css/investment.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bottom-tab-bar.css' %}">
 
     <!-- PWA -->
     <link rel="manifest" href="{% url 'manifest' %}">
@@ -21,6 +22,7 @@
 </head>
 <body>
     {% include 'components/side-menu.html' %}
+    {% include 'components/bottom-tab-bar.html' %}
 
     <div class="main-content">
         <div class="investments-container">

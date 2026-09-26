@@ -9,13 +9,14 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
 from apps.core.kraken_client import KrakenAPIError, fetch_ohlc
-from apps.core.models import FuturesTrading, SpotTrading
+from apps.core.models import FuturesTrading, SpotTrading, UserPreferences
 from apps.core.trading_service import (
     TradingError,
     close_position as service_close_position,
     live_positions,
 )
 from apps.core.trading_service import open_position as service_open_position
+from apps.core.vigil_client import fetch_signals as fetch_vigil_signals
 
 from .forms import OpenPositionForm
 
@@ -109,6 +110,33 @@ def close_position(request, kind, pk):
     else:
         messages.error(request, f"✗ Clôture impossible pour {trade.symbol} (voir logs).")
     return redirect('live_trading:index')
+
+
+@login_required
+def vigil_signals_json(request):
+    """Signaux Vigil filtrés : actifs suivis par l'utilisateur + signaux macro/géopolitiques (ticker=null).
+
+    Un seul appel à Vigil par chargement de page (jamais un appel par actif suivi),
+    filtrage effectué ici pour ménager le rate limit Vigil partagé entre tous les
+    utilisateurs Tradiaries. N'expose que les champs nécessaires à un affichage neutre
+    (pas de `raw_payload`/`news_score` bruts) : pas de couleur directionnelle, pas de
+    CTA d'action, `reliability_tier` conservé pour distinguer fait et opinion.
+    """
+    preferences = UserPreferences.objects.filter(user=request.user).first()
+    tracked_assets = set(preferences.tracked_assets) if preferences else set()
+
+    signals = [
+        {
+            'source': signal.get('source'),
+            'ticker': signal.get('ticker'),
+            'summary': signal.get('summary'),
+            'timestamp': signal.get('timestamp'),
+            'reliability_tier': signal.get('reliability_tier'),
+        }
+        for signal in fetch_vigil_signals()
+        if signal.get('ticker') is None or signal.get('ticker') in tracked_assets
+    ]
+    return JsonResponse({'signals': signals})
 
 
 @login_required

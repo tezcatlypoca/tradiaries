@@ -463,6 +463,25 @@
     margin-bottom: 1rem;
 }
 
+.tracked-assets-checkboxes ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+}
+
+.tracked-assets-checkboxes li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.tracked-assets-checkboxes input[type="checkbox"] {
+    width: auto;
+}
+
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
@@ -847,6 +866,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     padding: 0.9rem 1.1rem;
     background: var(--surface-2, #131b24);
     border: 1px solid var(--border-subtle, #1b2731);
@@ -856,6 +877,7 @@
 .credential-info {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 0.75rem;
 }
 
@@ -1126,9 +1148,19 @@
     }
 }
 
-/* Page Positions (fusion Spot/Futures) : ligne cliquable + panneau de détail lecture seule */
-.position-row {
+/* Ligne cliquable + panneau de détail lecture seule (Positions, Trading — positions
+   ouvertes) : voir static/js/row-detail-panel.js */
+.detail-row {
     cursor: pointer;
+}
+
+/* Colonne secondaire masquée sur tablette (600-1024px) quand la donnée reste
+   accessible via le panneau de détail — voir docs/plan-responsive-tablette-2026-09-25.md
+   (M3). Une table peut avoir plusieurs colonnes dans cet état. */
+@media (min-width: 600px) and (max-width: 1024px) {
+    .col-tablet-hide {
+        display: none;
+    }
 }
 
 .icon-details:hover:not(:disabled) {

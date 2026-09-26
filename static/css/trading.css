@@ -63,6 +63,54 @@
     color: var(--text-primary, #f1f7f5);
 }
 
+.vigil-signals-banner {
+    margin-bottom: 1rem;
+}
+
+.vigil-signals-track {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 0.5rem;
+}
+
+.vigil-signal-card {
+    flex: 0 0 260px;
+    scroll-snap-align: start;
+    background: var(--surface-2, #131a22);
+    border: 1px solid var(--border, #273542);
+    border-radius: 6px;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.vigil-signal-tier {
+    align-self: flex-start;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary, #91a3ad);
+    background: var(--surface-3, #192430);
+    border-radius: 4px;
+    padding: 2px 8px;
+}
+
+.vigil-signal-summary {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-primary, #f1f7f5);
+    line-height: 1.4;
+}
+
+.vigil-signal-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #91a3ad);
+}
+
 .trading-chart {
     width: 100%;
     height: 480px;
@@ -184,7 +232,13 @@
     margin: 0 0 0.75rem;
 }
 
-@media (max-width: 1024px) {
+/* Seuil propre au workspace Trading (pas aligné sur les seuils globaux 600/1024px) :
+   en-dessous de ~768px, un ticket fixe de 320px ne laisse plus assez de place pour un
+   graphique lisible à côté (moins de 300px de large) — mesuré en tablette portrait
+   étroite. Au-dessus, le 2 colonnes tient (vérifié à 900px et 1024px). Voir
+   docs/plan-responsive-tablette-2026-09-25.md (M4) : seuil abaissé de 1024 à 768 après
+   mesure d'un scroll vertical de 1938px en 1024×768 avec l'ancien seuil. */
+@media (max-width: 767px) {
     .trading-workspace {
         grid-template-columns: 1fr;
     }
@@ -199,5 +253,46 @@
 
     .trading-ticket {
         order: 3;
+    }
+}
+
+/* Toolbar du graphique : le sélecteur d'actif + le libellé + les 4 boutons
+   d'intervalle débordent en dessous de ~400px (mesuré : 374px de contenu pour
+   284px disponibles sur un iPhone standard) — voir
+   docs/plan-responsive-smartphone-2026-09-25.md (M4). */
+@media (max-width: 599px) {
+    .trading-chart-toolbar {
+        flex-wrap: wrap;
+        row-gap: 0.5rem;
+    }
+
+    .trading-chart-symbol {
+        order: -1;
+        flex: 1 1 100%;
+        text-align: left;
+    }
+}
+
+/* Bouton "Ouvrir la position" collant tant que le ticket est visible à l'écran :
+   une fois le workspace empilé (≤767px), le graphique fait remonter le ticket
+   loin sous le pli — voir docs/plan-responsive-smartphone-2026-09-25.md (M6).
+   `position: sticky` reste borné à `.trading-ticket` : le bouton ne suit plus une
+   fois qu'on scrolle au-delà (ex. jusqu'au tableau des positions ouvertes). */
+@media (min-width: 600px) and (max-width: 767px) {
+    .trading-submit {
+        position: sticky;
+        bottom: 16px;
+        z-index: 5;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+}
+
+@media (max-width: 599px) {
+    .trading-submit {
+        position: sticky;
+        /* Dégagement pour rester au-dessus de la bottom-tab-bar mobile (~56px + marge) */
+        bottom: calc(56px + 16px + env(safe-area-inset-bottom, 0));
+        z-index: 5;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
 }
