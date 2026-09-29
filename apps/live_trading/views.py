@@ -118,9 +118,12 @@ def vigil_signals_json(request):
 
     Un seul appel à Vigil par chargement de page (jamais un appel par actif suivi),
     filtrage effectué ici pour ménager le rate limit Vigil partagé entre tous les
-    utilisateurs Tradiaries. N'expose que les champs nécessaires à un affichage neutre
-    (pas de `raw_payload`/`news_score` bruts) : pas de couleur directionnelle, pas de
+    utilisateurs Tradiaries. Affichage neutre : pas de couleur directionnelle, pas de
     CTA d'action, `reliability_tier` conservé pour distinguer fait et opinion.
+    `raw_payload` n'est jamais exposé (peut contenir des identifiants d'article/données
+    brutes de la source). `impact_score`/`news_score` sont exposés depuis le 2026-09-27
+    (vue détaillée de la news, décision révisée — voir `.ai/decisions.md`) : ce sont des
+    scores de fiabilité/nouveauté, pas des signaux directionnels bull/bear.
     """
     preferences = UserPreferences.objects.filter(user=request.user).first()
     tracked_assets = set(preferences.tracked_assets) if preferences else set()
@@ -132,6 +135,8 @@ def vigil_signals_json(request):
             'summary': signal.get('summary'),
             'timestamp': signal.get('timestamp'),
             'reliability_tier': signal.get('reliability_tier'),
+            'impact_score': signal.get('impact_score'),
+            'news_score': signal.get('news_score'),
         }
         for signal in fetch_vigil_signals()
         if signal.get('ticker') is None or signal.get('ticker') in tracked_assets

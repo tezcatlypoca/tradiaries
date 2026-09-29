@@ -84,7 +84,30 @@
     padding: 0.75rem;
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 0.4rem;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.vigil-signal-card:hover,
+.vigil-signal-card:focus-visible {
+    border-color: var(--accent, #10b981);
+    outline: none;
+}
+
+.vigil-signal-tag {
+    align-self: flex-start;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--accent, #10b981);
+    background: rgba(16, 185, 129, 0.12);
+    border-radius: 4px;
+    padding: 2px 8px;
 }
 
 .vigil-signal-tier {
@@ -109,6 +132,97 @@
 .vigil-signal-meta {
     font-size: 0.75rem;
     color: var(--text-secondary, #91a3ad);
+}
+
+.vigil-signal-dialog {
+    width: min(480px, 92vw);
+    padding: 0;
+    border: 1px solid var(--border, #273542);
+    border-radius: 8px;
+    background: var(--surface-2, #131a22);
+    color: var(--text-primary, #f1f7f5);
+}
+
+.vigil-signal-dialog::backdrop {
+    background: rgba(3, 6, 9, 0.6);
+}
+
+.vigil-signal-dialog-form {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 1.5rem;
+}
+
+.vigil-signal-dialog-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary, #91a3ad);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0.25rem;
+}
+
+.vigil-signal-dialog-close:hover {
+    color: var(--text-primary, #f1f7f5);
+}
+
+.vigil-signal-dialog-summary {
+    margin: 0.25rem 0 0;
+    font-size: 1.1rem;
+    line-height: 1.4;
+}
+
+.vigil-signal-dialog-meta {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #91a3ad);
+}
+
+.vigil-signal-scores {
+    width: 100%;
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--border, #273542);
+    padding-top: 0.75rem;
+}
+
+.vigil-signal-scores > summary {
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--accent, #10b981);
+    font-weight: 600;
+}
+
+.vigil-signal-scores-empty {
+    margin: 0.5rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #91a3ad);
+}
+
+.vigil-signal-score-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: 0.85rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border, #273542);
+}
+
+.vigil-signal-score-row:last-child {
+    border-bottom: none;
+}
+
+.vigil-signal-score-label {
+    color: var(--text-secondary, #91a3ad);
+}
+
+.vigil-signal-score-value {
+    font-weight: 600;
 }
 
 .trading-chart {

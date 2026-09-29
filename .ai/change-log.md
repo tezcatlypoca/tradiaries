@@ -1,7 +1,48 @@
 # Tradiaries — Change Log
 
 **Format** : ISO 8601 YYYY-MM-DD | Catégorie | Description courte | Fichiers modifiés  
-**Dernière entrée** : 2026-09-25
+**Dernière entrée** : 2026-09-27
+
+---
+
+## 2026-09-27 | FEATURE | Bandeau Vigil : tags + titre sur les cards, vue détaillée cliquable avec scores
+
+### Décision implémentée
+Suite à une demande directe de l'utilisateur (implémentation directe, sans repasser par Challenge/Gel/Planification — même précédent que le 2026-09-21). Confirmé avec l'utilisateur avant implémentation (voir questions posées en session) : exposer `impact_score`/`news_score` dans la vue détaillée (révision assumée de la décision du 2026-09-25, documentée dans `decisions.md`), et traiter `summary` à la fois comme titre (tronqué visuellement par le CSS de la card) et comme corps complet (pas de champ distinct côté API Vigil).
+
+### Implémentation
+- `apps/live_trading/views.py::vigil_signals_json` : ajout de `impact_score`/`news_score` au JSON exposé (toujours **pas** de `raw_payload`).
+- `apps/live_trading/templates/live_trading/live_trading.html` :
+  - Card Vigil : nouveau tag dérivé de `source` (`VIGIL_SOURCE_TAGS` — ex. `onchain_ethereum` → "On-chain", `news_editorial`/`news_aggregator` → "Éditorial") affiché au-dessus du badge de fiabilité existant. Card transformée en `<button>` cliquable (accessible clavier).
+  - Nouvelle `<dialog id="vigilSignalDialog">` (natif HTML, `showModal()`) : résumé complet, tag, fiabilité, ticker + date formatée, et un bloc scores dans un `<details>` replié par défaut ("Voir les scores détaillés" — spoiler, cohérent avec le principe d'affichage neutre : les scores restent une consultation volontaire). Fermeture par `✕`, clic sur le fond, ou touche Échap (comportement natif `<dialog>`).
+  - Scores affichés : `impact_score`, `news_score.novelty`, `news_score.source_count`, `news_score.importance` (par bucket intraday/swing/position) — absents proprement (message dédié) si le signal n'a aucun score.
+- `static/css/trading.css` : styles `.vigil-signal-tag`, `.vigil-signal-dialog*`, `.vigil-signal-score*` (thème sombre cohérent avec le reste de la page Trading).
+
+### Tests
+- `apps/live_trading/tests.py::VigilSignalsJsonViewTests::test_exposes_scores_but_never_raw_payload` (nouveau) : vérifie `news_score`/`impact_score` transmis, `raw_payload` toujours absent.
+- Suite complète : 96 tests, tous verts (`python manage.py test apps.live_trading apps.core apps.dashboard apps.positions`).
+
+### Vérification manuelle
+Serveur de dev + compte de test temporaire (`vigil_manual_check2`, supprimé après coup) via Claude in Chrome : 4 cards mockées injectées en JS (tags Éditorial/Flux ETF/On-chain visibles, un signal macro `ticker=null` sans tag actif rendu correctement), clic sur une card ouvre le dialog avec résumé complet + métadonnées, ouverture du spoiler affiche les 6 lignes de score attendues (Impact, Nouveauté, Sources corroborantes, Importance ×3), signal sans score affiche "Aucun score disponible pour ce signal." Aucune erreur console.
+
+**Fichiers modifiés** : `apps/live_trading/views.py`, `apps/live_trading/templates/live_trading/live_trading.html`, `static/css/trading.css`, `apps/live_trading/tests.py`, `.ai/decisions.md`.
+
+---
+
+## 2026-09-27 | FIX/DOC | Bandeau Vigil invisible en local — VIGIL_API_URL sans préfixe /api
+
+### Constat
+Session de reprise sur l'intégration Vigil (état vérifié cohérent, aucune contradiction code/doc). L'utilisateur a signalé le bandeau de news vide sur la page Trading en local, malgré une instance Vigil locale fonctionnelle (confirmée via son interface de monitoring et `curl http://localhost:8100/api/health`).
+
+### Cause
+`.env` local avait `VIGIL_API_URL="http://localhost:8100/"` (sans `/api`). `apps/core/vigil_client.py::fetch_signals()` construit l'URL comme `{VIGIL_API_URL}/signals` — le préfixe `/api` doit donc déjà être inclus dans `VIGIL_API_URL` (cohérent avec l'exemple de client officiel dans `docs/API_DOCUMENTATION.md`). Résultat : 404 côté Vigil, avalé silencieusement par `except requests.RequestException` → `fetch_signals()` retourne `[]` sans erreur visible, bandeau resté masqué (comportement de dégradation gracieuse fonctionnant comme prévu, mais masquant la vraie cause).
+
+### Correctif
+- `.env` local corrigé : `VIGIL_API_URL="http://localhost:8100/api"` (non commité, fichier gitignored).
+- `.env.example` : ajout des variables `VIGIL_API_URL`/`VIGIL_BEARER_TOKEN`/`VIGIL_TIMEOUT_SECONDS` (absentes jusqu'ici, alors que documentées comme requises dans `project-context.md`), avec commentaire explicite sur le préfixe `/api` obligatoire et sur le bearer optionnel en dev si l'auth est désactivée côté Vigil.
+
+### Fichiers modifiés
+- `.env.example`
 
 ---
 

@@ -143,6 +143,35 @@ class VigilSignalsJsonViewTests(TestCase):
         # Affichage neutre : jamais de raw_payload/news_score bruts exposés au front.
         self.assertNotIn('raw_payload', data['signals'][0])
 
+    @patch('apps.live_trading.views.fetch_vigil_signals')
+    def test_exposes_scores_but_never_raw_payload(self, mocked_fetch):
+        UserPreferences.objects.create(user=self.user, tracked_assets=['ETH'])
+        mocked_fetch.return_value = [
+            {
+                'ticker': 'ETH', 'summary': 'Ethereum upgrade', 'source': 'news_editorial',
+                'timestamp': 't2', 'reliability_tier': 3, 'raw_payload': {'article_id': 'abc123'},
+                'impact_score': None,
+                'news_score': {
+                    'event_key': 'event-0',
+                    'importance': {'intraday': 4, 'swing': 6, 'position': 8},
+                    'novelty': 10,
+                    'source_count': 2,
+                    'scoring_version': 'v1-heuristic',
+                },
+            },
+        ]
+        request = RequestFactory().get('/live/vigil-signals.json')
+        request.user = self.user
+
+        response = vigil_signals_json(request)
+
+        data = json.loads(response.content)
+        signal = data['signals'][0]
+        self.assertNotIn('raw_payload', signal)
+        self.assertEqual(signal['news_score']['novelty'], 10)
+        self.assertEqual(signal['news_score']['importance']['swing'], 6)
+        self.assertIsNone(signal['impact_score'])
+
     @patch('apps.live_trading.views.fetch_vigil_signals', return_value=[])
     def test_returns_empty_list_when_vigil_unavailable(self, _mocked_fetch):
         request = RequestFactory().get('/live/vigil-signals.json')

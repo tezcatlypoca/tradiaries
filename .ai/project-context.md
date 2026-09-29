@@ -1,7 +1,7 @@
 # Tradiaries — Project Context
 
-**Dernière mise à jour** : 2026-09-25  
-**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI trading refondue (drag & drop TP/SL fiabilisé, SAR corrigé, graphiques synchronisés), page Positions limitée aux positions clôturées, multi-utilisateur opérationnel, audit trail clés API, suite de tests renforcée (watcher/kraken_client/portfolio_service/dashboard), bandeau de news Vigil sur la page Trading, refonte responsive tablette + smartphone (menu, tableaux, page Trading), 95 tests ✅. **Coach IA** : relocalisé de Vigil vers Tradiaries (voir `docs/coach-ia-vers-tradiaries-2026-09-25.md`), cadrage repris tel quel (v1 = rule-checker déterministe), pas encore démarré.
+**Dernière mise à jour** : 2026-09-27  
+**État générale** : Fonctionnel en dev, PWA avec icon candlestick, UI trading refondue (drag & drop TP/SL fiabilisé, SAR corrigé, graphiques synchronisés), page Positions limitée aux positions clôturées, multi-utilisateur opérationnel, audit trail clés API, suite de tests renforcée (watcher/kraken_client/portfolio_service/dashboard), bandeau de news Vigil sur la page Trading (cards avec tag/titre cliquables, vue détaillée avec scores), refonte responsive tablette + smartphone (menu, tableaux, page Trading), 96 tests ✅. **Coach IA** : relocalisé de Vigil vers Tradiaries (voir `docs/coach-ia-vers-tradiaries-2026-09-25.md`), cadrage repris tel quel (v1 = rule-checker déterministe), pas encore démarré.
 
 ## Cadrage
 
@@ -137,13 +137,16 @@
 - 🟡 Bug connu découvert (non corrigé, voir `change-log.md` 2026-09-22) : caractère `✓` non encodable en cp1252 dans `watch_tp_sl.py` — cycle réussi mal classé "échec" sur console Windows par défaut (sans impact prod, Railway = Linux/UTF-8)
 - **Hors périmètre (décision gelée)** : ordres futures LIVE via API Kraken Futures — voir `decisions.md`, rejetée le 2026-09-22
 
-#### Bandeau news Vigil sur la page Trading (2026-09-25)
+#### Bandeau news Vigil sur la page Trading (2026-09-25, complété 2026-09-27)
+- ✅ (2026-09-27) Card cliquable : tag dérivé de la source (ex. "On-chain", "Éditorial") + titre (résumé) affichés, clic ouvre une vue détaillée (`<dialog>` natif) avec résumé complet, métadonnées, et un spoiler replié affichant `impact_score`/`news_score` (importance intraday/swing/position, nouveauté, sources corroborantes) — voir `decisions.md` pour la révision assumée de l'exposition des scores.
 - ✅ `apps/core/vigil_client.py` : client HTTP Vigil (bearer token, dégradation gracieuse — `[]` si Vigil indisponible/mal configuré, jamais d'exception)
 - ✅ `UserPreferences.tracked_assets` (JSONField) : liste d'actifs suivis, réglable dans Paramètres (checkboxes, réutilise `DEFAULT_TRADING_SYMBOLS`)
-- ✅ Endpoint `vigil-signals.json` : un seul appel Vigil par chargement de page, filtré (actifs suivis + signaux macro/géopolitiques `ticker=null` toujours inclus), n'expose que les champs nécessaires à un affichage neutre (jamais `raw_payload`/`news_score` bruts)
+- ✅ Endpoint `vigil-signals.json` : un seul appel Vigil par chargement de page, filtré (actifs suivis + signaux macro/géopolitiques `ticker=null` toujours inclus) ; n'expose jamais `raw_payload`, mais expose désormais `impact_score`/`news_score` depuis le 2026-09-27 (voir ligne ci-dessus et `decisions.md`)
 - ✅ Bandeau sur la page Trading : scroll horizontal **manuel** (pas d'auto-scroll), cards neutres (badge de fiabilité textuel, pas de code couleur directionnel, pas de CTA d'action) — voir Challenge/`decisions.md` du 2026-09-25 pour le raisonnement complet
-- ✅ Tests : `VigilClientTests` (5), `VigilSignalsJsonViewTests` (3), 2 tests `SaveStrategyViewTests` — suite complète 95 tests, tous verts
-- 🟡 Non couvert par les tests automatisés : rendu visuel réel du scroll horizontal — vérifié par `curl` + utilisateur de test cette session (extension navigateur Claude in Chrome non connectée), vérification visuelle en navigateur encore à faire
+- ✅ Tests : `VigilClientTests` (5), `VigilSignalsJsonViewTests` (4, +1 le 2026-09-27 pour les scores), 2 tests `SaveStrategyViewTests` — suite complète 96 tests, tous verts
+- ✅ (2026-09-27) Rendu des cards + dialog de détail vérifié en navigateur (Claude in Chrome, compte de test temporaire, données Vigil mockées en JS) : tags/titre/scores s'affichent correctement, aucune erreur console
+- 🟡 Non couvert par les tests automatisés : rendu visuel réel avec de vraies données Vigil (la vérification du 2026-09-27 utilise des signaux mockés côté client, pas un appel réel à une instance Vigil) ; scroll horizontal du bandeau avec plusieurs cards réelles pas revérifié depuis le 2026-09-25
+- 🟡 (2026-09-27) Cause du bandeau vide en local identifiée et corrigée : `VIGIL_API_URL` locale sans préfixe `/api` (voir `change-log.md` 2026-09-27) — `.env.example` documente désormais ce préfixe requis. Vigil local confirmé opérationnel (news visibles côté interface de monitoring Vigil), mais rendu effectif du bandeau sur la page Trading après correctif pas encore confirmé par l'utilisateur
 - **Hors périmètre de ce chantier** : Coach IA (aucune dépendance de code, seule l'API Vigil est partagée)
 
 #### Refonte responsive tablette + smartphone (2026-09-25)

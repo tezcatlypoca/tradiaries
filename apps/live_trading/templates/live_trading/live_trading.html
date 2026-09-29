@@ -56,6 +56,22 @@
                 <div class="vigil-signals-track" id="vigilSignalsTrack"></div>
             </div>
 
+            <!-- Vue détaillée d'une news Vigil (résumé complet, métadonnées, scores) -->
+            <dialog id="vigilSignalDialog" class="vigil-signal-dialog">
+                <form method="dialog" class="vigil-signal-dialog-form">
+                    <button type="submit" class="vigil-signal-dialog-close" aria-label="Fermer">✕</button>
+                    <span class="vigil-signal-tag" id="vigilDialogTag"></span>
+                    <span class="vigil-signal-tier" id="vigilDialogTier"></span>
+                    <h2 id="vigilDialogSummary" class="vigil-signal-dialog-summary"></h2>
+                    <p class="vigil-signal-dialog-meta" id="vigilDialogMeta"></p>
+
+                    <details class="vigil-signal-scores" id="vigilDialogScoresWrapper">
+                        <summary>Voir les scores détaillés</summary>
+                        <div id="vigilDialogScores"></div>
+                    </details>
+                </form>
+            </dialog>
+
             <!-- Ticket d'ordre + graphique -->
             <form id="positionForm" method="POST" action="{% url 'live_trading:open' %}" class="trading-workspace">
                 {% csrf_token %}
@@ -839,27 +855,136 @@
 
     const VIGIL_TIER_LABELS = { 1: 'Fait vérifié', 2: 'Donnée quantitative', 3: 'Analyse' };
 
+    // `source` Vigil -> tag lisible affiché sur la card (pas de champ `tags` côté API,
+    // dérivé de la source la plus proche du vocabulaire métier : "on-chain", "editorial"...)
+    const VIGIL_SOURCE_TAGS = {
+        news_aggregator: 'Éditorial',
+        news_editorial: 'Éditorial',
+        etf_flow: 'Flux ETF',
+        crypto_market: 'Marché',
+        crypto_prices: 'Prix',
+        onchain_ethereum: 'On-chain',
+        defi_tvl: 'DeFi',
+    };
+
+    const VIGIL_TIMEFRAME_LABELS = { intraday: 'Intraday', swing: 'Swing', position: 'Position' };
+
+    function vigilSourceTag(signal) {
+        return VIGIL_SOURCE_TAGS[signal.source] || signal.source || 'Signal';
+    }
+
+    function vigilFormatTimestamp(signal) {
+        if (!signal.timestamp) { return ''; }
+        const parsed = new Date(signal.timestamp);
+        return Number.isNaN(parsed.getTime()) ? signal.timestamp : parsed.toLocaleString('fr-FR');
+    }
+
     function renderVigilCard(signal) {
-        const card = document.createElement('div');
+        const card = document.createElement('button');
+        card.type = 'button';
         card.className = 'vigil-signal-card';
+
+        const tag = document.createElement('span');
+        tag.className = 'vigil-signal-tag';
+        tag.textContent = vigilSourceTag(signal);
+        card.appendChild(tag);
 
         const tier = document.createElement('span');
         tier.className = 'vigil-signal-tier';
         tier.textContent = VIGIL_TIER_LABELS[signal.reliability_tier] || 'Signal';
         card.appendChild(tier);
 
-        const summary = document.createElement('p');
-        summary.className = 'vigil-signal-summary';
-        summary.textContent = signal.summary || '';
-        card.appendChild(summary);
+        const title = document.createElement('p');
+        title.className = 'vigil-signal-summary';
+        title.textContent = signal.summary || '';
+        card.appendChild(title);
 
         const meta = document.createElement('span');
         meta.className = 'vigil-signal-meta';
         meta.textContent = (signal.ticker ? `${signal.ticker} · ` : '') + (signal.source || '');
         card.appendChild(meta);
 
+        card.addEventListener('click', () => openVigilSignalDialog(signal));
+
         return card;
     }
+
+    function renderVigilScores(signal) {
+        const container = document.getElementById('vigilDialogScores');
+        container.innerHTML = '';
+
+        const hasImpact = typeof signal.impact_score === 'number';
+        const hasNewsScore = !!signal.news_score;
+
+        if (!hasImpact && !hasNewsScore) {
+            const empty = document.createElement('p');
+            empty.className = 'vigil-signal-scores-empty';
+            empty.textContent = 'Aucun score disponible pour ce signal.';
+            container.appendChild(empty);
+            return;
+        }
+
+        if (hasImpact) {
+            container.appendChild(vigilScoreRow('Impact', `${signal.impact_score}/10`));
+        }
+
+        if (hasNewsScore) {
+            const news = signal.news_score;
+            if (news.novelty !== undefined && news.novelty !== null) {
+                container.appendChild(vigilScoreRow('Nouveauté', `${news.novelty}/10`));
+            }
+            if (news.source_count !== undefined && news.source_count !== null) {
+                container.appendChild(vigilScoreRow('Sources corroborantes', `${news.source_count}`));
+            }
+            if (news.importance) {
+                Object.entries(news.importance).forEach(([timeframe, value]) => {
+                    const label = VIGIL_TIMEFRAME_LABELS[timeframe] || timeframe;
+                    container.appendChild(vigilScoreRow(`Importance (${label})`, `${value}/10`));
+                });
+            }
+        }
+    }
+
+    function vigilScoreRow(label, value) {
+        const row = document.createElement('div');
+        row.className = 'vigil-signal-score-row';
+
+        const rowLabel = document.createElement('span');
+        rowLabel.className = 'vigil-signal-score-label';
+        rowLabel.textContent = label;
+        row.appendChild(rowLabel);
+
+        const rowValue = document.createElement('span');
+        rowValue.className = 'vigil-signal-score-value';
+        rowValue.textContent = value;
+        row.appendChild(rowValue);
+
+        return row;
+    }
+
+    function openVigilSignalDialog(signal) {
+        const dialog = document.getElementById('vigilSignalDialog');
+        document.getElementById('vigilDialogTag').textContent = vigilSourceTag(signal);
+        document.getElementById('vigilDialogTier').textContent = VIGIL_TIER_LABELS[signal.reliability_tier] || 'Signal';
+        document.getElementById('vigilDialogSummary').textContent = signal.summary || '';
+        document.getElementById('vigilDialogMeta').textContent =
+            (signal.ticker ? `${signal.ticker} · ` : '') + vigilFormatTimestamp(signal);
+        // Repliée par défaut à chaque ouverture : les scores restent une consultation
+        // volontaire, pas la première chose lue (cohérent avec l'affichage neutre du bandeau).
+        document.getElementById('vigilDialogScoresWrapper').removeAttribute('open');
+        renderVigilScores(signal);
+        if (typeof dialog.showModal === 'function') {
+            dialog.showModal();
+        } else {
+            dialog.setAttribute('open', '');
+        }
+    }
+
+    document.getElementById('vigilSignalDialog').addEventListener('click', (event) => {
+        if (event.target.id === 'vigilSignalDialog') {
+            event.target.close();
+        }
+    });
 
     async function loadVigilSignals() {
         try {
